@@ -1,7 +1,11 @@
 // Vercel serverless function — /api/process-pdf
 // Extracts text from PDF using pdf-parse, then calls OpenAI GPT-4o-mini
-import { PDFParse } from 'pdf-parse';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
 import OpenAI from 'openai';
+
+console.log('[API] process-pdf initialized with classic pdf-parse');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -76,10 +80,10 @@ export default async function handler(req, res) {
         if (!pdfBase64) return res.status(400).json({ error: 'pdfBase64 es requerido' });
 
         console.log('[process-pdf] Iniciando extraccion de PDF (v1.1.1)...');
-        
+
         // 1. Extract text from PDF
         const buffer = Buffer.from(pdfBase64, 'base64');
-        
+
         let pdfText = '';
         try {
             const data = await pdf(buffer);
@@ -111,7 +115,7 @@ export default async function handler(req, res) {
 
         const msg = completion.choices[0];
         const content = msg?.message?.content;
-        
+
         if (!content) throw new Error('OpenAI no devolvió respuesta');
 
         let data;
