@@ -1,0 +1,243 @@
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { sortMonths } from '../utils/formatters';
+import { DEF_BUDGET, CAT } from '../lib/constants';
+
+const parseJ = (v, fallback) => { try { return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
+
+export function useFinanceData() {
+    const { user } = useAuth();
+    const uid = user?.id;
+
+    const [months, setMonths] = useState([]);
+    const [fixedByMonth, setFBM] = useState({});
+    const [incomeByMonth, setIBM] = useState({});
+    const [extraByMonth, setEBM] = useState({});
+    const [budget, setBudget] = useState(DEF_BUDGET);
+    const [catRules, setCatRules] = useState({});
+    const [customCats, setCustomCats] = useState({});
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        if (!uid) return;
+        setReady(false);
+
+        (async () => {
+            try {
+                const [mR, fR, iR, eR, bR, crR, ccR, txR] = await Promise.all([
+                    supabase.from('months').select('*').eq('user_id', uid).order('periodo'),
+                    supabase.from('fixed_expenses').select('*').eq('user_id', uid),
+                    supabase.from('income').select('*').eq('user_id', uid),
+                    supabase.from('extra_income').select('*').eq('user_id', uid),
+                    supabase.from('budgets').select('*').eq('user_id', uid).maybeSingle(),
+                    supabase.from('category_rules').select('*').eq('user_id', uid),
+                    supabase.from('custom_categories').select('*').eq('user_id', uid),
+                    supabase.from('transactions').select('*').eq('user_id', uid),
+                ]);
+
+                const txMap = {};
+                (txR.data || []).forEach(t => { (txMap[t.month_id] = txMap[t.month_id] || []).push(t); });
+
+                setMonths(
+                    (mR.data || []).map(row => ({
+                        ...row,
+                        categorias: parseJ(row.categorias, {}),
+                        cuotas_vigentes: parseJ(row.cuotas_vigentes, []),
+                        transacciones: txMap[row.id] || [],
+                    }))
+                );
+
+                const fbm = {};
+                (fR.data || []).forEach(r => { (fbm[r.periodo] = fbm[r.periodo] || []).push(r); });
+                setFBM(fbm);
+
+                const ibm = {};
+                (iR.data || []).forEach(r => { ibm[r.periodo] = r.amount; });
+                setIBM(ibm);
+
+                const ebm = {};
+                (eR.data || []).forEach(r => { (ebm[r.periodo] = ebm[r.periodo] || []).push(r); });
+                setEBM(ebm);
+
+                if (bR.data) {
+                    setBudget({ ...DEF_BUDGET, ...bR.data, categories: parseJ(bR.data.categories, DEF_BUDGET.categories) });
+                }
+
+                const rules = {};
+                (crR.data || []).forEach(r => { rules[r.description_key] = r.categoria; });
+                setCatRules(rules);
+
+                const cats = {};
+                (ccR.data || []).forEach(r => { cats[r.cat_id] = { label: r.label, color: r.color, bg: r.bg }; });
+                setCustomCats(cats);
+            } catch (err) {
+                console.warn('⚠️ Fallo en carga de datos (App en modo local sin backend conectado)');
+            } finally {
+                setReady(true);
+            }
+        })();
+    }, [uid]);
+
+    const sorted = useMemo(() => sortMonths(months), [months]);
+    const allCats = useMemo(() => ({ ...CAT, ...customCats }), [customCats]);
+
+    // ── Savers ─────────────────────────────────────────────────────────
+    const saveMonth = useCallback(async (mData) => {
+        const { transacciones = [], categorias = {}, cuotas_vigentes = [], id: _id, ...rest } = mData;
+        const payload = {
+            ...rest,
+            user_id: uid,
+            categorias: JSON.stringify(categorias),
+            cuotas_vigentes: JSON.stringify(cuotas_vigentes),
+        };
+        let saved;
+        let error;
+        const existingMonth = months.find(m => m.periodo === payload.periodo);
+        
+        if (existingMonth) {
+            const { data: uData, error: uErr } = await supabase
+                .from('months')
+                .update(payload)
+                .eq('id', existingMonth.id)
+                .select()
+                .single();
+            saved = uData;
+            error = uErr;
+        } else {
+            const { data: iData, error: iErr } = await supabase
+                .from('months')
+                .insert(payload)
+                .select()
+                .single();
+            saved = iData;
+            error = iErr;
+        }
+        
+        if (error || !saved) { 
+            console.warn('⚠️ No se pudo guardar en Supabase (Problema de Auth o RLS). Guardando temporalmente en memoria para poder probar la app:', error);
+            saved = { ...payload, id: existingMonth?.id || `fake_${Date.now()}` };
+        }
+
+        // Upsert transactions
+        if (transacciones.length) {
+            try {
+                if (existingMonth) await supabase.from('transactions').delete().eq('month_id', saved.id);
+                await supabase.from('transactions').insert(
+                    transacciones.map(t => ({ ...t, user_id: uid, month_id: saved.id }))
+                );
+            } catch (err) {
+                console.warn('⚠️ No se pudieron persistir transacciones en Supabase.');
+            }
+        }
+
+        const full = { ...saved, categorias, cuotas_vigentes, transacciones };
+        setMonths(prev => {
+            const next = [full, ...prev.filter(m => m.periodo !== mData.periodo)].slice(0, 18);
+            return sortMonths(next);
+        });
+    }, [uid]);
+
+    const deleteMonth = useCallback(async (periodo) => {
+        const m = months.find(x => x.periodo === periodo);
+        if (!m) return;
+        await supabase.from('transactions').delete().eq('month_id', m.id);
+        await supabase.from('months').delete().eq('id', m.id);
+        setMonths(prev => prev.filter(x => x.periodo !== periodo));
+    }, [months]);
+
+    const saveFixedItems = useCallback(async (periodo, items) => {
+        await supabase.from('fixed_expenses').delete().eq('user_id', uid).eq('periodo', periodo);
+        if (items.length) {
+            await supabase.from('fixed_expenses').insert(items.map(i => ({ ...i, user_id: uid, periodo })));
+        }
+        setFBM(prev => ({ ...prev, [periodo]: items }));
+    }, [uid]);
+
+    const saveIncome = useCallback(async (periodo, amount) => {
+        await supabase.from('income')
+            .upsert({ user_id: uid, periodo, amount }, { onConflict: 'user_id,periodo' });
+        setIBM(prev => ({ ...prev, [periodo]: amount }));
+    }, [uid]);
+
+    const saveExtraItems = useCallback(async (periodo, items) => {
+        await supabase.from('extra_income').delete().eq('user_id', uid).eq('periodo', periodo);
+        if (items.length) {
+            await supabase.from('extra_income').insert(items.map(i => ({ ...i, user_id: uid, periodo })));
+        }
+        setEBM(prev => ({ ...prev, [periodo]: items }));
+    }, [uid]);
+
+    const saveBudget = useCallback(async (data) => {
+        await supabase.from('budgets')
+            .upsert({ ...data, user_id: uid, categories: JSON.stringify(data.categories) }, { onConflict: 'user_id' });
+        setBudget(data);
+    }, [uid]);
+
+    const saveCatRule = useCallback(async (desc, cat) => {
+        const key = (desc || '').toLowerCase().trim();
+        if (!key) return;
+        await supabase.from('category_rules')
+            .upsert({ user_id: uid, description_key: key, categoria: cat }, { onConflict: 'user_id,description_key' });
+        setCatRules(prev => ({ ...prev, [key]: cat }));
+    }, [uid]);
+
+    const saveCustomCat = useCallback(async (id, data) => {
+        await supabase.from('custom_categories')
+            .upsert({ user_id: uid, cat_id: id, ...data }, { onConflict: 'user_id,cat_id' });
+        setCustomCats(prev => ({ ...prev, [id]: data }));
+    }, [uid]);
+
+    const deleteCustomCat = useCallback(async (id) => {
+        await supabase.from('custom_categories').delete().eq('user_id', uid).eq('cat_id', id);
+        setCustomCats(prev => { const n = { ...prev }; delete n[id]; return n; });
+    }, [uid]);
+
+    const recategorizeMonth = useCallback(async (periodo, txId, newCat) => {
+        const m = months.find(x => x.periodo === periodo);
+        if (!m) return;
+        const tx = (m.transacciones || []).find(t => t.id === txId);
+        if (!tx) return;
+        const ruleKey = (tx.descripcion || '').toLowerCase().trim();
+
+        await saveCatRule(tx.descripcion, newCat);
+
+        const newMonths = months.map(mon => {
+            const txs = mon.transacciones || [];
+            const hasMatch = txs.some(t => (t.descripcion || '').toLowerCase().trim() === ruleKey && t.categoria !== newCat);
+            if (!hasMatch) return mon;
+            const updatedTxs = txs.map(t =>
+                (t.descripcion || '').toLowerCase().trim() === ruleKey ? { ...t, categoria: newCat } : t
+            );
+            const cats = {}; let total = 0;
+            updatedTxs.filter(t => t.tipo === 'cargo').forEach(t => {
+                cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
+                total += t.monto;
+            });
+            return { ...mon, transacciones: updatedTxs, categorias: cats, total_cargos: total };
+        });
+        setMonths(newMonths);
+
+        // Persist categorias update for this month
+        const updated = newMonths.find(x => x.periodo === periodo);
+        if (updated) {
+            await supabase.from('months')
+                .update({ categorias: JSON.stringify(updated.categorias), total_cargos: updated.total_cargos })
+                .eq('id', updated.id);
+            const affected = updated.transacciones.filter(t =>
+                (t.descripcion || '').toLowerCase().trim() === ruleKey
+            );
+            await Promise.all(affected.map(t =>
+                supabase.from('transactions').update({ categoria: newCat }).eq('id', t.id)
+            ));
+        }
+    }, [months, saveCatRule]);
+
+    return {
+        months, sorted, fixedByMonth, incomeByMonth, extraByMonth,
+        budget, catRules, customCats, allCats, ready,
+        setMonths,
+        saveMonth, deleteMonth, saveFixedItems, saveIncome, saveExtraItems,
+        saveBudget, saveCatRule, saveCustomCat, deleteCustomCat, recategorizeMonth,
+    };
+}

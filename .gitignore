@@ -1,0 +1,17 @@
+# General
+node_modules
+FILES/
+*.json
+*.pdf
+.env*
+.env.local
+
+# Vite app
+app/dist
+app/node_modules
+app/*.local
+
+# Misc
+.DS_Store
+.vscode
+.idea
