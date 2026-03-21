@@ -1,7 +1,7 @@
 # General
 node_modules
 FILES/
-*.json
+client_secret*.json
 *.pdf
 .env*
 .env.local
