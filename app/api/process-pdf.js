@@ -68,29 +68,26 @@ export default async function handler(req, res) {
     // Check API Key
     if (!process.env.OPENAI_API_KEY) {
         console.error('[process-pdf] MISSING OPENAI_API_KEY');
-        return res.status(500).json({ error: 'Falta la API Key de OpenAI en Vercel (Configuración de variables de entorno).' });
+        return res.status(500).json({ error: 'Falta la API Key de OpenAI en Vercel.' });
     }
 
     try {
         const { pdfBase64, bank = 'santander_tc' } = req.body;
         if (!pdfBase64) return res.status(400).json({ error: 'pdfBase64 es requerido' });
 
-        console.log('[process-pdf] Iniciando extraccion de PDF...');
+        console.log('[process-pdf] Iniciando extraccion de PDF (v1.1.1)...');
         
         // 1. Extract text from PDF
         const buffer = Buffer.from(pdfBase64, 'base64');
-        const parser = new PDFParse({ data: buffer });
         
         let pdfText = '';
         try {
-            const parsed = await parser.getText();
-            pdfText = parsed.text;
+            const data = await pdf(buffer);
+            pdfText = data.text;
             console.log(`[process-pdf] Texto extraído (${pdfText?.length || 0} caracteres)`);
         } catch (error) {
-            console.error('[process-pdf] Error en parser.getText():', error);
+            console.error('[process-pdf] Error en pdf-parse:', error);
             throw new Error(`Error al leer el PDF: ${error.message}`);
-        } finally {
-            await parser.destroy();
         }
 
         if (!pdfText || pdfText.trim().length < 50) {
