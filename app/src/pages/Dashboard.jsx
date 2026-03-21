@@ -16,7 +16,21 @@ export default DashboardInner;
 import { useState } from 'react';
 
 export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload, onGoHistory }) {
+    const defaultWindow = useMemo(() => {
+        if (!months?.length) return 1;
+        // Find last month with data
+        const lastWithData = [...months].reverse().findIndex(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0);
+        if (lastWithData === -1) return 1;
+        // We want to skip the empty months at the end
+        return lastWithData + 1;
+    }, [months]);
+
     const [windowSize, setWindowSize] = useState(1);
+    const [skipEnd, setSkipEnd] = useState(() => {
+        if (!months?.length) return 0;
+        const lastWithData = [...months].reverse().findIndex(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0);
+        return Math.max(0, lastWithData);
+    });
 
     if (!months?.length) return (
         <div className="empty-state animate-fadeIn">
@@ -44,8 +58,9 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
             .map(n => ({ value: n, label: `Prom. ${n} meses` })),
     ];
 
-    const effectiveWindow = Math.min(windowSize, totalMonths);
-    const series = allSeries.slice(-effectiveWindow);
+    const effectiveWindow = Math.min(windowSize, totalMonths - skipEnd);
+    const endIdx = allSeries.length - skipEnd;
+    const series = allSeries.slice(Math.max(0, endIdx - effectiveWindow), endIdx);
     const n = series.length;
     const isLastOnly = n === 1;
 
@@ -61,11 +76,11 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
     const catAgg = {};
     series.forEach(r => Object.entries(r.categorias).forEach(([k, v]) => { catAgg[k] = (catAgg[k] || 0) + v; }));
     const topCats = Object.entries(catAgg)
-        .map(([k, v]) => ({ key: k, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', total: v, avg: Math.round(v / n) }))
+        .map(([k, v]) => ({ key: k, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', total: v, avg: Math.round(v / (n || 1)) }))
         .sort((a, b) => b.total - a.total).slice(0, 8);
 
     const rateLine = series.map(r => ({ label: r.label, tasa: pct(r.ahorro, r.income) }));
-    const latest = allSeries[allSeries.length - 1];
+    const latest = series[series.length - 1];
     const donutData = topCats.slice(0, 6)
         .map(c => ({ name: c.label, value: latest?.categorias[c.key] || 0, color: c.color }))
         .filter(d => d.value > 0);

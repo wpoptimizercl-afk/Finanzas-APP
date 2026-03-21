@@ -8,7 +8,15 @@ import { getMonthFixed, getMonthFixedTotal, getMonthSalary, getMonthExtraItems, 
 import { SOURCE_OPTS } from '../lib/constants';
 
 export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload }) {
-    const [selIdx, setSelIdx] = useState(allMonths.length > 0 ? allMonths.length - 1 : 0);
+    const defaultIdx = useMemo(() => {
+        if (!allMonths.length) return 0;
+        // Find last month with data, otherwise last month in general
+        const lastWithData = [...allMonths].reverse().findIndex(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0);
+        if (lastWithData === -1) return allMonths.length - 1;
+        return allMonths.length - 1 - lastWithData;
+    }, [allMonths]);
+
+    const [selIdx, setSelIdx] = useState(defaultIdx);
 
     const clampedIdx = allMonths.length > 0 ? Math.min(selIdx, allMonths.length - 1) : 0;
     const latest = allMonths[clampedIdx] || null;
