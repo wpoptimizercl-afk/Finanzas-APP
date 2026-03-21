@@ -65,106 +65,72 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+    // Check API Key
+    if (!process.env.OPENAI_API_KEY) {
+        console.error('[process-pdf] MISSING OPENAI_API_KEY');
+        return res.status(500).json({ error: 'Falta la API Key de OpenAI en Vercel (Configuración de variables de entorno).' });
+    }
+
     try {
         const { pdfBase64, bank = 'santander_tc' } = req.body;
         if (!pdfBase64) return res.status(400).json({ error: 'pdfBase64 es requerido' });
 
+        console.log('[process-pdf] Iniciando extraccion de PDF...');
+        
         // 1. Extract text from PDF
         const buffer = Buffer.from(pdfBase64, 'base64');
         const parser = new PDFParse({ data: buffer });
-        const parsed = await parser.getText();
-        const pdfText = parsed.text;
-        await parser.destroy();
+        
+        let pdfText = '';
+        try {
+            const parsed = await parser.getText();
+            pdfText = parsed.text;
+            console.log(`[process-pdf] Texto extraído (${pdfText?.length || 0} caracteres)`);
+        } catch (error) {
+            console.error('[process-pdf] Error en parser.getText():', error);
+            throw new Error(`Error al leer el PDF: ${error.message}`);
+        } finally {
+            await parser.destroy();
+        }
 
         if (!pdfText || pdfText.trim().length < 50) {
-            return res.status(422).json({ error: 'No se pudo extraer texto del PDF. Verifica que no sea una imagen escaneada.' });
+            return res.status(422).json({ error: 'No se pudo extraer suficiente texto del PDF. Verifica que no sea una imagen escaneada.' });
         }
 
         // 2. Call OpenAI
+        console.log('[process-pdf] Llamando a OpenAI...');
         const bankHint = BANK_HINTS[bank] || BANK_HINTS.otro;
         const userMsg = `Banco/Producto: ${bankHint}\n\nTexto del estado de cuenta:\n\n${pdfText}`;
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4o-2024-08-06',
+            model: 'gpt-4o-mini',
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
                 { role: 'user', content: userMsg },
             ],
-            response_format: {
-                type: "json_schema",
-                json_schema: {
-                    name: "financial_extraction",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            razonamiento: { type: "string" },
-                            periodo: { type: "string" },
-                            periodo_desde: { type: "string" },
-                            periodo_hasta: { type: "string" },
-                            total_facturado: { type: "number" },
-                            transacciones: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        fecha: { type: "string" },
-                                        descripcion: { type: "string" },
-                                        monto: { type: "number" },
-                                        tipo: { type: "string", enum: ["cargo", "abono"] },
-                                        categoria: { type: "string" }
-                                    },
-                                    required: ["fecha", "descripcion", "monto", "tipo", "categoria"],
-                                    additionalProperties: false
-                                }
-                            },
-                            cuotas_vigentes: {
-                                type: "array",
-                                items: {
-                                    type: "object",
-                                    properties: {
-                                        descripcion: { type: "string" },
-                                        cuota_actual: { type: "number" },
-                                        total_cuotas: { type: "number" },
-                                        monto_cuota: { type: "number" }
-                                    },
-                                    required: ["descripcion", "cuota_actual", "total_cuotas", "monto_cuota"],
-                                    additionalProperties: false
-                                }
-                            }
-                        },
-                        required: ["razonamiento", "periodo", "periodo_desde", "periodo_hasta", "total_facturado", "transacciones", "cuotas_vigentes"],
-                        additionalProperties: false
-                    }
-                }
-            },
+            response_format: { type: "json_object" }, // Simple JSON mode for reliability
             temperature: 0,
         });
 
         const msg = completion.choices[0];
         const content = msg?.message?.content;
         
-        if (!content) return res.status(500).json({ error: 'OpenAI no devolvió respuesta' });
-
-        if (msg.finish_reason === 'length') {
-            console.warn('[process-pdf] La respuesta de OpenAI fue cortada por límite de tokens.');
-            return res.status(500).json({ error: 'El PDF tiene demasiadas transacciones y la IA se cortó.' });
-        }
+        if (!content) throw new Error('OpenAI no devolvió respuesta');
 
         let data;
         try {
             data = JSON.parse(content);
         } catch (e) {
-            console.error('[process-pdf] JSON Error Response:', content.slice(-200));
-            return res.status(500).json({ error: 'La IA no devolvió un JSON válido. Reintenta.' });
+            console.error('[process-pdf] JSON Error:', content);
+            throw new Error('La IA no devolvió un formato válido');
         }
 
         // 3. Normalize for frontend
         const output = {
             id: `month_${Date.now()}`,
-            periodo: data.periodo,
-            periodo_desde: data.periodo_desde,
-            periodo_hasta: data.periodo_hasta,
+            periodo: data.periodo || 'Desconocido',
+            periodo_desde: data.periodo_desde || '',
+            periodo_hasta: data.periodo_hasta || '',
             total_facturado: Number(data.total_facturado) || 0,
             transacciones: (data.transacciones || []).map((t, i) => ({
                 id: `tx_${i + 1}`,
@@ -182,22 +148,10 @@ export default async function handler(req, res) {
             }))
         };
 
-        // Recalculate spending of the month (TC cargos only)
-        output.total_cargos = output.transacciones
-            .filter(t => t.tipo === 'cargo')
-            .reduce((s, t) => s + t.monto, 0);
-
-        // Build categorias map
-        const categorias = {};
-        output.transacciones.filter(t => t.tipo === 'cargo').forEach(t => {
-            categorias[t.categoria] = (categorias[t.categoria] || 0) + t.monto;
-        });
-        output.categorias = categorias;
-
         return res.status(200).json(output);
 
     } catch (err) {
-        console.error('[process-pdf]', err);
-        return res.status(500).json({ error: err.message || 'Error interno del servidor' });
+        console.error('[process-pdf] ERROR FATAL:', err);
+        return res.status(500).json({ error: err.message || 'Error interno del servidor al procesar el PDF' });
     }
 };
