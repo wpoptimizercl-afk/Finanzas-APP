@@ -41,6 +41,7 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
         setDateRange({ start: '', end: '' });
     }, [selIdx]);
 
+    const isCC = month?.source_type === 'cc';
     const txs = month?.transacciones || [];
     const filtered = useMemo(() => {
         let res = txs;
@@ -68,7 +69,13 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
         return Object.entries(map).sort((a, b) => b[1].reduce((s, t) => s + t.monto, 0) - a[1].reduce((s, t) => s + t.monto, 0));
     }, [filtered]);
 
+    // CC: abonos separados para mostrarlos en su propia sección
+    const abonosCC = useMemo(() =>
+        isCC ? filtered.filter(t => t.tipo === 'abono').sort((a, b) => b.monto - a.monto) : []
+    , [filtered, isCC]);
+
     const totalTx = filtered.filter(t => t.tipo === 'cargo').reduce((s, t) => s + t.monto, 0);
+    const totalAbonos = abonosCC.reduce((s, t) => s + t.monto, 0);
 
     if (!sorted.length) return (
         <div className="animate-fadeIn">
@@ -91,7 +98,20 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                         <ChevronLeft size={16} />
                     </button>
                     <div style={{ minWidth: 140 }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{month?.periodo}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{month?.periodo}</div>
+                            {month && (
+                                <span style={{
+                                    fontSize: 10, fontWeight: 700, letterSpacing: '.06em',
+                                    padding: '2px 7px', borderRadius: 'var(--radius-full)',
+                                    background: isCC ? 'var(--success-light)' : 'var(--primary-light)',
+                                    color: isCC ? 'var(--success)' : 'var(--primary)',
+                                    border: `1px solid ${isCC ? 'var(--success-border)' : 'var(--primary-border)'}`,
+                                }}>
+                                    {isCC ? 'CC' : 'TC'}
+                                </span>
+                            )}
+                        </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{month?.periodo_desde} — {month?.periodo_hasta}</div>
                     </div>
                     <button onClick={() => setSelIdx(i => Math.min(sorted.length - 1, i + 1))} disabled={idx === sorted.length - 1}
@@ -150,11 +170,16 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                 </div>
             </div>
 
-            {/* Summary chip */}
+            {/* Summary chips */}
             <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    {filtered.filter(t => t.tipo === 'cargo').length} transacciones · {CLP(totalTx)}
+                    {filtered.filter(t => t.tipo === 'cargo').length} gastos · {CLP(totalTx)}
                 </span>
+                {isCC && totalAbonos > 0 && (
+                    <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', fontWeight: 500, color: 'var(--success)', border: '1px solid var(--success-border)' }}>
+                        {abonosCC.length} ingresos · +{CLP(totalAbonos)}
+                    </span>
+                )}
                 {query && (
                     <button onClick={() => setQuery('')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
                         ✕ {query}
@@ -194,7 +219,7 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                                             />
                                         </div>
                                     </div>
-                                    <div className="tx-amount">{CLP(t.monto)}</div>
+                                    <div className="tx-amount" style={{ color: 'var(--danger)' }}>{CLP(t.monto)}</div>
                                 </div>
                             ))}
                         </div>
@@ -202,7 +227,39 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                 );
             })}
 
-            {txs.length > 0 && !byCategory.length && query && (
+            {/* CC: sección de ingresos (abonos) */}
+            {isCC && abonosCC.length > 0 && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--success)', display: 'block' }} />
+                            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Ingresos recibidos</span>
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--success)' }}>+{CLP(totalAbonos)}</span>
+                    </div>
+                    <div className="card" style={{ padding: 0, overflow: 'visible' }}>
+                        {abonosCC.map((t, i) => {
+                            const catObj = allCats[t.categoria] || { label: t.categoria, color: '#059669', bg: '#ECFDF5' };
+                            return (
+                                <div key={t.id || i} className="tx-row">
+                                    <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
+                                        <div className="tx-desc">{t.descripcion}</div>
+                                        <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                                            <span>{t.fecha}</span>
+                                            <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 'var(--radius-full)', background: catObj.bg, color: catObj.color }}>
+                                                {catObj.label}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="tx-amount" style={{ color: 'var(--success)' }}>+{CLP(t.monto)}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {txs.length > 0 && !byCategory.length && !abonosCC.length && query && (
                 <div className="empty-state" style={{ paddingTop: '2rem' }}>
                     <div className="empty-state-title">Sin resultados</div>
                     <div className="empty-state-desc">"{query}" no coincide con ninguna transacción.</div>

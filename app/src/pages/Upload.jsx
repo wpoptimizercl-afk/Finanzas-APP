@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { BANKS, MONTH_NAMES } from '../lib/constants';
+import { buildMonthData } from '../utils/buildMonthData';
 
 const STATUS = { idle: 'idle', drag: 'drag', queue: 'queue', done: 'done' };
 
@@ -61,53 +62,12 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
 
                 const parsed = typeof data === 'string' ? JSON.parse(data) : data;
 
-                // Determine if this is a CC (cuenta corriente) response
+                const monthData = buildMonthData(parsed, catRules);
                 const isCC = parsed.source_type === 'cc';
-
-                // Protected categories that should not be overridden by catRules
-                const protectedCats = isCC
-                    ? ['traspaso_tc', 'comision_banco']
-                    : ['cargos_banco'];
-
-                // Apply catRules to transactions (never override protected categories)
-                const txs = (parsed.transacciones || []).map(t => {
-                    if (protectedCats.includes(t.categoria)) return t;
-                    const key = (t.descripcion || '').toLowerCase().trim();
-                    return catRules[key] ? { ...t, categoria: catRules[key] } : t;
-                });
-
-                // Recalculate categorias from transactions
-                const cats = {};
-                let totalCargos = 0;
-                txs.forEach(t => {
-                    // For CC: abonos go into categorias but not into totalCargos
-                    // traspaso_tc is not a real expense either
-                    if (t.tipo === 'abono' || t.tipo === 'traspaso_tc') {
-                        cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
-                        return;
-                    }
-                    if (t.tipo === 'cargo') {
-                        cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
-                        if (isCC) {
-                            // CC: exclude traspaso_tc and comision_banco from total
-                            if (t.categoria !== 'traspaso_tc') totalCargos += t.monto;
-                        } else {
-                            // TC: exclude cargos_banco to match "TOTAL OPERACIONES" del PDF
-                            if (t.categoria !== 'cargos_banco') totalCargos += t.monto;
-                        }
-                    }
-                });
-
-                const monthData = {
-                    ...parsed,
-                    transacciones: txs,
-                    categorias: cats,
-                    total_cargos: totalCargos,
-                };
 
                 // Mismatch check only applies to TC (CC cartolas don't have total_operaciones)
                 const totalOps = parsed.total_operaciones || 0;
-                const mismatch = !isCC && totalOps > 0 && Math.abs(totalOps - totalCargos) > 100;
+                const mismatch = !isCC && totalOps > 0 && Math.abs(totalOps - monthData.total_cargos) > 100;
 
                 // Check for existing period
                 const existing = months.find(m => m.periodo === parsed.periodo);
@@ -115,7 +75,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 await onSaveMonth({ ...monthData, periodo: saveKey });
                 stopProgress(item.id);
                 const doneMsg = mismatch
-                    ? `Guardado — faltan ~$${(totalOps - totalCargos).toLocaleString('es-CL')} según PDF`
+                    ? `Guardado — faltan ~$${(totalOps - monthData.total_cargos).toLocaleString('es-CL')} según PDF`
                     : existing && !overridePeriod ? 'Actualizado ✓' : 'Guardado ✓';
                 setQueue(q => q.map(x => x.id === item.id ? { ...x, status: mismatch ? 'warn' : 'done', progress: 100, msg: doneMsg, result: monthData } : x));
             } catch (e) {
@@ -204,9 +164,9 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                         return (
                             <div key={item.id} className={`queue-item${isProc ? ' active' : ''}`}>
                                 <div className="queue-status-dot" style={{
-                                    background: isFinished ? 'var(--success-light)' : isWarn ? 'var(--warning-light, #FEF3C7)' : isErr ? 'var(--danger-light)' : isProc ? 'var(--primary-light)' : 'var(--bg-hover)',
+                                    background: isWarn ? 'var(--warning-light, #FEF3C7)' : isDone ? 'var(--success-light)' : isErr ? 'var(--danger-light)' : isProc ? 'var(--primary-light)' : 'var(--bg-hover)',
                                 }}>
-                                    {isFinished ? <CheckCircle size={16} color="var(--success)" /> : isWarn ? <AlertCircle size={16} color="var(--warning, #D97706)" /> : isErr ? <AlertCircle size={16} color="var(--danger)" /> : <FileText size={16} color={isProc ? 'var(--primary)' : 'var(--text-tertiary)'} />}
+                                    {isWarn ? <AlertCircle size={16} color="var(--warning, #D97706)" /> : isDone ? <CheckCircle size={16} color="var(--success)" /> : isErr ? <AlertCircle size={16} color="var(--danger)" /> : <FileText size={16} color={isProc ? 'var(--primary)' : 'var(--text-tertiary)'} />}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.file.name}</div>
@@ -218,7 +178,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                                             <span className="queue-progress-pct">{item.progress ?? 0}%</span>
                                         </div>
                                     )}
-                                    <div style={{ fontSize: 11, color: isFinished ? 'var(--success)' : isWarn ? 'var(--warning, #D97706)' : isErr ? 'var(--danger)' : 'var(--text-tertiary)', marginTop: 2 }}>{item.msg}</div>
+                                    <div style={{ fontSize: 11, color: isWarn ? 'var(--warning, #D97706)' : isFinished ? 'var(--success)' : isErr ? 'var(--danger)' : 'var(--text-tertiary)', marginTop: 2 }}>{item.msg}</div>
                                 </div>
                                 {isProc && abortMap.current[item.id] && (
                                     <button onClick={() => abortMap.current[item.id]?.abort()} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)' }}>

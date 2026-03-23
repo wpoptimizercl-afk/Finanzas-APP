@@ -38,11 +38,18 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
     const extraTotal = getMonthExtraTotal(latest.periodo, extraByMonth);
     const income = salary + extraTotal;
     const incomeIsDefault = incomeByMonth[latest.periodo] == null && extraItems.length === 0;
+    const isCC = latest.source_type === 'cc';
     const tcTotal = latest.total_cargos || 0;
     const totalGasto = tcTotal + fixedTotal;
     const ahorro = income - totalGasto;
     const aRate = pct(ahorro, income);
     const aColor = ahorro >= income * .15 ? 'var(--success)' : ahorro >= 0 ? 'var(--warning)' : 'var(--danger)';
+
+    // CC-specific values
+    const ingresosCC = latest.ingresos_cc || 0;
+    const gastosCC = latest.total_cargos || 0;
+    const netoCC = ingresosCC - gastosCC;
+    const netoCCColor = netoCC >= 0 ? 'var(--success)' : 'var(--danger)';
     const budgetCats = budget.categories || {};
     const savingsGoal = budget.savingsGoal || 0;
     const prevCats = prevMonth ? (prevMonth.categorias || {}) : {};
@@ -77,7 +84,18 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <button style={navBtn(canPrev)} onClick={() => canPrev && setSelIdx(clampedIdx - 1)} disabled={!canPrev}><ChevronLeft size={16} /></button>
                     <div>
-                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{latest.periodo}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{latest.periodo}</div>
+                            <span style={{
+                                fontSize: 10, fontWeight: 700, letterSpacing: '.06em',
+                                padding: '2px 7px', borderRadius: 'var(--radius-full)',
+                                background: isCC ? 'var(--success-light)' : 'var(--primary-light)',
+                                color: isCC ? 'var(--success)' : 'var(--primary)',
+                                border: `1px solid ${isCC ? 'var(--success-border)' : 'var(--primary-border)'}`,
+                            }}>
+                                {isCC ? 'CC' : 'TC'}
+                            </span>
+                        </div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{latest.periodo_desde} — {latest.periodo_hasta}</div>
                     </div>
                     <button style={navBtn(canNext)} onClick={() => canNext && setSelIdx(clampedIdx + 1)} disabled={!canNext}><ChevronRight size={16} /></button>
@@ -88,47 +106,82 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
                 </div>
             </div>
 
-            {/* Metrics grid */}
+            {/* Metrics grid — adapts to TC vs CC */}
             <div className="dashboard-grid" style={{ marginBottom: 10 }}>
-                <Metric label="Ingreso" value={CLP(income)} color="var(--primary)" />
-                <Metric label="Gasto del mes" value={CLP(totalGasto)} color="var(--danger)" />
-                <Metric label="Saldo Tarjeta" value={CLP(latest.total_facturado || tcTotal)} color="var(--text-secondary)" />
-                <Metric label="Ahorro" value={CLP(ahorro)} color={aColor} />
+                {isCC ? (<>
+                    <Metric label="Ingresos CC" value={CLP(ingresosCC)} color="var(--success)" />
+                    <Metric label="Gastos CC" value={CLP(gastosCC)} color="var(--danger)" />
+                    <Metric
+                        label="Saldo final"
+                        value={CLP(latest.saldo_final || 0)}
+                        color="var(--primary)"
+                        note={latest.saldo_inicial != null ? `Inicio: ${CLP(latest.saldo_inicial)}` : undefined}
+                    />
+                    <Metric label="Neto del mes" value={CLP(netoCC)} color={netoCCColor} />
+                </>) : (<>
+                    <Metric label="Ingreso" value={CLP(income)} color="var(--primary)" />
+                    <Metric label="Gasto del mes" value={CLP(totalGasto)} color="var(--danger)" />
+                    <Metric label="Saldo tarjeta" value={CLP(latest.total_facturado || tcTotal)} color="var(--text-secondary)" />
+                    <Metric label="Ahorro" value={CLP(ahorro)} color={aColor} />
+                </>)}
             </div>
 
-            {/* Savings rate bar */}
-            <div className="card" style={{ padding: '14px 16px', marginBottom: savingsGoal > 0 ? 10 : '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Tasa de ahorro</span>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: aColor, letterSpacing: '-.5px' }}>{aRate}%</span>
-                </div>
-                <div className="progress-track">
-                    <div className="progress-bar" style={{ width: Math.max(0, aRate) + '%', background: aColor }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 7 }}>
-                    <span>Gasto total {CLP(totalGasto)}</span>
-                    <span>{CLP(ahorro)} disponible</span>
-                </div>
-            </div>
-
-            {/* Savings goal */}
-            {savingsGoal > 0 && (
-                <div className="card" style={{ padding: '14px 16px', marginBottom: '1.5rem', border: `1px solid ${goalMet ? 'var(--success-border)' : 'var(--border-medium)'}` }}>
+            {/* CC: resumen de flujo de caja */}
+            {isCC && (
+                <div className="card" style={{ padding: '14px 16px', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Meta de ahorro mensual</span>
-                        <div style={{ textAlign: 'right' }}>
-                            <span style={{ fontSize: 16, fontWeight: 700, color: goalColor, letterSpacing: '-.3px' }}>{CLP(ahorro)}</span>
-                            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 4 }}>/ {CLP(savingsGoal)}</span>
-                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Flujo de caja del mes</span>
+                        <span style={{ fontSize: 20, fontWeight: 700, color: netoCCColor, letterSpacing: '-.5px' }}>
+                            {netoCC >= 0 ? '+' : ''}{CLP(netoCC)}
+                        </span>
                     </div>
                     <div className="progress-track">
-                        <div className="progress-bar" style={{ width: Math.min(100, Math.max(0, goalPct)) + '%', background: goalColor }} />
+                        <div className="progress-bar" style={{
+                            width: ingresosCC > 0 ? Math.min(100, pct(gastosCC, ingresosCC)) + '%' : '0%',
+                            background: gastosCC > ingresosCC ? 'var(--danger)' : 'var(--success)',
+                        }} />
                     </div>
-                    <div style={{ fontSize: 11, color: goalColor, marginTop: 7, fontWeight: 500 }}>
-                        {goalMet ? `✓ Meta cumplida · superaste la meta por ${CLP(ahorro - savingsGoal)}` : `Te faltan ${CLP(savingsGoal - ahorro)} para alcanzar tu meta`}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 7 }}>
+                        <span>Gastos {CLP(gastosCC)}</span>
+                        <span>Ingresos {CLP(ingresosCC)}</span>
                     </div>
                 </div>
             )}
+
+            {/* Savings rate bar + meta de ahorro — TC only */}
+            {!isCC && (<>
+                <div className="card" style={{ padding: '14px 16px', marginBottom: savingsGoal > 0 ? 10 : '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Tasa de ahorro</span>
+                        <span style={{ fontSize: 20, fontWeight: 700, color: aColor, letterSpacing: '-.5px' }}>{aRate}%</span>
+                    </div>
+                    <div className="progress-track">
+                        <div className="progress-bar" style={{ width: Math.max(0, aRate) + '%', background: aColor }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 7 }}>
+                        <span>Gasto total {CLP(totalGasto)}</span>
+                        <span>{CLP(ahorro)} disponible</span>
+                    </div>
+                </div>
+
+                {savingsGoal > 0 && (
+                    <div className="card" style={{ padding: '14px 16px', marginBottom: '1.5rem', border: `1px solid ${goalMet ? 'var(--success-border)' : 'var(--border-medium)'}` }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Meta de ahorro mensual</span>
+                            <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: 16, fontWeight: 700, color: goalColor, letterSpacing: '-.3px' }}>{CLP(ahorro)}</span>
+                                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 4 }}>/ {CLP(savingsGoal)}</span>
+                            </div>
+                        </div>
+                        <div className="progress-track">
+                            <div className="progress-bar" style={{ width: Math.min(100, Math.max(0, goalPct)) + '%', background: goalColor }} />
+                        </div>
+                        <div style={{ fontSize: 11, color: goalColor, marginTop: 7, fontWeight: 500 }}>
+                            {goalMet ? `✓ Meta cumplida · superaste la meta por ${CLP(ahorro - savingsGoal)}` : `Te faltan ${CLP(savingsGoal - ahorro)} para alcanzar tu meta`}
+                        </div>
+                    </div>
+                )}
+            </>)}
 
             {/* Cuotas */}
             {(() => {
@@ -210,7 +263,7 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
             )}
 
             {/* Category breakdown */}
-            <Section mt="0">Tarjeta por categoría</Section>
+            <Section mt="0">{latest.source_type === 'cc' ? 'Cuenta corriente por categoría' : 'Tarjeta por categoría'}</Section>
             {prevLabel && (
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
                     Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
