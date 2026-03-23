@@ -22,27 +22,48 @@ Extraerás TODAS las transacciones del PERÍODO ACTUAL con nombres REALES de com
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ESTRUCTURA DE LÍNEAS EN EL PDF SANTANDER
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Cada línea del PDF tiene este orden de campos:
-[LUGAR] [FECHA DD/MM/YY] [NOMBRE COMERCIO] [TIPO_CUOTA?] [INTERÉS%?] [MONTO_ORIGEN?] [MONTO_TOTAL?] [NºCUOTA?] [CARGO_MES]
+El PDF tiene MÚLTIPLES PÁGINAS. Debes procesar ABSOLUTAMENTE TODO el texto sin excepción.
+La sección "2.PERÍODO ACTUAL" comienza tras la línea "1. TOTAL OPERACIONES $X" y continúa
+en todas las páginas siguientes hasta "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS".
+
+Hay DOS tipos de líneas de transacción:
+
+TIPO A — Con cuotas (SIN lugar de operación al inicio):
+  [FECHA DD/MM/YY] [NOMBRE COMERCIO] [TIPO_CUOTA] [INTERÉS%] [MONTO_ORIGEN] [MONTO_TOTAL] [NN/TT] [CARGO_MES]
+
+TIPO B — Compra normal (CON lugar de operación al inicio):
+  [LUGAR] [FECHA DD/MM/YY] [NOMBRE COMERCIO] [CARGO_MES]
+  (algunas también tienen: [COMPRAS P.A.T.] o moneda extranjera [AR/USD MONTO_ORIGEN])
+
+⚠️ CRÍTICO — Las líneas TIPO A (cuotas) muchas veces tienen fechas de meses ANTERIORES
+   (ej: 21/08/25, 31/10/25, 12/11/25) porque la compra fue en ese mes pero la cuota
+   se está cobrando AHORA. Estas líneas SÍ son del período actual — NO las ignores.
 
 Los TIPOS DE CUOTA son palabras clave que aparecen DESPUÉS del nombre del comercio:
   • N/CUOTAS PRECIO
   • CUOTA FIJA
   • TRES CUOTAS PREC
-  • DOS CUOTAS PRECI
-  • DOS CUOTAS PREC
+  • DOS CUOTAS PRECI / DOS CUOTAS PREC
   • CUOTA COMERCIO
-  • 03 CUOTAS COMERC
-  • NN CUOTAS (cualquier número seguido de CUOTAS)
+  • NN CUOTAS COMERC (cualquier número + CUOTAS COMERC)
   • COMPRAS P.A.T.
 
 ⚠️ CRÍTICO: Estas palabras son el TIPO DE PAGO, NO el nombre del comercio.
    El nombre del comercio es TODO LO QUE ESTÁ ANTES de esas palabras clave.
 
+Para NºCUOTA (formato NN/TT): NN = cuota actual, TT = total cuotas.
+  Ejemplo: "07/12" → cuota_actual=7, total_cuotas=12
+  Ejemplo: "02/12" → cuota_actual=2, total_cuotas=12  ← NO confundir con "02/10"
+  Ejemplo: "00/03" → cuota_actual=0, total_cuotas=3   ← no se cobra este mes
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EJEMPLOS REALES — FORMATO SANTANDER
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Línea PDF → Cómo extraer:
+
+"21/08/25 SAN DIEGO LTDA N/CUOTAS PRECIO 0,00 % $ 116.980 $ 116.980 07/12 $9.748"
+→ descripcion: "San Diego Ltda"             (fecha 21/08/25 es la compra original, SÍ incluir)
+→ tipo_cuota: "N/CUOTAS PRECIO", cuota_actual: 7, total_cuotas: 12, monto_cuota: 9748
 
 "31/10/25 H&M VIVO GALERIA IMPERIO CUOTA FIJA 3,06 % $ 35.950 $ 39.797 03/03 $13.265"
 → descripcion: "H&M Vivo Galería Imperio"   (todo ANTES de "CUOTA FIJA")
@@ -56,6 +77,10 @@ Línea PDF → Cómo extraer:
 → descripcion: "MercadoPago*ReebokChile"    (todo ANTES de "CUOTA COMERCIO")
 → tipo_cuota: "CUOTA COMERCIO", cuota_actual: 2, total_cuotas: 3, monto_cuota: 27763
 
+"16/12/25 MERCADOPAGO*MERCADOLIBRE TRES CUOTAS PREC 0,00 % $ 36.850 $ 36.850 03/03 $12.284"
+→ descripcion: "MercadoPago*MercadoLibre"   (todo ANTES de "TRES CUOTAS PREC")
+→ tipo_cuota: "TRES CUOTAS PREC", cuota_actual: 3, total_cuotas: 3, monto_cuota: 12284
+
 "07/02/26 CANNON VIVO IMPERIO TRES CUOTAS PREC 0,00 % $ 28.990 $ 28.990 01/03 $9.663"
 → descripcion: "Cannon Vivo Imperio"        (todo ANTES de "TRES CUOTAS PREC")
 → tipo_cuota: "TRES CUOTAS PREC", cuota_actual: 1, total_cuotas: 3, monto_cuota: 9663
@@ -66,11 +91,12 @@ Línea PDF → Cómo extraer:
 
 "07/02/26 H&M VIVO GALERIA IMPERIO 03 CUOTAS COMERC 0,00 % $ 53.950 $ 53.950 00/03 $17.983"
 → descripcion: "H&M Vivo Galería Imperio"   (todo ANTES de "03 CUOTAS COMERC")
-→ cuota_actual: 0 → NO va en transacciones, SÍ va en cuotas_vigentes
+→ cuota_actual: 0 → NO va en transacciones, SÍ va en cuotas_vigentes con monto_cuota: 17983
 
 "01/01/26 MP *MERCADO LIBRE N/CUOTAS PRECIO 0,00 % $ 100.606 $ 100.606 02/12 $8.384"
 → descripcion: "MP *Mercado Libre"          (todo ANTES de "N/CUOTAS PRECIO")
 → tipo_cuota: "N/CUOTAS PRECIO", cuota_actual: 2, total_cuotas: 12, monto_cuota: 8384
+   ⚠️ NºCUOTA es "02/12" → total_cuotas=12, NO 10
 
 "SANTIAGO 30/01/26 MERPAGO*JETSMARTAIRLINESS $295.667"
 → descripcion: "MercadoPago*JetSmart Airlines"  (sin tipo de cuota → compra normal)
@@ -80,43 +106,66 @@ Línea PDF → Cómo extraer:
 → descripcion: "HBO Max"                    (todo ANTES de "COMPRAS P.A.T.")
 → monto: 4795, categoria: telefonia_internet
 
+"CAP.FEDERAL 14/02/26 LA DORITA 4308 AR 135.520,00 $90.305"
+→ descripcion: "La Dorita"                  (LUGAR=CAP.FEDERAL, monto en AR, usar CARGO_MES)
+→ monto: 90305, categoria: restaurantes
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGLAS DE EXTRACCIÓN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-R1. SOLO PERÍODO ACTUAL ("2.PERÍODO ACTUAL"): Ignora completamente la sección "1.PERÍODO ANTERIOR".
-R2. NO incluyas la línea "MONTO CANCELADO" (es un pago/abono, no un gasto).
-R3. MONEDA EXTRANJERA: Usa SIEMPRE el valor en pesos chilenos (la última columna CARGO DEL MES, ej: $9.585), nunca el monto en AR o USD.
-R4. CUOTA 00/NN: cuota_actual=0 significa que este mes NO se cobra. NO va en 'transacciones'. SÍ va en 'cuotas_vigentes'.
-R5. CUOTA 01/NN o mayor: SÍ se cobra este mes. Va en 'transacciones' (monto = VALOR CUOTA MENSUAL) Y en 'cuotas_vigentes'.
+R1. SOLO PERÍODO ACTUAL ("2.PERÍODO ACTUAL"): Ignora la sección "1.PERÍODO ANTERIOR" y sus montos.
+    Las cuotas con fechas antiguas (ago/oct/nov/dic del año anterior) que aparecen DENTRO de
+    "2.PERÍODO ACTUAL" SÍ deben incluirse — son cobros diferidos del período actual.
+R2. OMITIR: La línea "MONTO CANCELADO" (es un pago/abono, no un gasto). También omitir
+    "4. INFORMACION COMPRAS EN CUOTAS EN EL PERIODO" (es información, no una transacción separada).
+R3. MONEDA EXTRANJERA: Usa SIEMPRE el valor en pesos chilenos (última columna CARGO DEL MES, ej: $9.585), nunca el monto en AR o USD.
+R4. CUOTA 00/NN: cuota_actual=0 → NO va en 'transacciones'. SÍ va en 'cuotas_vigentes'.
+R5. CUOTA 01/NN o mayor: SÍ se cobra este mes → va en 'transacciones' (monto = VALOR CUOTA MENSUAL) Y en 'cuotas_vigentes'.
 R6. SÍ incluye "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS" como categoría 'cargos_banco'.
-R7. TOTAL OPERACIONES: La suma de todos los montos en 'transacciones' DEBE igualar exactamente el número en "1. TOTAL OPERACIONES" del PDF.
-R8. El "MONTO TOTAL FACTURADO A PAGAR" va en 'total_facturado'. Es distinto al TOTAL OPERACIONES (incluye cuotas prev. + cargos).
-R9. Normaliza nombres: capitaliza correctamente (ej: "JUMBO PENALOLEN" → "Jumbo Peñalolen"), expande abreviaciones conocidas (MERPAGO* → MercadoPago*, PAYU*AR*UBER → Uber Argentina).
+R7. TOTAL OPERACIONES: La suma de todos los montos en 'transacciones' DEBE igualar exactamente "1. TOTAL OPERACIONES" del PDF.
+    Si la suma no coincide, revisa si omitiste alguna cuota con fecha antigua de la primera página.
+R8. El "MONTO TOTAL FACTURADO A PAGAR" va en 'total_facturado'.
+R9. Normaliza nombres (mayúsculas → capitalización normal):
+    MERPAGO* → MercadoPago*
+    PAYU *UBER TRIP / PAYU*AR*UBER → Uber
+    JUMBO PENALOLEN → Jumbo Peñalolén
+    EKONO SANTA ISABEL → Ekono Santa Isabel
+    LIDER.CL → Lider.cl
+    INVERSIONES ITALIAN IMPER → Inversiones Italian Imperio
+    SUMUP * BONNE SANTE → Bonne Santé
+    MERPAGO*SPINOKMP → MercadoPago*Spinokmp
+    MERPAGO*BIPQR → MercadoPago*BIP
+    ENTEL ONECLICK → Entel
+    HELP.HBOMAX.COM → HBO Max
+    NUITEE* → Nuitee
+    KM1151 APIES → Apies (tienda de conveniencia)
+R10. VERIFICACIÓN OBLIGATORIA antes de responder: Lista mentalmente cada transacción cuota (es_cuota=true)
+    y confirma que están todas, incluyendo las de fechas antiguas de la primera página del PDF.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CATEGORÍAS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- supermercado: Jumbo, Lider, Ekono, Santa Isabel, Supervecino, Unimarc
-- minimarket: Minimarket (cualquiera), AMAWA, TD05 58 MARKET, Distribuidora
+- supermercado: Jumbo, Lider, Lider.cl, Ekono, Santa Isabel, Supervecino, Unimarc
+- minimarket: Minimarket (cualquiera), AMAWA, TD05 58 MARKET, Distribuidora, El Simmental, D Todo
 - delivery: Uber Eats, PedidosYa, Rappi, KFC, Dominos
-- transporte: Uber Trip, Cabify, JetSmart, LATAM, aerolíneas, MERPAGO*BIPQR (bip!), BIP
-- mascotas: Club Animal, Bonne Sante, veterinaria, MAXIK
+- transporte: Uber (PAYU *UBER TRIP, PAYU*AR*UBER), Cabify, JetSmart (MERPAGO*JETSMARTAIRLINESS, MERCADOPAGO*JETSET), LATAM, aerolíneas, MercadoPago*BIP (MERPAGO*BIPQR)
+- mascotas: Club Animal, Bonne Santé (SUMUP * BONNE SANTE), veterinaria, MAXIK
 - lavanderia: Spinokmp, MERPAGO*SPINOKMP
-- ropa_moda: H&M, Zara, Falabella, Ripley, Jyotis, San Diego Ltda, Rosarito, Reebok, TRICOT
-- restaurantes: restaurante, café, DKF Lira, La Dorita, 2 Animales, Man Ji, Italian Imper, Albert Milan Flores, María Almiron
+- ropa_moda: H&M, Zara, Falabella, Ripley, Jyotis, San Diego Ltda, Rosarito, Reebok, TRICOT, MercadoPago*ReebokChile
+- restaurantes: restaurante, café, DKF Lira, La Dorita (LA DORITA), 2 Animales (2 ANIMALES CATERING), Man Ji, Italian Imperio (INVERSIONES ITALIAN IMPER), Albert Milan Flores, María Almiron
 - entretenimiento: Cinemark, Cineplanet, Cinepolis, Fantasilandia, Ticketplus, Netflix, Spotify, WPAY PLUS
-- servicios_hogar: agua, luz, gas, Enel, Metrogas, Aguas Andinas, gastos comunes, seguros
-- telefonia_internet: Entel, Movistar, WOM, Claro, VTR, HBO Max, Google Play, Streaming, HELP.HBOMAX
+- servicios_hogar: agua, luz, gas, Enel, Metrogas, Aguas Andinas, gastos comunes, seguros, Comercial Home Store
+- telefonia_internet: Entel (ENTEL ONECLICK), Movistar, WOM, Claro, VTR, HBO Max (HELP.HBOMAX.COM), Google Play, Streaming
 - cuotas: compras en cuotas (CUOTA FIJA, N/CUOTAS PRECIO, etc.) cuando cuota_actual >= 1
 - cargos_banco: COMISION TC, IMPTO DECRETO LEY, IVA USO INTERNACIONAL, SERVICIO COMPRA INTERNACIONAL
-- otros: todo lo que no encaje arriba (incluyendo Nuitee/hoteles, comercios varios)
+- otros: hoteles (Nuitee), MercadoPago*Yusbe, MercadoPago*DonaBarbara, MercadoPago*JorgelinaOjeda, MercadoPago*OscarOswaldom, Apies (tienda conveniencia), y todo lo que no encaje arriba
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATO DE RESPUESTA (JSON EXACTO)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 {
-  "razonamiento": "TOTAL OPERACIONES leído del PDF: X. MONTO FACTURADO leído: Y. Suma de mis transacciones: Z. Coincide con TOTAL OPERACIONES: sí/no. Cuotas con cuota_actual=0 excluidas de transacciones: [lista].",
+  "razonamiento": "TOTAL OPERACIONES leído: X. Suma de mis transacciones: Z. ¿Coincide?: sí/no. Cuotas de fechas antiguas incluidas (página 1): [lista con fecha y nombre]. Cuotas con cuota_actual=0 excluidas de transacciones: [lista].",
   "periodo": "Mes YYYY",
   "periodo_desde": "DD/MM/YYYY",
   "periodo_hasta": "DD/MM/YYYY",
