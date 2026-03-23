@@ -46,8 +46,12 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
 
                 // Recalculate categorias from transactions
                 const cats = {};
-                txs.filter(t => t.tipo === 'cargo').forEach(t => { cats[t.categoria] = (cats[t.categoria] || 0) + t.monto; });
-                const monthData = { ...parsed, transacciones: txs, categorias: cats };
+                let totalCargos = 0;
+                txs.filter(t => t.tipo === 'cargo').forEach(t => { 
+                    cats[t.categoria] = (cats[t.categoria] || 0) + t.monto; 
+                    totalCargos += t.monto;
+                });
+                const monthData = { ...parsed, transacciones: txs, categorias: cats, total_cargos: totalCargos };
 
                 // Check for existing period
                 const existing = months.find(m => m.periodo === parsed.periodo);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import Metric from '../components/ui/Metric';
 import Section from '../components/ui/Section';

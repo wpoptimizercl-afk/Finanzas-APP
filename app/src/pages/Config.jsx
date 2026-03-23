@@ -158,7 +158,7 @@ export default function ConfigPage({ customCats, catRules, onSaveCat, onDeleteCa
                     </div>
                     <div className="card" style={{ padding: '4px 0', marginBottom: '2rem' }}>
                         {ruleEntries.map(([desc, cat], i) => {
-                            const catObj = { label: cat, color: '#888', bg: '#F3F4F6', ...(require('../lib/constants').CAT[cat] || {}) };
+                            const catObj = { label: cat, color: '#888', bg: '#F3F4F6', ...(CAT[cat] || {}) };
                             return (
                                 <div key={desc} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderBottom: i < ruleEntries.length - 1 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
                                     <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</span>

@@ -145,6 +145,14 @@ function AppInner() {
           onSaveCat={handleSaveCat} onDeleteCat={handleDeleteCat}
         />
       );
+      case 'manual': return (
+        <div className="animate-fadeIn">
+          <div className="empty-state" style={{ paddingTop: '4rem' }}>
+            <div className="empty-state-title">Entrada Manual en Desarrollo</div>
+            <div className="empty-state-desc">Esta funcionalidad estará disponible en la próxima actualización.</div>
+          </div>
+        </div>
+      );
       default: return null;
     }
   };

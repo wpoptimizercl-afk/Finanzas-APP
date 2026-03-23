@@ -91,43 +91,28 @@ export function useFinanceData() {
             categorias: JSON.stringify(categorias),
             cuotas_vigentes: JSON.stringify(cuotas_vigentes),
         };
-        let saved;
-        let error;
-        const existingMonth = months.find(m => m.periodo === payload.periodo);
         
-        if (existingMonth) {
-            const { data: uData, error: uErr } = await supabase
-                .from('months')
-                .update(payload)
-                .eq('id', existingMonth.id)
-                .select()
-                .single();
-            saved = uData;
-            error = uErr;
-        } else {
-            const { data: iData, error: iErr } = await supabase
-                .from('months')
-                .insert(payload)
-                .select()
-                .single();
-            saved = iData;
-            error = iErr;
-        }
+        const { data: saved, error } = await supabase
+            .from('months')
+            .upsert(payload, { onConflict: 'user_id,periodo' })
+            .select()
+            .single();
         
         if (error || !saved) { 
-            console.warn('⚠️ No se pudo guardar en Supabase (Problema de Auth o RLS). Guardando temporalmente en memoria para poder probar la app:', error);
-            saved = { ...payload, id: existingMonth?.id || `fake_${Date.now()}` };
+            console.error('Error guardando mes en Supabase:', error);
+            throw new Error(error?.message || 'Error guardando en base de datos. Operación abortada.');
         }
 
         // Upsert transactions
         if (transacciones.length) {
             try {
-                if (existingMonth) await supabase.from('transactions').delete().eq('month_id', saved.id);
+                await supabase.from('transactions').delete().eq('month_id', saved.id);
+                // Strip the fake local text ID so Supabase uses gen_random_uuid
                 await supabase.from('transactions').insert(
-                    transacciones.map(t => ({ ...t, user_id: uid, month_id: saved.id }))
+                    transacciones.map(({ id, ...t }) => ({ ...t, user_id: uid, month_id: saved.id }))
                 );
             } catch (err) {
-                console.warn('⚠️ No se pudieron persistir transacciones en Supabase.');
+                console.warn('⚠️ No se pudieron persistir transacciones en Supabase.', err);
             }
         }
 
@@ -218,20 +203,25 @@ export function useFinanceData() {
         });
         setMonths(newMonths);
 
-        // Persist categorias update for this month
-        const updated = newMonths.find(x => x.periodo === periodo);
-        if (updated) {
-            await supabase.from('months')
-                .update({ categorias: JSON.stringify(updated.categorias), total_cargos: updated.total_cargos })
-                .eq('id', updated.id);
-            const affected = updated.transacciones.filter(t =>
-                (t.descripcion || '').toLowerCase().trim() === ruleKey
-            );
-            await Promise.all(affected.map(t =>
-                supabase.from('transactions').update({ categoria: newCat }).eq('id', t.id)
-            ));
-        }
-    }, [months, saveCatRule]);
+        // Persist categorias update for ALL affected months in Supabase
+        await Promise.all(newMonths.map(mon => {
+            const txs = mon.transacciones || [];
+            const hasMatch = txs.some(t => (t.descripcion || '').toLowerCase().trim() === ruleKey);
+            if (!hasMatch) return Promise.resolve();
+            
+            return supabase.from('months')
+                .update({ categorias: JSON.stringify(mon.categorias), total_cargos: mon.total_cargos })
+                .eq('id', mon.id);
+        }));
+
+        // Update all related transactions across all months
+        const allTransactionsToUpdate = newMonths.flatMap(m => m.transacciones)
+            .filter(t => (t.descripcion || '').toLowerCase().trim() === ruleKey);
+            
+        await Promise.all(allTransactionsToUpdate.map(t =>
+            supabase.from('transactions').update({ categoria: newCat }).eq('id', t.id)
+        ));
+    }, [months, saveCatRule, uid]);
 
     return {
         months, sorted, fixedByMonth, incomeByMonth, extraByMonth,
