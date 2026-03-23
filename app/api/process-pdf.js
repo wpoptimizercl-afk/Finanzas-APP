@@ -44,19 +44,19 @@ El PDF puede mostrar una columna NºCUOTA con formato "actual/total" (ej: 02/12,
 5. MONEDA EXTRANJERA: Usa SIEMPRE el valor en pesos chilenos de la columna "CARGO DEL MES".
 6. MONTO CANCELADO y PERÍODO ANTERIOR: NO incluyas la línea "MONTO CANCELADO" (es tu pago). NO incluyas transacciones del "1.PERÍODO ANTERIOR".
 7. CARGOS Y COMISIONES: SÍ incluye los "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS" (categoría 'cargos_banco').
-8. RAZONAMIENTO: Explica paso a paso cómo identificaste los nombres de comercios de las cuotas sin usar nombres genéricos (CUOTA FIJA) y cómo te aseguraste de extraer solo el "CARGO DEL MES".
+8. TOTAL OPERACIONES vs TOTAL FACTURADO: El "TOTAL OPERACIONES" (ej: 1.273.912) DEBE ser idéntico a la SUMA MATEMÁTICA de todas tus 'transacciones'. Extrae el "MONTO TOTAL FACTURADO A PAGAR" (ej: 1.288.293) directamente al campo 'total_facturado'. NO intentes igualar ambos números, son distintos.
+9. RAZONAMIENTO: Enlista el "TOTAL OPERACIONES" y el "MONTO TOTAL FACTURADO A PAGAR" que leíste del PDF. Luego, explica cómo te aseguraste de que la suma de tus transacciones cuadre perfecto con el TOTAL OPERACIONES.
 
 Responde ÚNICAMENTE con este JSON exacto:
 {
-  "razonamiento": "Explicación breve de comercios de cuotas y confirmación de que solo usaste CARGO DEL MES",
+  "razonamiento": "Listar TOTAL OPERACIONES y MONTO FACTURADO del PDF, justificar suma de transacciones",
   "periodo": "Mes YYYY",
   "periodo_desde": "DD/MM/YYYY",
   "periodo_hasta": "DD/MM/YYYY",
   "total_facturado": 0,
   "transacciones": [{"fecha":"DD/MM/YYYY","descripcion":"NOMBRE","monto":0,"tipo":"cargo","categoria":"otros"}],
   "cuotas_vigentes": [{"descripcion":"nombre","cuota_actual":1,"total_cuotas":3,"monto_cuota":0}]
-}
-IMPORTANTE: total_facturado = suma exacta de todos los montos en transacciones. Incluye TODAS las transacciones del período actual sin excepción.`;
+}`;
 
 const BANK_HINTS = {
     santander_tc: 'Santander Chile tarjeta de crédito. Fecha en formato DD-MM-YYYY. Los cargos aparecen en la columna "Cargos".',

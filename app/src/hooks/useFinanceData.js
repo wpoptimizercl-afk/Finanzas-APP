@@ -87,6 +87,7 @@ export function useFinanceData() {
         const { transacciones = [], categorias = {}, cuotas_vigentes = [], id: _id, total_facturado, ...rest } = mData;
         const payload = {
             ...rest,
+            total_facturado, // CRÍTICO: Asegurarse de que total_facturado viaja a Supabase
             user_id: uid,
             categorias: JSON.stringify(categorias),
             cuotas_vigentes: JSON.stringify(cuotas_vigentes),
