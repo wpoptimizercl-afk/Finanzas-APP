@@ -110,6 +110,14 @@ Línea PDF → Cómo extraer:
 → descripcion: "La Dorita"                  (LUGAR=CAP.FEDERAL, monto en AR, usar CARGO_MES)
 → monto: 90305, categoria: restaurantes
 
+⚠️ CASO ESPECIAL — mismo comercio al final de página 1 y al inicio de página 2:
+"11001SANTIAG 01/04/25 MOVISTAR $464"        ← fin de página 1
+"11001SANTIAG 01/04/25 MOVISTAR $11.240"     ← inicio de página 2
+→ Son DOS transacciones SEPARADAS (ambas tienen LUGAR+FECHA+DESCRIPCIÓN+MONTO completos)
+→ transaccion 1: descripcion "Movistar", monto: 464
+→ transaccion 2: descripcion "Movistar", monto: 11240
+→ NUNCA fusionar dos filas TIPO B completas aunque sean del mismo comercio y fecha.
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGLAS DE EXTRACCIÓN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
