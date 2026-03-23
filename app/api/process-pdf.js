@@ -118,6 +118,10 @@ R1. SOLO PERÍODO ACTUAL ("2.PERÍODO ACTUAL"): Ignora la sección "1.PERÍODO A
     "2.PERÍODO ACTUAL" SÍ deben incluirse — son cobros diferidos del período actual.
 R2. OMITIR: La línea "MONTO CANCELADO" (es un pago/abono, no un gasto). También omitir
     "4. INFORMACION COMPRAS EN CUOTAS EN EL PERIODO" (es información, no una transacción separada).
+R2b. NUNCA deduplicar: si el mismo comercio aparece varias veces en la misma fecha con
+    DISTINTOS montos, son cobros separados — extrae CADA línea como transacción independiente.
+    Caso típico: salto de página del PDF hace que la misma empresa aparezca al final de una
+    página y al inicio de la siguiente. Si los montos son DISTINTOS → dos transacciones reales.
 R3. MONEDA EXTRANJERA: Usa SIEMPRE el valor en pesos chilenos (última columna CARGO DEL MES, ej: $9.585), nunca el monto en AR o USD.
 R4. CUOTA 00/NN: cuota_actual=0 → NO va en 'transacciones'. SÍ va en 'cuotas_vigentes'.
 R5. CUOTA 01/NN o mayor: SÍ se cobra este mes → va en 'transacciones' (monto = VALOR CUOTA MENSUAL) Y en 'cuotas_vigentes'.
