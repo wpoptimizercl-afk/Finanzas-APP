@@ -110,7 +110,7 @@ export function useFinanceData() {
                 await supabase.from('transactions').delete().eq('month_id', saved.id);
                 // Strip the fake local text ID so Supabase uses gen_random_uuid
                 await supabase.from('transactions').insert(
-                    transacciones.map(({ id, ...t }) => ({ ...t, user_id: uid, month_id: saved.id }))
+                    transacciones.map(({ id, es_cuota, cuota_actual, total_cuotas, ...t }) => ({ ...t, user_id: uid, month_id: saved.id }))
                 );
             } catch (err) {
                 console.warn('⚠️ No se pudieron persistir transacciones en Supabase.', err);
