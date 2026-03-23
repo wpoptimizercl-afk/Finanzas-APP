@@ -37,13 +37,14 @@ CATEGORÍAS Y KEYWORDS:
 
 REGLAS CRÍTICAS PARA CUOTAS Y MONEDAS — LEE CON ATENCIÓN:
 El PDF puede mostrar una columna NºCUOTA con formato "actual/total" (ej: 02/12, 00/03) y columnas como "CARGO DEL MES".
-1. NO CONSOLIDAR: Extrae cada transacción por separado aunque los comercios se llamen igual, siempre que sean líneas distintas en el PDF con montos o cuotas diferentes.
-2. NºCUOTA "00/NN" (cuota_actual=0): Es una compra nueva cuyo primer cobro es el MES SIGUIENTE. NO la incluyas en 'transacciones'. SÍ inclúyela en 'cuotas_vigentes' con su monto mensual estimado.
-3. NºCUOTA "01/NN" o mayor: SÍ se cobra este mes. Agrégala a 'transacciones' Y a 'cuotas_vigentes'. El campo monto debe ser el VALOR CUOTA MENSUAL (columna "CARGO DEL MES"), NO el monto total de la deuda.
-4. MONEDA EXTRANJERA (AR, USD, etc.): Usa SIEMPRE el valor en pesos chilenos de la columna "CARGO DEL MES".
-5. MONTO CANCELADO y PERÍODO ANTERIOR: NO incluyas la línea "MONTO CANCELADO" (es tu pago anterior, no un gasto). NO incluyas transacciones del "1.PERÍODO ANTERIOR".
-6. CARGOS Y COMISIONES: SÍ incluye los "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS" bajo la categoría 'cargos_banco'.
-7. RAZONAMIENTO: En el campo 'razonamiento', compórtate meticuloso: lista los comercios de cuotas asegurando que NO usaste la deuda total sino el "CARGO DEL MES".
+1. NO CONSOLIDAR: Extrae cada transacción por separado siempre que sean líneas distintas en el PDF.
+2. NOMBRES REALES DE COMERCIO: NUNCA uses textos genéricos como "CUOTA FIJA", "TRES CUOTAS PREC" o "DOS CUOTAS" en la 'descripcion'. Busca siempre el nombre real de la tienda (ej: Falabella, Mercado Libre).
+3. NºCUOTA "00/NN" (cuota_actual=0): No la incluyas en 'transacciones'. SÍ inclúyela en 'cuotas_vigentes' usando el NOMBRE REAL del comercio.
+4. NºCUOTA "01/NN" o mayor: SÍ se cobra este mes. Agrégala a 'transacciones' Y a 'cuotas_vigentes'. El campo monto debe ser el VALOR CUOTA MENSUAL (columna "CARGO DEL MES"), NO la deuda total. Usa el NOMBRE REAL de la tienda.
+5. MONEDA EXTRANJERA: Usa SIEMPRE el valor en pesos chilenos de la columna "CARGO DEL MES".
+6. MONTO CANCELADO y PERÍODO ANTERIOR: NO incluyas la línea "MONTO CANCELADO" (es tu pago). NO incluyas transacciones del "1.PERÍODO ANTERIOR".
+7. CARGOS Y COMISIONES: SÍ incluye los "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS" (categoría 'cargos_banco').
+8. RAZONAMIENTO: Explica paso a paso cómo identificaste los nombres de comercios de las cuotas sin usar nombres genéricos (CUOTA FIJA) y cómo te aseguraste de extraer solo el "CARGO DEL MES".
 
 Responde ÚNICAMENTE con este JSON exacto:
 {
