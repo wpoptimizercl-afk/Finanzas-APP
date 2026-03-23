@@ -35,23 +35,27 @@ CATEGORÍAS Y KEYWORDS:
 - cargos_banco: COMISION TC, IMPTO DECRETO LEY, IVA USO INTERNACIONAL, SERVICIO COMPRA INTERNACIONAL
 - otros: todo lo que no encaje arriba
 
-REGLAS DE ORO ANTIFALLOS:
-1. NO CONSOLIDAR: Si ves descripciones similares (ej: MercadoLibre vs Mercado Pago), NO las unas. Extrae CADA UNA como una fila separada siempre que tengan montos o números de cuota distintos.
-2. NºCUOTA 00/NN: Solo en 'cuotas_vigentes' con cuota_actual=0.
-3. NºCUOTA 01/NN o mayor: Agrégala a 'transacciones' Y a 'cuotas_vigentes'.
-4. CRUCE DE TOTALES: Busca el "TOTAL CUOTAS DEL MES" en el PDF. La suma de tus extracciones en 'cuotas_vigentes' DEBE coincidir con ese total.
-5. RAZONAMIENTO: En el campo 'razonamiento', lista el nombre de cada comercio que encontraste en la sección de cuotas.
+REGLAS CRÍTICAS PARA CUOTAS Y MONEDAS — LEE CON ATENCIÓN:
+El PDF puede mostrar una columna NºCUOTA con formato "actual/total" (ej: 02/12, 00/03) y columnas como "CARGO DEL MES".
+1. NO CONSOLIDAR: Extrae cada transacción por separado aunque los comercios se llamen igual, siempre que sean líneas distintas en el PDF con montos o cuotas diferentes.
+2. NºCUOTA "00/NN" (cuota_actual=0): Es una compra nueva cuyo primer cobro es el MES SIGUIENTE. NO la incluyas en 'transacciones'. SÍ inclúyela en 'cuotas_vigentes' con su monto mensual estimado.
+3. NºCUOTA "01/NN" o mayor: SÍ se cobra este mes. Agrégala a 'transacciones' Y a 'cuotas_vigentes'. El campo monto debe ser el VALOR CUOTA MENSUAL (columna "CARGO DEL MES"), NO el monto total de la deuda.
+4. MONEDA EXTRANJERA (AR, USD, etc.): Usa SIEMPRE el valor en pesos chilenos de la columna "CARGO DEL MES".
+5. MONTO CANCELADO y PERÍODO ANTERIOR: NO incluyas la línea "MONTO CANCELADO" (es tu pago anterior, no un gasto). NO incluyas transacciones del "1.PERÍODO ANTERIOR".
+6. CARGOS Y COMISIONES: SÍ incluye los "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS" bajo la categoría 'cargos_banco'.
+7. RAZONAMIENTO: En el campo 'razonamiento', compórtate meticuloso: lista los comercios de cuotas asegurando que NO usaste la deuda total sino el "CARGO DEL MES".
 
-Responde ÚNICAMENTE con este JSON:
+Responde ÚNICAMENTE con este JSON exacto:
 {
-  "razonamiento": "Lista de comercios detectados y suma total comprobada",
+  "razonamiento": "Explicación breve de comercios de cuotas y confirmación de que solo usaste CARGO DEL MES",
   "periodo": "Mes YYYY",
   "periodo_desde": "DD/MM/YYYY",
   "periodo_hasta": "DD/MM/YYYY",
   "total_facturado": 0,
   "transacciones": [{"fecha":"DD/MM/YYYY","descripcion":"NOMBRE","monto":0,"tipo":"cargo","categoria":"otros"}],
   "cuotas_vigentes": [{"descripcion":"nombre","cuota_actual":1,"total_cuotas":3,"monto_cuota":0}]
-}`;
+}
+IMPORTANTE: total_facturado = suma exacta de todos los montos en transacciones. Incluye TODAS las transacciones del período actual sin excepción.`;
 
 const BANK_HINTS = {
     santander_tc: 'Santander Chile tarjeta de crédito. Fecha en formato DD-MM-YYYY. Los cargos aparecen en la columna "Cargos".',
