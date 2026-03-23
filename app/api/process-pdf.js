@@ -308,6 +308,15 @@ export default async function handler(req, res) {
         // 3. Normalize for frontend
         const output = normalizeAIResponse(data);
 
+        // Log razonamiento para diagnóstico de diferencias
+        if (data.razonamiento) {
+            console.log('[process-pdf] RAZONAMIENTO IA:', data.razonamiento);
+        }
+        const sumSinBanco = output.transacciones
+            .filter(t => t.tipo === 'cargo' && t.categoria !== 'cargos_banco')
+            .reduce((s, t) => s + t.monto, 0);
+        console.log(`[process-pdf] total_operaciones PDF: ${output.total_operaciones} | suma extraída (sin banco): ${sumSinBanco} | diff: ${output.total_operaciones - sumSinBanco}`);
+
         return res.status(200).json(output);
 
     } catch (err) {
