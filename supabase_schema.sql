@@ -8,6 +8,10 @@ CREATE TABLE IF NOT EXISTS public.months (
     periodo_desde TEXT,
     periodo_hasta TEXT,
     total_cargos NUMERIC DEFAULT 0,
+    total_facturado NUMERIC DEFAULT 0,
+    source_type TEXT DEFAULT 'tc',
+    saldo_inicial NUMERIC,
+    saldo_final NUMERIC,
     categorias JSONB DEFAULT '{}'::jsonb,
     cuotas_vigentes JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT now()
