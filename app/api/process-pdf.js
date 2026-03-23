@@ -122,14 +122,18 @@ R3. MONEDA EXTRANJERA: Usa SIEMPRE el valor en pesos chilenos (última columna C
 R4. CUOTA 00/NN: cuota_actual=0 → NO va en 'transacciones'. SÍ va en 'cuotas_vigentes'.
 R5. CUOTA 01/NN o mayor: SÍ se cobra este mes → va en 'transacciones' (monto = VALOR CUOTA MENSUAL) Y en 'cuotas_vigentes'.
 R6. SÍ incluye "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS" como categoría 'cargos_banco'.
+    IMPORTANTE: estos cargos NO forman parte de "1. TOTAL OPERACIONES" del PDF. Son cobros
+    separados del banco. Inclúyelos en 'transacciones' con categoria='cargos_banco', pero
+    la suma de transacciones EXCLUYENDO cargos_banco debe igualar el 'total_operaciones' del PDF.
 R7. TOTAL OPERACIONES DEL PERÍODO ACTUAL:
     En el PDF de Santander hay DOS líneas "TOTAL OPERACIONES":
       • La que aparece al FINAL de "1.PERÍODO ANTERIOR" → NO usar, es del mes pasado.
       • La que aparece al FINAL de "2.PERÍODO ACTUAL" (o en el resumen superior del estado)
         → ESTE es el valor correcto. Extráelo y guárdalo en 'total_operaciones'.
-    La suma de todos los cargos en 'transacciones' DEBE igualar ese 'total_operaciones'.
-    Si la suma es MENOR: estás omitiendo transacciones (verifica cuotas de fechas antiguas
-    y cargos de la sección 3). Si es MAYOR: incluiste algo que no corresponde.
+    La suma de todos los cargos en 'transacciones' con categoria != 'cargos_banco' DEBE igualar
+    ese 'total_operaciones'. Los cargos_banco (sección 3) son ADICIONALES y van sumados aparte.
+    Si la suma (sin cargos_banco) es MENOR que total_operaciones: estás omitiendo transacciones
+    (verifica cuotas de fechas antiguas). Si es MAYOR: incluiste algo que no corresponde.
 R8. El "MONTO TOTAL FACTURADO A PAGAR" va en 'total_facturado'.
 R9. Normaliza nombres (mayúsculas → capitalización normal):
     MERPAGO* → MercadoPago*
@@ -207,6 +211,35 @@ const BANK_HINTS = {
     otro: 'Estado de cuenta bancario chileno genérico.',
 };
 
+// ── Normalización (exportada para tests) ─────────────────────────────────────
+export function normalizeAIResponse(data) {
+    return {
+        id: `month_${Date.now()}`,
+        periodo: data.periodo || 'Desconocido',
+        periodo_desde: data.periodo_desde || '',
+        periodo_hasta: data.periodo_hasta || '',
+        total_operaciones: Number(data.total_operaciones) || 0,
+        total_facturado: Number(data.total_facturado) || 0,
+        transacciones: (data.transacciones || []).map((t, i) => ({
+            id: `tx_${i + 1}`,
+            fecha: t.fecha,
+            descripcion: t.descripcion,
+            monto: Math.abs(Number(t.monto) || 0),
+            tipo: t.tipo || 'cargo',
+            categoria: VALID_CATS.includes(t.categoria) ? t.categoria : 'otros',
+            es_cuota: Boolean(t.es_cuota),
+            cuota_actual: t.cuota_actual != null ? Number(t.cuota_actual) : null,
+            total_cuotas: t.total_cuotas != null ? Number(t.total_cuotas) : null,
+        })),
+        cuotas_vigentes: (data.cuotas_vigentes || []).map(c => ({
+            descripcion: c.descripcion,
+            cuota_actual: Number(c.cuota_actual),
+            total_cuotas: Number(c.total_cuotas),
+            monto_cuota: Number(c.monto_cuota)
+        }))
+    };
+}
+
 export default async function handler(req, res) {
     // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -273,31 +306,7 @@ export default async function handler(req, res) {
         }
 
         // 3. Normalize for frontend
-        const output = {
-            id: `month_${Date.now()}`,
-            periodo: data.periodo || 'Desconocido',
-            periodo_desde: data.periodo_desde || '',
-            periodo_hasta: data.periodo_hasta || '',
-            total_operaciones: Number(data.total_operaciones) || 0,
-            total_facturado: Number(data.total_facturado) || 0,
-            transacciones: (data.transacciones || []).map((t, i) => ({
-                id: `tx_${i + 1}`,
-                fecha: t.fecha,
-                descripcion: t.descripcion,
-                monto: Math.abs(Number(t.monto) || 0),
-                tipo: t.tipo || 'cargo',
-                categoria: VALID_CATS.includes(t.categoria) ? t.categoria : 'otros',
-                es_cuota: Boolean(t.es_cuota),
-                cuota_actual: t.cuota_actual != null ? Number(t.cuota_actual) : null,
-                total_cuotas: t.total_cuotas != null ? Number(t.total_cuotas) : null,
-            })),
-            cuotas_vigentes: (data.cuotas_vigentes || []).map(c => ({
-                descripcion: c.descripcion,
-                cuota_actual: Number(c.cuota_actual),
-                total_cuotas: Number(c.total_cuotas),
-                monto_cuota: Number(c.monto_cuota)
-            }))
-        };
+        const output = normalizeAIResponse(data);
 
         return res.status(200).json(output);
 

@@ -70,9 +70,13 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 // Recalculate categorias from transactions
                 const cats = {};
                 let totalCargos = 0;
+                let totalCargosConBanco = 0;
                 txs.filter(t => t.tipo === 'cargo').forEach(t => {
                     cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
-                    totalCargos += t.monto;
+                    totalCargosConBanco += t.monto;
+                    // total_cargos excluye cargos_banco (comisiones, IVA, etc.) para
+                    // coincidir con "1. TOTAL OPERACIONES" del PDF Santander
+                    if (t.categoria !== 'cargos_banco') totalCargos += t.monto;
                 });
                 const totalOps = parsed.total_operaciones || 0;
                 const mismatch = totalOps > 0 && Math.abs(totalOps - totalCargos) > 100;
