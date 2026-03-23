@@ -74,6 +74,8 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                     cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
                     totalCargos += t.monto;
                 });
+                const totalOps = parsed.total_operaciones || 0;
+                const mismatch = totalOps > 0 && Math.abs(totalOps - totalCargos) > 100;
                 const monthData = { ...parsed, transacciones: txs, categorias: cats, total_cargos: totalCargos };
 
                 // Check for existing period
@@ -81,7 +83,10 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 const saveKey = overridePeriod || parsed.periodo;
                 await onSaveMonth({ ...monthData, periodo: saveKey });
                 stopProgress(item.id);
-                setQueue(q => q.map(x => x.id === item.id ? { ...x, status: 'done', progress: 100, msg: existing && !overridePeriod ? 'Actualizado ✓' : 'Guardado ✓', result: monthData } : x));
+                const doneMsg = mismatch
+                    ? `Guardado — faltan ~$${(totalOps - totalCargos).toLocaleString('es-CL')} según PDF`
+                    : existing && !overridePeriod ? 'Actualizado ✓' : 'Guardado ✓';
+                setQueue(q => q.map(x => x.id === item.id ? { ...x, status: mismatch ? 'warn' : 'done', progress: 100, msg: doneMsg, result: monthData } : x));
             } catch (e) {
                 stopProgress(item.id);
                 if (e.name === 'AbortError') {
@@ -106,7 +111,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
         processFiles(e.dataTransfer.files);
     };
 
-    const hasDone = queue.some(q => q.status === 'done');
+    const hasDone = queue.some(q => q.status === 'done' || q.status === 'warn');
     const hasErrors = queue.some(q => q.status === 'error');
 
     return (
@@ -160,15 +165,17 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 <div className="card" style={{ padding: 0, marginTop: '1.5rem', overflow: 'hidden' }}>
                     {queue.map((item) => {
                         const isDone = item.status === 'done';
+                        const isWarn = item.status === 'warn';
                         const isErr = item.status === 'error';
                         const isPending = item.status === 'pending';
                         const isProc = item.status === 'processing';
+                        const isFinished = isDone || isWarn;
                         return (
                             <div key={item.id} className={`queue-item${isProc ? ' active' : ''}`}>
                                 <div className="queue-status-dot" style={{
-                                    background: isDone ? 'var(--success-light)' : isErr ? 'var(--danger-light)' : isProc ? 'var(--primary-light)' : 'var(--bg-hover)',
+                                    background: isFinished ? 'var(--success-light)' : isWarn ? 'var(--warning-light, #FEF3C7)' : isErr ? 'var(--danger-light)' : isProc ? 'var(--primary-light)' : 'var(--bg-hover)',
                                 }}>
-                                    {isDone ? <CheckCircle size={16} color="var(--success)" /> : isErr ? <AlertCircle size={16} color="var(--danger)" /> : <FileText size={16} color={isProc ? 'var(--primary)' : 'var(--text-tertiary)'} />}
+                                    {isFinished ? <CheckCircle size={16} color="var(--success)" /> : isWarn ? <AlertCircle size={16} color="var(--warning, #D97706)" /> : isErr ? <AlertCircle size={16} color="var(--danger)" /> : <FileText size={16} color={isProc ? 'var(--primary)' : 'var(--text-tertiary)'} />}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.file.name}</div>
@@ -180,7 +187,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                                             <span className="queue-progress-pct">{item.progress ?? 0}%</span>
                                         </div>
                                     )}
-                                    <div style={{ fontSize: 11, color: isDone ? 'var(--success)' : isErr ? 'var(--danger)' : 'var(--text-tertiary)', marginTop: 2 }}>{item.msg}</div>
+                                    <div style={{ fontSize: 11, color: isFinished ? 'var(--success)' : isWarn ? 'var(--warning, #D97706)' : isErr ? 'var(--danger)' : 'var(--text-tertiary)', marginTop: 2 }}>{item.msg}</div>
                                 </div>
                                 {isProc && abortMap.current[item.id] && (
                                     <button onClick={() => abortMap.current[item.id]?.abort()} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)' }}>

@@ -122,8 +122,14 @@ R3. MONEDA EXTRANJERA: Usa SIEMPRE el valor en pesos chilenos (última columna C
 R4. CUOTA 00/NN: cuota_actual=0 → NO va en 'transacciones'. SÍ va en 'cuotas_vigentes'.
 R5. CUOTA 01/NN o mayor: SÍ se cobra este mes → va en 'transacciones' (monto = VALOR CUOTA MENSUAL) Y en 'cuotas_vigentes'.
 R6. SÍ incluye "3. CARGOS, COMISIONES, IMPUESTOS Y ABONOS" como categoría 'cargos_banco'.
-R7. TOTAL OPERACIONES: La suma de todos los montos en 'transacciones' DEBE igualar exactamente "1. TOTAL OPERACIONES" del PDF.
-    Si la suma no coincide, revisa si omitiste alguna cuota con fecha antigua de la primera página.
+R7. TOTAL OPERACIONES DEL PERÍODO ACTUAL:
+    En el PDF de Santander hay DOS líneas "TOTAL OPERACIONES":
+      • La que aparece al FINAL de "1.PERÍODO ANTERIOR" → NO usar, es del mes pasado.
+      • La que aparece al FINAL de "2.PERÍODO ACTUAL" (o en el resumen superior del estado)
+        → ESTE es el valor correcto. Extráelo y guárdalo en 'total_operaciones'.
+    La suma de todos los cargos en 'transacciones' DEBE igualar ese 'total_operaciones'.
+    Si la suma es MENOR: estás omitiendo transacciones (verifica cuotas de fechas antiguas
+    y cargos de la sección 3). Si es MAYOR: incluiste algo que no corresponde.
 R8. El "MONTO TOTAL FACTURADO A PAGAR" va en 'total_facturado'.
 R9. Normaliza nombres (mayúsculas → capitalización normal):
     MERPAGO* → MercadoPago*
@@ -165,10 +171,11 @@ FORMATO DE RESPUESTA (JSON EXACTO)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 {
-  "razonamiento": "TOTAL OPERACIONES leído: X. Suma de mis transacciones: Z. ¿Coincide?: sí/no. Cuotas de fechas antiguas incluidas (página 1): [lista con fecha y nombre]. Cuotas con cuota_actual=0 excluidas de transacciones: [lista].",
+  "razonamiento": "TOTAL OPERACIONES período actual leído del PDF: X. Suma de mis transacciones: Z. ¿Coincide?: sí/no. Si no: diferencia de W, posibles omisiones. Cuotas de fechas antiguas incluidas (página 1): [lista con fecha y nombre]. Cuotas con cuota_actual=0 excluidas de transacciones: [lista].",
   "periodo": "Mes YYYY",
   "periodo_desde": "DD/MM/YYYY",
   "periodo_hasta": "DD/MM/YYYY",
+  "total_operaciones": 0,
   "total_facturado": 0,
   "transacciones": [
     {
@@ -271,6 +278,7 @@ export default async function handler(req, res) {
             periodo: data.periodo || 'Desconocido',
             periodo_desde: data.periodo_desde || '',
             periodo_hasta: data.periodo_hasta || '',
+            total_operaciones: Number(data.total_operaciones) || 0,
             total_facturado: Number(data.total_facturado) || 0,
             transacciones: (data.transacciones || []).map((t, i) => ({
                 id: `tx_${i + 1}`,
