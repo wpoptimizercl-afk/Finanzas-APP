@@ -11,18 +11,41 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
     const [overridePeriod, setOverride] = useState(null);
     const inputRef = useRef();
     const abortMap = useRef({});
+    const timerMap = useRef({});
+
+    const PHASES = [
+        { until: 12, step: 3,   label: 'Leyendo PDF…' },
+        { until: 22, step: 2,   label: 'Enviando a IA…' },
+        { until: 84, step: 0.5, label: 'Analizando transacciones…' },
+    ];
+
+    const startProgress = (id) => {
+        let prog = 0;
+        timerMap.current[id] = setInterval(() => {
+            const phase = PHASES.find(p => prog < p.until) || PHASES.at(-1);
+            prog = Math.min(prog + phase.step, 84);
+            const label = PHASES.find(p => prog < p.until)?.label ?? 'Analizando transacciones…';
+            setQueue(q => q.map(x => x.id === id ? { ...x, progress: Math.round(prog), msg: label } : x));
+        }, 350);
+    };
+
+    const stopProgress = (id) => {
+        clearInterval(timerMap.current[id]);
+        delete timerMap.current[id];
+    };
 
     const processFiles = useCallback(async (files) => {
         const items = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
         if (!items.length) return;
-        const initial = items.map(f => ({ id: f.name + Date.now(), file: f, status: 'pending', msg: '' }));
+        const initial = items.map(f => ({ id: f.name + Date.now(), file: f, status: 'pending', msg: '', progress: 0 }));
         setQueue(initial);
         setStatus(STATUS.queue);
 
         for (const item of initial) {
             const ctrl = new AbortController();
             abortMap.current[item.id] = ctrl;
-            setQueue(q => q.map(x => x.id === item.id ? { ...x, status: 'processing', msg: 'Procesando con IA…' } : x));
+            setQueue(q => q.map(x => x.id === item.id ? { ...x, status: 'processing', msg: 'Leyendo PDF…', progress: 0 } : x));
+            startProgress(item.id);
 
             try {
                 const b64 = await toBase64(item.file);
@@ -47,8 +70,8 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 // Recalculate categorias from transactions
                 const cats = {};
                 let totalCargos = 0;
-                txs.filter(t => t.tipo === 'cargo').forEach(t => { 
-                    cats[t.categoria] = (cats[t.categoria] || 0) + t.monto; 
+                txs.filter(t => t.tipo === 'cargo').forEach(t => {
+                    cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
                     totalCargos += t.monto;
                 });
                 const monthData = { ...parsed, transacciones: txs, categorias: cats, total_cargos: totalCargos };
@@ -57,8 +80,10 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 const existing = months.find(m => m.periodo === parsed.periodo);
                 const saveKey = overridePeriod || parsed.periodo;
                 await onSaveMonth({ ...monthData, periodo: saveKey });
-                setQueue(q => q.map(x => x.id === item.id ? { ...x, status: 'done', msg: existing && !overridePeriod ? 'Actualizado ✓' : 'Guardado ✓', result: monthData } : x));
+                stopProgress(item.id);
+                setQueue(q => q.map(x => x.id === item.id ? { ...x, status: 'done', progress: 100, msg: existing && !overridePeriod ? 'Actualizado ✓' : 'Guardado ✓', result: monthData } : x));
             } catch (e) {
+                stopProgress(item.id);
                 if (e.name === 'AbortError') {
                     setQueue(q => q.map(x => x.id === item.id ? { ...x, status: 'cancelled', msg: 'Cancelado' } : x));
                 } else {
@@ -140,13 +165,21 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                         const isProc = item.status === 'processing';
                         return (
                             <div key={item.id} className={`queue-item${isProc ? ' active' : ''}`}>
-                                <div className={`queue-status-dot`} style={{
+                                <div className="queue-status-dot" style={{
                                     background: isDone ? 'var(--success-light)' : isErr ? 'var(--danger-light)' : isProc ? 'var(--primary-light)' : 'var(--bg-hover)',
                                 }}>
-                                    {isProc ? <span className="queue-spinner" /> : isDone ? <CheckCircle size={16} color="var(--success)" /> : isErr ? <AlertCircle size={16} color="var(--danger)" /> : <FileText size={16} color="var(--text-tertiary)" />}
+                                    {isDone ? <CheckCircle size={16} color="var(--success)" /> : isErr ? <AlertCircle size={16} color="var(--danger)" /> : <FileText size={16} color={isProc ? 'var(--primary)' : 'var(--text-tertiary)'} />}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.file.name}</div>
+                                    {isProc && (
+                                        <div className="queue-progress-wrap">
+                                            <div className="queue-progress-bar">
+                                                <div className="queue-progress-fill" style={{ width: `${item.progress ?? 0}%` }} />
+                                            </div>
+                                            <span className="queue-progress-pct">{item.progress ?? 0}%</span>
+                                        </div>
+                                    )}
                                     <div style={{ fontSize: 11, color: isDone ? 'var(--success)' : isErr ? 'var(--danger)' : 'var(--text-tertiary)', marginTop: 2 }}>{item.msg}</div>
                                 </div>
                                 {isProc && abortMap.current[item.id] && (
