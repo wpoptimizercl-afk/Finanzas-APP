@@ -316,6 +316,10 @@ export default async function handler(req, res) {
             .filter(t => t.tipo === 'cargo' && t.categoria !== 'cargos_banco')
             .reduce((s, t) => s + t.monto, 0);
         console.log(`[process-pdf] total_operaciones PDF: ${output.total_operaciones} | suma extraída (sin banco): ${sumSinBanco} | diff: ${output.total_operaciones - sumSinBanco}`);
+        const txsSinBanco = output.transacciones.filter(t => t.tipo === 'cargo' && t.categoria !== 'cargos_banco');
+        console.log('[process-pdf] TRANSACCIONES (sin banco):', JSON.stringify(txsSinBanco.map(t => ({ d: t.descripcion, m: t.monto }))));
+        const txsBanco = output.transacciones.filter(t => t.categoria === 'cargos_banco');
+        console.log('[process-pdf] CARGOS BANCO:', JSON.stringify(txsBanco.map(t => ({ d: t.descripcion, m: t.monto }))));
 
         return res.status(200).json(output);
 

@@ -61,8 +61,9 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
 
                 const parsed = typeof data === 'string' ? JSON.parse(data) : data;
 
-                // Apply catRules to transactions
+                // Apply catRules to transactions (never override cargos_banco — afecta el math de TOTAL OPERACIONES)
                 const txs = (parsed.transacciones || []).map(t => {
+                    if (t.categoria === 'cargos_banco') return t;
                     const key = (t.descripcion || '').toLowerCase().trim();
                     return catRules[key] ? { ...t, categoria: catRules[key] } : t;
                 });
