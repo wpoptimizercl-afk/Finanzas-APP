@@ -84,7 +84,7 @@ export function useFinanceData() {
 
     // ── Savers ─────────────────────────────────────────────────────────
     const saveMonth = useCallback(async (mData) => {
-        const { transacciones = [], categorias = {}, cuotas_vigentes = [], id: _id, ...rest } = mData;
+        const { transacciones = [], categorias = {}, cuotas_vigentes = [], id: _id, total_facturado, ...rest } = mData;
         const payload = {
             ...rest,
             user_id: uid,
