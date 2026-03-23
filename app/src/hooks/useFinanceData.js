@@ -84,7 +84,7 @@ export function useFinanceData() {
 
     // ── Savers ─────────────────────────────────────────────────────────
     const saveMonth = useCallback(async (mData) => {
-        const { transacciones = [], categorias = {}, cuotas_vigentes = [], id: _id, total_facturado, ...rest } = mData;
+        const { transacciones = [], categorias = {}, cuotas_vigentes = [], id: _id, total_facturado, total_operaciones: _totalOps, ...rest } = mData;
         const payload = {
             ...rest,
             total_facturado, // CRÍTICO: Asegurarse de que total_facturado viaja a Supabase
