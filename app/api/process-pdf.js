@@ -215,8 +215,114 @@ Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
   ]
 }`;
 
+// ── Prompt para Cuenta Corriente Santander ─────────────────────────────────
+const SYSTEM_PROMPT_CC = `Eres un extractor experto de cartolas de cuenta corriente Santander Chile.
+Extraerás TODOS los movimientos del período con nombres REALES, sin inventar ni omitir nada.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ESTRUCTURA DE LÍNEAS EN LA CARTOLA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+La cartola tiene la sección "DETALLE DE MOVIMIENTOS" con estas columnas:
+  • FECHA (DD/MM, sin año — el año se infiere del período)
+  • SUCURSAL
+  • DESCRIPCIÓN (nombre del movimiento, puede incluir Nº de transferencia)
+  • Nº DCTO (número de documento, opcional)
+  • CHEQUES Y OTROS CARGOS (débitos — dinero que SALE de la cuenta)
+  • DEPÓSITOS Y OTROS ABONOS (créditos — dinero que ENTRA a la cuenta)
+  • SALDO (saldo acumulado, aparece solo en algunas filas)
+
+Al final hay una sección "Resumen de Comisiones" que repite las comisiones ya listadas
+arriba — NO duplicar esas comisiones.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EJEMPLOS REALES — FORMATO CARTOLA
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"02/02 Agustinas 0779537005 Transf. COMERCIALIZADORA → Abono 1.449.274"
+→ tipo: "abono", descripcion: "Transf. Comercializadora", monto: 1449274, categoria: "transferencia_recibida"
+
+"02/02 Agustinas Traspaso Internet a T. Crédito → Cargo 580.291"
+→ tipo: "traspaso_tc", descripcion: "Traspaso a Tarjeta de Crédito", monto: 580291, categoria: "traspaso_tc"
+⚠️ ESTE MOVIMIENTO NO ES UN GASTO REAL — es pago de tarjeta de crédito
+
+"02/02 O.Gerencia PAGO EN LINEA SERVIPAG → Cargo 62.143"
+→ tipo: "cargo", descripcion: "Pago Servipag", monto: 62143, categoria: "pago_servicios"
+
+"03/02 O.Gerencia 0262646203 Transf a Edgar Eduardo Urbina → Cargo 250.000"
+→ tipo: "cargo", descripcion: "Transf. a Edgar Eduardo Urbina", monto: 250000, categoria: "transferencia_enviada"
+
+"04/02 Agustinas 0779537005 Transf. COMERCIALIZADORA → Abono 100.000"
+→ tipo: "abono", descripcion: "Transf. Comercializadora", monto: 100000, categoria: "transferencia_recibida"
+
+"25/02 Agustinas COM.MANTENCION PLAN → Cargo 7.942"
+→ tipo: "cargo", descripcion: "Comisión Mantención Plan", monto: 7942, categoria: "comision_banco"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REGLAS DE EXTRACCIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+R1. Extraer TODOS los movimientos de la sección "DETALLE DE MOVIMIENTOS".
+R2. NO duplicar movimientos del "Resumen de Comisiones" (ya están en la tabla principal).
+R3. Usar el AÑO del período del encabezado para completar las fechas (DD/MM → DD/MM/YYYY).
+R4. Distinguir CARGOS (columna "CHEQUES Y OTROS CARGOS") de ABONOS (columna "DEPÓSITOS Y OTROS ABONOS").
+R5. Los traspasos a tarjeta de crédito llevan tipo="traspaso_tc" y categoría="traspaso_tc".
+    NO son gastos reales — son pagos internos entre productos del mismo banco.
+R6. Las comisiones de mantención llevan categoría="comision_banco".
+R7. Los pagos por Servipag, pagos en línea, etc. llevan categoría="pago_servicios".
+R8. Transferencias recibidas llevan tipo="abono" y categoría="transferencia_recibida".
+R9. Transferencias enviadas a personas llevan tipo="cargo" y categoría="transferencia_enviada".
+R10. Normaliza nombres: MAYÚSCULAS → capitalización normal. Quitar números de transferencia del nombre.
+     "0779537005 Transf. COMERCIALIZADORA" → "Transf. Comercializadora"
+     "0262646203 Transf a Edgar Eduardo Urbina" → "Transf. a Edgar Eduardo Urbina"
+     "PAGO EN LINEA SERVIPAG" → "Pago Servipag"
+     "COM.MANTENCION PLAN" → "Comisión Mantención Plan"
+     "Transf a Khipu CLBS E" → "Pago Khipu"
+R11. Extraer saldo_inicial (primer saldo mostrado o inferido) y saldo_final (último saldo mostrado).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CATEGORÍAS PARA CUENTA CORRIENTE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- transferencia_recibida: depósitos y transferencias entrantes
+- transferencia_enviada: transferencias a terceros
+- pago_servicios: pagos Servipag, pagos en línea, PAC, PAT
+- traspaso_tc: traspasos a tarjeta de crédito (NO es gasto real)
+- comision_banco: comisiones de mantención, cargos bancarios
+- otros: movimientos que no encajen en las anteriores
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORMATO DE RESPUESTA (JSON EXACTO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
+{
+  "razonamiento": "Movimientos encontrados: X cargos, Y abonos. Total cargos: $Z, total abonos: $W.",
+  "periodo": "Mes YYYY",
+  "periodo_desde": "DD/MM/YYYY",
+  "periodo_hasta": "DD/MM/YYYY",
+  "saldo_inicial": 0,
+  "saldo_final": 0,
+  "source_type": "cc",
+  "transacciones": [
+    {
+      "fecha": "DD/MM/YYYY",
+      "descripcion": "Nombre del movimiento",
+      "monto": 0,
+      "tipo": "cargo",
+      "categoria": "pago_servicios",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    }
+  ],
+  "cuotas_vigentes": []
+}`;
+
+// Categorías válidas (TC + CC combinadas)
+const VALID_CATS_CC = [
+    'transferencia_recibida', 'transferencia_enviada', 'pago_servicios',
+    'traspaso_tc', 'comision_banco', 'otros',
+];
+
 const BANK_HINTS = {
     santander_tc: 'Santander Chile tarjeta de crédito. Fecha en formato DD-MM-YYYY. Los cargos aparecen en la columna "Cargos".',
+    santander_cc: 'Santander Chile cuenta corriente (cartola). Columnas: FECHA, SUCURSAL, DESCRIPCIÓN, Nº DCTO, CHEQUES Y OTROS CARGOS, DEPÓSITOS Y OTROS ABONOS, SALDO.',
     bci_tc: 'BCI tarjeta de crédito. Los montos en la columna "Monto" con signo positivo son cargos.',
     chile_tc: 'Banco de Chile tarjeta de crédito. Columna "Cargo" contiene los gastos.',
     bci_cc: 'BCI cuenta corriente. Los cargos son los débitos de la cuenta.',
@@ -225,6 +331,8 @@ const BANK_HINTS = {
 
 // ── Normalización (exportada para tests) ─────────────────────────────────────
 export function normalizeAIResponse(data) {
+    const isCC = data.source_type === 'cc';
+    const validCats = isCC ? VALID_CATS_CC : VALID_CATS;
     return {
         id: `month_${Date.now()}`,
         periodo: data.periodo || 'Desconocido',
@@ -232,13 +340,17 @@ export function normalizeAIResponse(data) {
         periodo_hasta: data.periodo_hasta || '',
         total_operaciones: Number(data.total_operaciones) || 0,
         total_facturado: Number(data.total_facturado) || 0,
+        // CC-specific fields (optional, won't affect TC)
+        source_type: data.source_type || 'tc',
+        saldo_inicial: data.saldo_inicial != null ? Number(data.saldo_inicial) : null,
+        saldo_final: data.saldo_final != null ? Number(data.saldo_final) : null,
         transacciones: (data.transacciones || []).map((t, i) => ({
             id: `tx_${i + 1}`,
             fecha: t.fecha,
             descripcion: t.descripcion,
             monto: Math.abs(Number(t.monto) || 0),
             tipo: t.tipo || 'cargo',
-            categoria: VALID_CATS.includes(t.categoria) ? t.categoria : 'otros',
+            categoria: validCats.includes(t.categoria) ? t.categoria : 'otros',
             es_cuota: Boolean(t.es_cuota),
             cuota_actual: t.cuota_actual != null ? Number(t.cuota_actual) : null,
             total_cuotas: t.total_cuotas != null ? Number(t.total_cuotas) : null,
@@ -289,15 +401,17 @@ export default async function handler(req, res) {
             return res.status(422).json({ error: 'No se pudo extraer suficiente texto del PDF. Verifica que no sea una imagen escaneada.' });
         }
 
-        // 2. Call OpenAI
-        console.log('[process-pdf] Llamando a OpenAI...');
+        // 2. Call OpenAI — route to correct prompt based on bank type
+        const isCC = bank === 'santander_cc';
+        const systemPrompt = isCC ? SYSTEM_PROMPT_CC : SYSTEM_PROMPT;
+        console.log(`[process-pdf] Llamando a OpenAI (${isCC ? 'cuenta corriente' : 'tarjeta crédito'})...`);
         const bankHint = BANK_HINTS[bank] || BANK_HINTS.otro;
         const userMsg = `Banco/Producto: ${bankHint}\n\nTexto del estado de cuenta:\n\n${pdfText}`;
 
         const completion = await openai.chat.completions.create({
             model: 'gpt-4o',
             messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'system', content: systemPrompt },
                 { role: 'user', content: userMsg },
             ],
             response_format: { type: "json_object" }, // Simple JSON mode for reliability
@@ -324,14 +438,24 @@ export default async function handler(req, res) {
         if (data.razonamiento) {
             console.log('[process-pdf] RAZONAMIENTO IA:', data.razonamiento);
         }
-        const sumSinBanco = output.transacciones
-            .filter(t => t.tipo === 'cargo' && t.categoria !== 'cargos_banco')
-            .reduce((s, t) => s + t.monto, 0);
-        console.log(`[process-pdf] total_operaciones PDF: ${output.total_operaciones} | suma extraída (sin banco): ${sumSinBanco} | diff: ${output.total_operaciones - sumSinBanco}`);
-        const txsSinBanco = output.transacciones.filter(t => t.tipo === 'cargo' && t.categoria !== 'cargos_banco');
-        console.log('[process-pdf] TRANSACCIONES (sin banco):', JSON.stringify(txsSinBanco.map(t => ({ d: t.descripcion, m: t.monto }))));
-        const txsBanco = output.transacciones.filter(t => t.categoria === 'cargos_banco');
-        console.log('[process-pdf] CARGOS BANCO:', JSON.stringify(txsBanco.map(t => ({ d: t.descripcion, m: t.monto }))));
+        if (isCC) {
+            // CC logging
+            const cargos = output.transacciones.filter(t => t.tipo === 'cargo');
+            const abonos = output.transacciones.filter(t => t.tipo === 'abono');
+            const sumCargos = cargos.reduce((s, t) => s + t.monto, 0);
+            const sumAbonos = abonos.reduce((s, t) => s + t.monto, 0);
+            console.log(`[process-pdf] CC: ${cargos.length} cargos ($${sumCargos}), ${abonos.length} abonos ($${sumAbonos}), saldo: ${output.saldo_inicial} → ${output.saldo_final}`);
+        } else {
+            // TC logging (unchanged)
+            const sumSinBanco = output.transacciones
+                .filter(t => t.tipo === 'cargo' && t.categoria !== 'cargos_banco')
+                .reduce((s, t) => s + t.monto, 0);
+            console.log(`[process-pdf] total_operaciones PDF: ${output.total_operaciones} | suma extraída (sin banco): ${sumSinBanco} | diff: ${output.total_operaciones - sumSinBanco}`);
+            const txsSinBanco = output.transacciones.filter(t => t.tipo === 'cargo' && t.categoria !== 'cargos_banco');
+            console.log('[process-pdf] TRANSACCIONES (sin banco):', JSON.stringify(txsSinBanco.map(t => ({ d: t.descripcion, m: t.monto }))));
+            const txsBanco = output.transacciones.filter(t => t.categoria === 'cargos_banco');
+            console.log('[process-pdf] CARGOS BANCO:', JSON.stringify(txsBanco.map(t => ({ d: t.descripcion, m: t.monto }))));
+        }
 
         return res.status(200).json(output);
 

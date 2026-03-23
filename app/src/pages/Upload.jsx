@@ -61,9 +61,17 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
 
                 const parsed = typeof data === 'string' ? JSON.parse(data) : data;
 
-                // Apply catRules to transactions (never override cargos_banco — afecta el math de TOTAL OPERACIONES)
+                // Determine if this is a CC (cuenta corriente) response
+                const isCC = parsed.source_type === 'cc';
+
+                // Protected categories that should not be overridden by catRules
+                const protectedCats = isCC
+                    ? ['traspaso_tc', 'comision_banco']
+                    : ['cargos_banco'];
+
+                // Apply catRules to transactions (never override protected categories)
                 const txs = (parsed.transacciones || []).map(t => {
-                    if (t.categoria === 'cargos_banco') return t;
+                    if (protectedCats.includes(t.categoria)) return t;
                     const key = (t.descripcion || '').toLowerCase().trim();
                     return catRules[key] ? { ...t, categoria: catRules[key] } : t;
                 });
@@ -71,17 +79,35 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 // Recalculate categorias from transactions
                 const cats = {};
                 let totalCargos = 0;
-                let totalCargosConBanco = 0;
-                txs.filter(t => t.tipo === 'cargo').forEach(t => {
-                    cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
-                    totalCargosConBanco += t.monto;
-                    // total_cargos excluye cargos_banco (comisiones, IVA, etc.) para
-                    // coincidir con "1. TOTAL OPERACIONES" del PDF Santander
-                    if (t.categoria !== 'cargos_banco') totalCargos += t.monto;
+                txs.forEach(t => {
+                    // For CC: abonos go into categorias but not into totalCargos
+                    // traspaso_tc is not a real expense either
+                    if (t.tipo === 'abono' || t.tipo === 'traspaso_tc') {
+                        cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
+                        return;
+                    }
+                    if (t.tipo === 'cargo') {
+                        cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
+                        if (isCC) {
+                            // CC: exclude traspaso_tc and comision_banco from total
+                            if (t.categoria !== 'traspaso_tc') totalCargos += t.monto;
+                        } else {
+                            // TC: exclude cargos_banco to match "TOTAL OPERACIONES" del PDF
+                            if (t.categoria !== 'cargos_banco') totalCargos += t.monto;
+                        }
+                    }
                 });
+
+                const monthData = {
+                    ...parsed,
+                    transacciones: txs,
+                    categorias: cats,
+                    total_cargos: totalCargos,
+                };
+
+                // Mismatch check only applies to TC (CC cartolas don't have total_operaciones)
                 const totalOps = parsed.total_operaciones || 0;
-                const mismatch = totalOps > 0 && Math.abs(totalOps - totalCargos) > 100;
-                const monthData = { ...parsed, transacciones: txs, categorias: cats, total_cargos: totalCargos };
+                const mismatch = !isCC && totalOps > 0 && Math.abs(totalOps - totalCargos) > 100;
 
                 // Check for existing period
                 const existing = months.find(m => m.periodo === parsed.periodo);
