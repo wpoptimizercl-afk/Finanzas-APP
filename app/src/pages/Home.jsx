@@ -4,7 +4,7 @@ import Metric from '../components/ui/Metric';
 import Section from '../components/ui/Section';
 import Tag from '../components/ui/Tag';
 import { CLP, pct, shortLabel } from '../utils/formatters';
-import { getMonthFixed, getMonthFixedTotal, getMonthSalary, getMonthExtraItems, getMonthExtraTotal } from '../utils/calculations';
+import { getMonthFixed, getMonthFixedTotal, getMonthIncome, getCCAbonos, getMonthExtraItems, getMonthExtraTotal } from '../utils/calculations';
 import { SOURCE_OPTS } from '../lib/constants';
 
 export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload }) {
@@ -39,10 +39,8 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
     const fixedTotal = getMonthFixedTotal(periodo, fixedByMonth);
     const extraItems = getMonthExtraItems(periodo, extraByMonth);
     const extraTotal = getMonthExtraTotal(periodo, extraByMonth);
-    const hasSalary = incomeByMonth[periodo] != null;
-    const salary = hasSalary ? incomeByMonth[periodo] : (extraTotal > 0 ? 0 : defaultIncome);
-    const income = salary + extraTotal;
-    const incomeIsDefault = !hasSalary && extraTotal === 0;
+    const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome, allMonths);
+    const incomeIsDefault = incomeByMonth[periodo] == null && extraTotal === 0 && getCCAbonos(periodo, allMonths) === 0;
 
     const tcBankTotal = tcSources.reduce((s, m) => s + (m.total_cargos || 0), 0);
     const ccBankTotal = ccSources.reduce((s, m) => s + (m.total_cargos || 0), 0);

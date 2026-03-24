@@ -4,6 +4,7 @@ import {
     getMonthExtraTotal,
     getMonthIncome,
     getMonthFixedTotal,
+    getCCAbonos,
     pct,
 } from '../src/utils/calculations.js';
 
@@ -187,5 +188,146 @@ describe('Regresión: auto-save CC abonos con categoria_ingreso "otros"', () => 
             ],
         };
         expect(getMonthIncome('2026-02', {}, ebm, DEF)).toBe(1_664_258);
+    });
+});
+
+// ── getCCAbonos — extraer ingreso desde transacciones CC ──────────────────
+describe('getCCAbonos', () => {
+    const ccMonth = (periodo, txs) => ({
+        periodo,
+        source_type: 'cc',
+        transacciones: txs,
+    });
+
+    it('suma abonos CC del período', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 800_000 },
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 764_258 },
+        ])];
+        expect(getCCAbonos('2026-02', months)).toBe(1_564_258);
+    });
+
+    it('excluye traspaso_tc de los abonos', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_000_000 },
+            { tipo: 'abono', categoria: 'traspaso_tc', monto: 500_000 },
+        ])];
+        expect(getCCAbonos('2026-02', months)).toBe(1_000_000);
+    });
+
+    it('excluye cargos', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_000_000 },
+            { tipo: 'cargo', categoria: 'alimentacion', monto: 200_000 },
+        ])];
+        expect(getCCAbonos('2026-02', months)).toBe(1_000_000);
+    });
+
+    it('no cuenta meses TC', () => {
+        const months = [{
+            periodo: '2026-02',
+            source_type: 'tc',
+            transacciones: [{ tipo: 'abono', categoria: 'transferencia_recibida', monto: 999 }],
+        }];
+        expect(getCCAbonos('2026-02', months)).toBe(0);
+    });
+
+    it('retorna 0 si no hay meses CC para el período', () => {
+        expect(getCCAbonos('2026-02', [])).toBe(0);
+    });
+
+    it('retorna 0 si no hay transacciones', () => {
+        const months = [ccMonth('2026-02', [])];
+        expect(getCCAbonos('2026-02', months)).toBe(0);
+    });
+
+    it('solo considera el período solicitado', () => {
+        const months = [
+            ccMonth('2026-01', [{ tipo: 'abono', categoria: 'transferencia_recibida', monto: 500_000 }]),
+            ccMonth('2026-02', [{ tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_000_000 }]),
+        ];
+        expect(getCCAbonos('2026-02', months)).toBe(1_000_000);
+    });
+});
+
+// ── getMonthIncome con CC fallback (5to parámetro) ────────────────────────
+describe('getMonthIncome con CC abonos como fallback', () => {
+    const DEF = 3_257_347;
+    const ccMonth = (periodo, txs) => ({
+        periodo,
+        source_type: 'cc',
+        transacciones: txs,
+    });
+
+    it('usa CC abonos cuando no hay salary ni extras', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 800_000 },
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 764_258 },
+        ])];
+        expect(getMonthIncome('2026-02', {}, {}, DEF, months)).toBe(1_564_258);
+    });
+
+    it('NO cae a defaultIncome cuando hay CC abonos', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_564_258 },
+        ])];
+        const income = getMonthIncome('2026-02', {}, {}, DEF, months);
+        expect(income).toBe(1_564_258);
+        expect(income).not.toBe(DEF);
+    });
+
+    it('prioriza salary explícito sobre CC abonos', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_564_258 },
+        ])];
+        const ibm = { '2026-02': 2_000_000 };
+        expect(getMonthIncome('2026-02', ibm, {}, DEF, months)).toBe(2_000_000);
+    });
+
+    it('prioriza extra_income sobre CC abonos', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_564_258 },
+        ])];
+        const ebm = { '2026-02': [{ amount: 900_000, categoria_ingreso: 'sueldo' }] };
+        expect(getMonthIncome('2026-02', {}, ebm, DEF, months)).toBe(900_000);
+    });
+
+    it('salary + extras tiene prioridad sobre CC abonos', () => {
+        const months = [ccMonth('2026-02', [
+            { tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_564_258 },
+        ])];
+        const ibm = { '2026-02': 1_000_000 };
+        const ebm = { '2026-02': [{ amount: 200_000, categoria_ingreso: 'bonus' }] };
+        expect(getMonthIncome('2026-02', ibm, ebm, DEF, months)).toBe(1_200_000);
+    });
+
+    it('cae a defaultIncome si no hay CC abonos ni extras ni salary', () => {
+        expect(getMonthIncome('2026-02', {}, {}, DEF, [])).toBe(DEF);
+    });
+
+    it('backward compatible: sin 5to parámetro cae a defaultIncome', () => {
+        expect(getMonthIncome('2026-02', {}, {}, DEF)).toBe(DEF);
+    });
+});
+
+// ── Regresión FINAL: bug $3.257.347 (datos existentes sin extra_income) ───
+describe('Regresión: $3.257.347 — CC abonos en transactions resuelven el fallback', () => {
+    const DEF = 3_257_347;
+
+    it('escenario exacto del bug: extra_income vacío + CC transactions con abonos', () => {
+        const months = [{
+            periodo: '2026-02',
+            source_type: 'cc',
+            transacciones: [
+                { tipo: 'abono', categoria: 'transferencia_recibida', monto: 800_000 },
+                { tipo: 'abono', categoria: 'transferencia_recibida', monto: 764_258 },
+                { tipo: 'cargo', categoria: 'alimentacion', monto: 150_000 },
+            ],
+        }];
+        const ibm = {};
+        const ebm = {};
+        const income = getMonthIncome('2026-02', ibm, ebm, DEF, months);
+        expect(income).toBe(1_564_258);
+        expect(income).not.toBe(DEF); // NO debe mostrar $3,257,347
     });
 });
