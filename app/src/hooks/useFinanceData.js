@@ -205,18 +205,17 @@ export function useFinanceData() {
     const saveIncomeItems = useCallback(async (periodo, items) => {
         // items: [{ name, amount, categoria_ingreso }]
         const rows = items.map(it => ({
-            id: `inc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             user_id: uid,
             periodo,
             name: it.name,
             amount: it.amount,
             categoria_ingreso: it.categoria_ingreso || 'otros',
         }));
-        const { error } = await supabase.from('extra_income').insert(rows);
+        const { data, error } = await supabase.from('extra_income').insert(rows).select();
         if (error) throw new Error(error.message);
         setEBM(prev => {
             const next = { ...prev };
-            next[periodo] = [...(next[periodo] || []), ...rows];
+            next[periodo] = [...(next[periodo] || []), ...(data || rows)];
             return next;
         });
     }, [uid]);

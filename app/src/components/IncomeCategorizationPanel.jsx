@@ -12,6 +12,7 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
     const [colorIdx, setColorIdx] = useState(0);
     const [saving, setSaving] = useState(false);
     const [savingCat, setSavingCat] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
     // Asignar default: mayor monto → Sueldo, resto → Otros
     useEffect(() => {
@@ -41,7 +42,9 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
             .map(i => ({ name: i.descripcion, amount: i.monto, categoria_ingreso: cats[i.id] || 'otros' }));
         if (!toSave.length) { onDismiss(); return; }
         setSaving(true);
+        setSaveError(null);
         try { await onSaveItems(periodo, toSave); }
+        catch (e) { setSaveError(e.message || 'Error al guardar'); }
         finally { setSaving(false); }
     };
 
@@ -186,6 +189,11 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
             </div>
 
             {/* Footer: total + CTAs */}
+            {saveError && (
+                <div style={{ padding: '6px 16px', fontSize: 12, color: 'var(--danger)', background: 'var(--danger-light)', borderTop: '1px solid var(--danger-border)' }}>
+                    {saveError}
+                </div>
+            )}
             <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)', background: 'var(--surface-raised, var(--surface))', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Total seleccionado</div>
