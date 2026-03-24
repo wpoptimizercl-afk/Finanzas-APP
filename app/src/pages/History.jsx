@@ -42,6 +42,7 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
     }, [selIdx]);
 
     const txs = month?.transacciones || [];
+    const isCC = month?.source_type === 'cc';
     const filtered = useMemo(() => {
         let res = txs;
         if (query.trim()) {
@@ -60,15 +61,31 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
     }, [txs, query, dateRange]);
 
     const byCategory = useMemo(() => {
-        const map = {};
-        filtered.filter(t => t.tipo === 'cargo').forEach(t => {
+        const sortEntries = (m) => Object.entries(m).sort(
+            (a, b) => b[1].reduce((s, t) => s + t.monto, 0) - a[1].reduce((s, t) => s + t.monto, 0)
+        );
+        if (!isCC) {
+            const map = {};
+            filtered.filter(t => t.tipo === 'cargo').forEach(t => {
+                const k = t.categoria || 'otros';
+                (map[k] = map[k] || []).push(t);
+            });
+            return { egresos: sortEntries(map), ingresos: [] };
+        }
+        // CC: separar egresos e ingresos; excluir traspaso_tc (movimiento interno)
+        const eMap = {}, iMap = {};
+        filtered.forEach(t => {
+            if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') return;
             const k = t.categoria || 'otros';
-            (map[k] = map[k] || []).push(t);
+            if (t.tipo === 'cargo') (eMap[k] = eMap[k] || []).push(t);
+            else if (t.tipo === 'abono') (iMap[k] = iMap[k] || []).push(t);
         });
-        return Object.entries(map).sort((a, b) => b[1].reduce((s, t) => s + t.monto, 0) - a[1].reduce((s, t) => s + t.monto, 0));
-    }, [filtered]);
+        return { egresos: sortEntries(eMap), ingresos: sortEntries(iMap) };
+    }, [filtered, isCC]);
 
-    const totalTx = filtered.filter(t => t.tipo === 'cargo').reduce((s, t) => s + t.monto, 0);
+    const totalEgresos = byCategory.egresos.reduce((s, [, txList]) => s + txList.reduce((a, t) => a + t.monto, 0), 0);
+    const totalIngresos = byCategory.ingresos.reduce((s, [, txList]) => s + txList.reduce((a, t) => a + t.monto, 0), 0);
+    const totalTx = isCC ? totalEgresos : filtered.filter(t => t.tipo === 'cargo').reduce((s, t) => s + t.monto, 0);
 
     if (!sorted.length) return (
         <div className="animate-fadeIn">
@@ -152,9 +169,20 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
 
             {/* Summary chip */}
             <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                {isCC ? (
+                    <>
+                        <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--danger)' }}>
+                            ↓ {byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} egresos · {CLP(totalEgresos)}
+                        </span>
+                        <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--success, #059669)' }}>
+                            ↑ {byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} ingresos · {CLP(totalIngresos)}
+                        </span>
+                    </>
+                ) : (
                 <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-secondary)' }}>
                     {filtered.filter(t => t.tipo === 'cargo').length} transacciones · {CLP(totalTx)}
                 </span>
+                )}
                 {query && (
                     <button onClick={() => setQuery('')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
                         ✕ {query}
@@ -162,47 +190,72 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                 )}
             </div>
 
-            {/* By category */}
-            {byCategory.map(([cat, txList]) => {
-                const catObj = allCats[cat] || { label: cat, color: '#888', bg: '#F3F4F6' };
-                const catTotal = txList.reduce((s, t) => s + t.monto, 0);
-                return (
-                    <div key={cat} style={{ marginBottom: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: catObj.color, display: 'block' }} />
-                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{catObj.label}</span>
-                            </div>
-                            <span style={{ fontSize: 13, fontWeight: 600 }}>{CLP(catTotal)}</span>
-                        </div>
-                        <div className="card" style={{ padding: 0, overflow: 'visible' }}>
-                            {txList.sort((a, b) => b.monto - a.monto).map((t) => (
-                                <div key={t.id} className="tx-row">
-                                    <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
-                                        <div className="tx-desc">{t.descripcion}</div>
-                                        <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                                            <span>{t.fecha}</span>
-                                            <ClickableTag
-                                                label={catObj.label}
-                                                color={catObj.color}
-                                                bg={catObj.bg}
-                                                categoria={t.categoria}
-                                                txId={t.id}
-                                                periodo={month.periodo}
-                                                onRecategorize={recategorizeMonth}
-                                                allCats={allCats}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="tx-amount">{CLP(t.monto)}</div>
+            {/* By category — helper para renderizar una lista de [cat, txList] */}
+            {(() => {
+                const renderGroup = (entries) => entries.map(([cat, txList]) => {
+                    const catObj = allCats[cat] || { label: cat, color: '#888', bg: '#F3F4F6' };
+                    const catTotal = txList.reduce((s, t) => s + t.monto, 0);
+                    return (
+                        <div key={cat} style={{ marginBottom: '1.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: catObj.color, display: 'block' }} />
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{catObj.label}</span>
                                 </div>
-                            ))}
+                                <span style={{ fontSize: 13, fontWeight: 600 }}>{CLP(catTotal)}</span>
+                            </div>
+                            <div className="card" style={{ padding: 0, overflow: 'visible' }}>
+                                {txList.sort((a, b) => b.monto - a.monto).map((t) => (
+                                    <div key={t.id} className="tx-row">
+                                        <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
+                                            <div className="tx-desc">{t.descripcion}</div>
+                                            <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                                                <span>{t.fecha}</span>
+                                                <ClickableTag
+                                                    label={catObj.label}
+                                                    color={catObj.color}
+                                                    bg={catObj.bg}
+                                                    categoria={t.categoria}
+                                                    txId={t.id}
+                                                    periodo={month.periodo}
+                                                    onRecategorize={recategorizeMonth}
+                                                    allCats={allCats}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="tx-amount">{CLP(t.monto)}</div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                );
-            })}
+                    );
+                });
 
-            {txs.length > 0 && !byCategory.length && query && (
+                if (!isCC) return renderGroup(byCategory.egresos);
+
+                return (
+                    <>
+                        {byCategory.egresos.length > 0 && (
+                            <>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+                                    ↓ Egresos
+                                </div>
+                                {renderGroup(byCategory.egresos)}
+                            </>
+                        )}
+                        {byCategory.ingresos.length > 0 && (
+                            <>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--success, #059669)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: byCategory.egresos.length > 0 ? 4 : 0 }}>
+                                    ↑ Ingresos del período
+                                </div>
+                                {renderGroup(byCategory.ingresos)}
+                            </>
+                        )}
+                    </>
+                );
+            })()}
+
+            {txs.length > 0 && byCategory.egresos.length === 0 && byCategory.ingresos.length === 0 && query && (
                 <div className="empty-state" style={{ paddingTop: '2rem' }}>
                     <div className="empty-state-title">Sin resultados</div>
                     <div className="empty-state-desc">"{query}" no coincide con ninguna transacción.</div>

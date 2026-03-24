@@ -196,9 +196,10 @@ export function useFinanceData() {
                 (t.descripcion || '').toLowerCase().trim() === ruleKey ? { ...t, categoria: newCat } : t
             );
             const cats = {}; let total = 0;
-            updatedTxs.filter(t => t.tipo === 'cargo').forEach(t => {
-                cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
-                total += t.monto;
+            updatedTxs.forEach(t => {
+                const k = t.categoria || 'otros';
+                cats[k] = (cats[k] || 0) + t.monto;
+                if (t.tipo === 'cargo' && k !== 'traspaso_tc' && k !== 'cargos_banco') total += t.monto;
             });
             return { ...mon, transacciones: updatedTxs, categorias: cats, total_cargos: total };
         });

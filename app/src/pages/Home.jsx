@@ -38,6 +38,7 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
     const extraTotal = getMonthExtraTotal(latest.periodo, extraByMonth);
     const income = salary + extraTotal;
     const incomeIsDefault = incomeByMonth[latest.periodo] == null && extraItems.length === 0;
+    const isCC = latest?.source_type === 'cc';
     const tcTotal = latest.total_cargos || 0;
     const totalGasto = tcTotal + fixedTotal;
     const ahorro = income - totalGasto;
@@ -55,7 +56,7 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
     const isLatest = clampedIdx === allMonths.length - 1;
     const prevLabel = prevMonth ? shortLabel(prevMonth.periodo) : null;
 
-    const catRows = Object.entries(latest.categorias || {}).map(([k, v]) => {
+    const catRows = Object.entries(latest.categorias || {}).filter(([k]) => !isCC || k !== 'traspaso_tc').map(([k, v]) => {
         const prevVal = prevCats[k] || 0;
         const delta = prevVal > 0 ? Math.round(((v - prevVal) / prevVal) * 100) : null;
         return { key: k, value: v, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', tope: budgetCats[k] || 0, delta };
@@ -85,6 +86,7 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                     {incomeIsDefault && <Tag label="Ingreso estimado" color="var(--warning)" bg="var(--warning-light)" />}
                     {!isLatest && <Tag label="Mes anterior" color="var(--text-tertiary)" bg="var(--bg-hover)" />}
+                    {isCC && <Tag label="Cta. Corriente" color="#0891B2" bg="#ECFEFF" />}
                 </div>
             </div>
 
@@ -92,7 +94,7 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
             <div className="dashboard-grid" style={{ marginBottom: 10 }}>
                 <Metric label="Ingreso" value={CLP(income)} color="var(--primary)" />
                 <Metric label="Gasto del mes" value={CLP(totalGasto)} color="var(--danger)" />
-                <Metric label="Saldo Tarjeta" value={CLP(latest.total_facturado || tcTotal)} color="var(--text-secondary)" />
+                <Metric label={isCC ? 'Saldo Final' : 'Saldo Tarjeta'} value={CLP(isCC ? (latest.saldo_final || 0) : (latest.total_facturado || tcTotal))} color="var(--text-secondary)" />
                 <Metric label="Ahorro" value={CLP(ahorro)} color={aColor} />
             </div>
 
@@ -130,8 +132,8 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
                 </div>
             )}
 
-            {/* Cuotas */}
-            {(() => {
+            {/* Cuotas — solo para TC */}
+            {!isCC && (() => {
                 const currentCuotas = (latest.cuotas_vigentes || []).filter(c => (c.cuota_actual || 0) > 0);
                 if (currentCuotas.length === 0) return null;
 
@@ -168,8 +170,8 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
                 );
             })()}
 
-            {/* Cuotas futuras */}
-            {totalDeuda > 0 && (
+            {/* Cuotas futuras — solo para TC */}
+            {!isCC && totalDeuda > 0 && (
                 <div>
                     <Section mt="0">Deuda futura en cuotas</Section>
                     <div className="card" style={{ padding: '4px 0', overflow: 'hidden', marginBottom: '1.5rem' }}>
@@ -210,7 +212,7 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
             )}
 
             {/* Category breakdown */}
-            <Section mt="0">Tarjeta por categoría</Section>
+            <Section mt="0">{isCC ? 'Cuenta corriente por categoría' : 'Tarjeta por categoría'}</Section>
             {prevLabel && (
                 <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
                     Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
