@@ -121,6 +121,9 @@ Línea PDF → Cómo extraer:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGLAS DE EXTRACCIÓN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+R0. AUTO-IDENTIFICACIÓN: Si el texto corresponde a una cartola de cuenta corriente
+    (contiene columnas CHEQUES/CARGOS/ABONOS/SALDO, o encabezado "CARTOLA" o "CUENTA CORRIENTE"),
+    devuelve source_type: "cc". Si es estado de tarjeta de crédito, devuelve source_type: "tc".
 R1. SOLO PERÍODO ACTUAL ("2.PERÍODO ACTUAL"): Ignora la sección "1.PERÍODO ANTERIOR" y sus montos.
     Las cuotas con fechas antiguas (ago/oct/nov/dic del año anterior) que aparecen DENTRO de
     "2.PERÍODO ACTUAL" SÍ deben incluirse — son cobros diferidos del período actual.
@@ -193,6 +196,7 @@ Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
   "periodo_hasta": "DD/MM/YYYY",
   "total_operaciones": 0,
   "total_facturado": 0,
+  "source_type": "tc",
   "transacciones": [
     {
       "fecha": "DD/MM/YYYY",
@@ -516,6 +520,16 @@ export default async function handler(req, res) {
 
         // 3. Normalize for frontend
         const output = normalizeAIResponse(data);
+
+        // Detectar mismatch: PDF es CC pero cuenta seleccionada es TC
+        if (data.source_type === 'cc' && !isCC) {
+            console.warn('[process-pdf] MISMATCH: PDF es CC pero cuenta seleccionada es TC');
+            return res.status(422).json({
+                error: 'ACCOUNT_TYPE_MISMATCH',
+                detected: 'cc',
+                message: 'Este PDF es una cartola de cuenta corriente.',
+            });
+        }
 
         // Log razonamiento para diagnóstico de diferencias
         if (data.razonamiento) {

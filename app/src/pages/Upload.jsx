@@ -17,6 +17,8 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
     const [newAccBank, setNewAccBank] = useState('santander');
     const [newAccType, setNewAccType] = useState('tc');
     const [savingAcc, setSavingAcc] = useState(false);
+    const [mismatchInfo, setMismatchInfo] = useState({}); // { [itemId]: { bank } }
+    const [pendingRetry, setPendingRetry] = useState(null); // { file } — retry tras cambio de cuenta
 
     const inputRef = useRef();
     const abortMap = useRef({});
@@ -67,12 +69,13 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
         }
     };
 
+    const selectedAccount = accounts.find(a => a.id === accountId) ?? null;
+
     const processFiles = useCallback(async (files) => {
         if (!accountId) return;
         const items = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
         if (!items.length) return;
 
-        const selectedAccount = accounts.find(a => a.id === accountId);
         const bankForAPI = selectedAccount ? `${selectedAccount.bank}_${selectedAccount.type}` : 'santander_tc';
 
         const initial = items.map(f => ({ id: f.name + Date.now(), file: f, status: 'pending', msg: '', progress: 0 }));
@@ -93,7 +96,21 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                     body: JSON.stringify({ pdfBase64: b64, bank: bankForAPI }),
                     signal: ctrl.signal,
                 });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (!res.ok) {
+                    if (res.status === 422) {
+                        const errBody = await res.json().catch(() => ({}));
+                        if (errBody.error === 'ACCOUNT_TYPE_MISMATCH') {
+                            stopProgress(item.id);
+                            setMismatchInfo(prev => ({ ...prev, [item.id]: { bank: selectedAccount?.bank } }));
+                            setQueue(q => q.map(x => x.id === item.id
+                                ? { ...x, status: 'mismatch', progress: 0, msg: 'Este PDF es de Cuenta Corriente' }
+                                : x
+                            ));
+                            continue;
+                        }
+                    }
+                    throw new Error(`HTTP ${res.status}`);
+                }
                 const data = await res.json();
                 if (data.error) throw new Error(data.error);
 
@@ -162,7 +179,31 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
             }
             delete abortMap.current[item.id];
         }
-    }, [accountId, accounts, catRules, months, onSaveMonth, overridePeriod]);
+    }, [accountId, accounts, catRules, months, onSaveMonth, overridePeriod, selectedAccount]);
+
+    // Ejecutar retry DESPUÉS de que React re-renderice con el nuevo accountId
+    useEffect(() => {
+        if (pendingRetry) {
+            setPendingRetry(null);
+            processFiles([pendingRetry.file]);
+        }
+    }, [pendingRetry, processFiles]);
+
+    const handleFixMismatch = useCallback((itemId) => {
+        const info = mismatchInfo[itemId];
+        if (!info) return;
+        const ccAccount = accounts.find(a => a.bank === info.bank && a.type === 'cc');
+        if (ccAccount) {
+            setAccountId(ccAccount.id);
+            setMismatchInfo(prev => { const n = { ...prev }; delete n[itemId]; return n; });
+            const qItem = queue.find(x => x.id === itemId);
+            if (qItem) setPendingRetry({ file: qItem.file }); // defer hasta re-render con nueva cuenta
+        } else {
+            setNewAccBank(info.bank);
+            setNewAccType('cc');
+            setShowNewAcc(true);
+        }
+    }, [mismatchInfo, accounts, queue]);
 
     const toBase64 = (file) => new Promise((res, rej) => {
         const reader = new FileReader();
@@ -264,8 +305,17 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                 <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
                     {status === STATUS.drag ? 'Suelta los archivos aquí' : 'Arrastra o selecciona PDF(s)'}
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                     {accounts.length === 0 ? 'Primero crea una cuenta arriba' : 'Puedes subir varios meses de una vez'}
+                    {selectedAccount && (
+                        <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, letterSpacing: '.04em',
+                            background: selectedAccount.type === 'cc' ? 'var(--primary-light)' : '#FFE4E6',
+                            color: selectedAccount.type === 'cc' ? 'var(--primary)' : '#BE123C',
+                        }}>
+                            {selectedAccount.type === 'cc' ? 'CC' : 'TC'}
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -276,15 +326,18 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                         const isDone = item.status === 'done';
                         const isWarn = item.status === 'warn';
                         const isErr = item.status === 'error';
+                        const isMismatch = item.status === 'mismatch';
                         const isPending = item.status === 'pending';
                         const isProc = item.status === 'processing';
                         const isFinished = isDone || isWarn;
+                        const mismatch = mismatchInfo[item.id];
+                        const ccAccount = mismatch ? accounts.find(a => a.bank === mismatch.bank && a.type === 'cc') : null;
                         return (
                             <div key={item.id} className={`queue-item${isProc ? ' active' : ''}`}>
                                 <div className="queue-status-dot" style={{
-                                    background: isFinished ? 'var(--success-light)' : isWarn ? 'var(--warning-light, #FEF3C7)' : isErr ? 'var(--danger-light)' : isProc ? 'var(--primary-light)' : 'var(--bg-hover)',
+                                    background: isFinished ? 'var(--success-light)' : isWarn ? 'var(--warning-light, #FEF3C7)' : (isErr || isMismatch) ? 'var(--warning-light, #FEF3C7)' : isProc ? 'var(--primary-light)' : 'var(--bg-hover)',
                                 }}>
-                                    {isFinished ? <CheckCircle size={16} color="var(--success)" /> : isWarn ? <AlertCircle size={16} color="var(--warning, #D97706)" /> : isErr ? <AlertCircle size={16} color="var(--danger)" /> : <FileText size={16} color={isProc ? 'var(--primary)' : 'var(--text-tertiary)'} />}
+                                    {isFinished ? <CheckCircle size={16} color="var(--success)" /> : isWarn ? <AlertCircle size={16} color="var(--warning, #D97706)" /> : (isErr || isMismatch) ? <AlertCircle size={16} color="var(--warning, #D97706)" /> : <FileText size={16} color={isProc ? 'var(--primary)' : 'var(--text-tertiary)'} />}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.file.name}</div>
@@ -296,7 +349,14 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                                             <span className="queue-progress-pct">{item.progress ?? 0}%</span>
                                         </div>
                                     )}
-                                    <div style={{ fontSize: 11, color: isFinished ? 'var(--success)' : isWarn ? 'var(--warning, #D97706)' : isErr ? 'var(--danger)' : 'var(--text-tertiary)', marginTop: 2 }}>{item.msg}</div>
+                                    <div style={{ fontSize: 11, color: isFinished ? 'var(--success)' : isWarn ? 'var(--warning, #D97706)' : isErr ? 'var(--danger)' : isMismatch ? 'var(--warning, #D97706)' : 'var(--text-tertiary)', marginTop: 2 }}>{item.msg}</div>
+                                    {isMismatch && (
+                                        <div style={{ marginTop: 6 }}>
+                                            <button onClick={() => handleFixMismatch(item.id)} className="btn btn-primary btn-sm" style={{ fontSize: 11 }}>
+                                                {ccAccount ? `Usar "${ccAccount.name}" y reprocesar` : 'Crear cuenta CC y reintentar'}
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 {isProc && abortMap.current[item.id] && (
                                     <button onClick={() => abortMap.current[item.id]?.abort()} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)' }}>
