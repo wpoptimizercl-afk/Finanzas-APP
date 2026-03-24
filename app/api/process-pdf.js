@@ -302,6 +302,10 @@ Si hay diferencia: revisa si omitiste algún movimiento o confundiste montos.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGLAS DE EXTRACCIÓN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+R0. AUTO-IDENTIFICACIÓN: Si el texto corresponde a un estado de tarjeta de crédito
+    (contiene sección "2.PERÍODO ACTUAL", "TOTAL OPERACIONES", "MONTO FACTURADO" o
+    similar estructura TC), devuelve source_type: "tc". Si es cartola de cuenta
+    corriente (columnas CHEQUES/CARGOS/ABONOS/SALDO, encabezado "CARTOLA"), source_type: "cc".
 R1. Extraer ABSOLUTAMENTE TODOS los movimientos de "DETALLE DE MOVIMIENTOS".
     Incluye traspasos a TC, comisiones, y montos pequeños como 912.
 R2. NO duplicar movimientos del "Resumen de Comisiones" — son los mismos del detalle.
@@ -521,13 +525,21 @@ export default async function handler(req, res) {
         // 3. Normalize for frontend
         const output = normalizeAIResponse(data);
 
-        // Detectar mismatch: PDF es CC pero cuenta seleccionada es TC
+        // Detectar mismatch en ambas direcciones
         if (data.source_type === 'cc' && !isCC) {
             console.warn('[process-pdf] MISMATCH: PDF es CC pero cuenta seleccionada es TC');
             return res.status(422).json({
                 error: 'ACCOUNT_TYPE_MISMATCH',
                 detected: 'cc',
                 message: 'Este PDF es una cartola de cuenta corriente.',
+            });
+        }
+        if (data.source_type === 'tc' && isCC) {
+            console.warn('[process-pdf] MISMATCH: PDF es TC pero cuenta seleccionada es CC');
+            return res.status(422).json({
+                error: 'ACCOUNT_TYPE_MISMATCH',
+                detected: 'tc',
+                message: 'Este PDF es un estado de tarjeta de crédito.',
             });
         }
 

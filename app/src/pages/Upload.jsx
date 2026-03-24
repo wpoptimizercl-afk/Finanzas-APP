@@ -101,9 +101,13 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                         const errBody = await res.json().catch(() => ({}));
                         if (errBody.error === 'ACCOUNT_TYPE_MISMATCH') {
                             stopProgress(item.id);
-                            setMismatchInfo(prev => ({ ...prev, [item.id]: { bank: selectedAccount?.bank } }));
+                            const detectedType = errBody.detected; // 'cc' o 'tc'
+                            const msg = detectedType === 'cc'
+                                ? 'Este PDF es de Cuenta Corriente'
+                                : 'Este PDF es de Tarjeta de Crédito';
+                            setMismatchInfo(prev => ({ ...prev, [item.id]: { bank: selectedAccount?.bank, detectedType } }));
                             setQueue(q => q.map(x => x.id === item.id
-                                ? { ...x, status: 'mismatch', progress: 0, msg: 'Este PDF es de Cuenta Corriente' }
+                                ? { ...x, status: 'mismatch', progress: 0, msg }
                                 : x
                             ));
                             continue;
@@ -192,15 +196,16 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
     const handleFixMismatch = useCallback((itemId) => {
         const info = mismatchInfo[itemId];
         if (!info) return;
-        const ccAccount = accounts.find(a => a.bank === info.bank && a.type === 'cc');
-        if (ccAccount) {
-            setAccountId(ccAccount.id);
+        const targetType = info.detectedType; // tipo que realmente tiene el PDF
+        const matchAccount = accounts.find(a => a.bank === info.bank && a.type === targetType);
+        if (matchAccount) {
+            setAccountId(matchAccount.id);
             setMismatchInfo(prev => { const n = { ...prev }; delete n[itemId]; return n; });
             const qItem = queue.find(x => x.id === itemId);
-            if (qItem) setPendingRetry({ file: qItem.file }); // defer hasta re-render con nueva cuenta
+            if (qItem) setPendingRetry({ file: qItem.file });
         } else {
             setNewAccBank(info.bank);
-            setNewAccType('cc');
+            setNewAccType(targetType);
             setShowNewAcc(true);
         }
     }, [mismatchInfo, accounts, queue]);
@@ -331,7 +336,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                         const isProc = item.status === 'processing';
                         const isFinished = isDone || isWarn;
                         const mismatch = mismatchInfo[item.id];
-                        const ccAccount = mismatch ? accounts.find(a => a.bank === mismatch.bank && a.type === 'cc') : null;
+                        const matchAccount = mismatch ? accounts.find(a => a.bank === mismatch.bank && a.type === mismatch.detectedType) : null;
                         return (
                             <div key={item.id} className={`queue-item${isProc ? ' active' : ''}`}>
                                 <div className="queue-status-dot" style={{
@@ -353,7 +358,9 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                                     {isMismatch && (
                                         <div style={{ marginTop: 6 }}>
                                             <button onClick={() => handleFixMismatch(item.id)} className="btn btn-primary btn-sm" style={{ fontSize: 11 }}>
-                                                {ccAccount ? `Usar "${ccAccount.name}" y reprocesar` : 'Crear cuenta CC y reintentar'}
+                                                {matchAccount
+                                                    ? `Usar "${matchAccount.name}" y reprocesar`
+                                                    : `Crear cuenta ${mismatch?.detectedType?.toUpperCase() ?? ''} y reintentar`}
                                             </button>
                                         </div>
                                     )}
