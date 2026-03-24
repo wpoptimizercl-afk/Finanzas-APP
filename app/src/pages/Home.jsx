@@ -37,11 +37,12 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
 
     const fixedItems = getMonthFixed(periodo, fixedByMonth);
     const fixedTotal = getMonthFixedTotal(periodo, fixedByMonth);
-    const salary = getMonthSalary(periodo, incomeByMonth, defaultIncome);
     const extraItems = getMonthExtraItems(periodo, extraByMonth);
     const extraTotal = getMonthExtraTotal(periodo, extraByMonth);
+    const hasSalary = incomeByMonth[periodo] != null;
+    const salary = hasSalary ? incomeByMonth[periodo] : (extraTotal > 0 ? 0 : defaultIncome);
     const income = salary + extraTotal;
-    const incomeIsDefault = incomeByMonth[periodo] == null && extraItems.length === 0;
+    const incomeIsDefault = !hasSalary && extraTotal === 0;
 
     const tcBankTotal = tcSources.reduce((s, m) => s + (m.total_cargos || 0), 0);
     const ccBankTotal = ccSources.reduce((s, m) => s + (m.total_cargos || 0), 0);
