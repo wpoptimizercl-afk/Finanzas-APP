@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Pencil } from 'lucide-react';
 import Section from '../components/ui/Section';
 import Modal from '../components/ui/Modal';
 import { CAT, CAT_PALETTE, INCOME_CATS_BUILTIN, INCOME_CAT_COLORS } from '../lib/constants';
@@ -30,7 +30,7 @@ function ColorPicker({ value, onChange }) {
     );
 }
 
-export default function ConfigPage({ customCats, catRules, accounts, incomeCategories, onSaveCat, onDeleteCat, onSaveAccount, onSaveIncomeCategory, onDeleteIncomeCategory }) {
+export default function ConfigPage({ customCats, catRules, accounts, incomeCategories, onSaveCat, onDeleteCat, onSaveAccount, onUpdateAccount, onSaveIncomeCategory, onDeleteIncomeCategory }) {
     const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
     const [editId, setEditId] = useState(null);
     const [label, setLabel] = useState('');
@@ -51,6 +51,36 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             setNewIncCatName('');
             setShowNewIncomeCat(false);
         } finally { setSavingIncCat(false); }
+    };
+
+    // Edit account
+    const [editingAccount, setEditingAccount] = useState(null);
+    const [editAccName, setEditAccName] = useState('');
+    const [editAccColor, setEditAccColor] = useState('#888');
+    const [editAccType, setEditAccType] = useState('tc');
+    const [editAccBank, setEditAccBank] = useState('otro');
+    const [savingEditAcc, setSavingEditAcc] = useState(false);
+
+    const handleSaveEditAccount = async () => {
+        if (!editAccName.trim() || !editingAccount) return;
+        const duplicate = accounts.some(
+            a => a.id !== editingAccount.id &&
+            a.name.toLowerCase() === editAccName.trim().toLowerCase()
+        );
+        if (duplicate) return;
+        setSavingEditAcc(true);
+        try {
+            await onUpdateAccount(editingAccount.id, {
+                name: editAccName.trim(),
+                color: editAccColor,
+                type: editAccType,
+                bank: editAccBank,
+                icon: editAccType === 'cc' ? 'bank' : 'card',
+            });
+            setEditingAccount(null);
+        } finally {
+            setSavingEditAcc(false);
+        }
     };
 
     // Accounts form
@@ -184,6 +214,20 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                         <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < accounts.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: a.color || '#888', display: 'inline-block', flexShrink: 0 }} />
                             <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{a.name}</span>
+                            <button
+                                onClick={() => {
+                                    setEditingAccount(a);
+                                    setEditAccName(a.name);
+                                    setEditAccColor(a.color || '#888');
+                                    setEditAccType(a.type || 'tc');
+                                    setEditAccBank(a.bank || 'otro');
+                                }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, margin: -4, borderRadius: 6, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', transition: 'color 0.15s, background 0.15s', flexShrink: 0 }}
+                                title="Editar cuenta"
+                                aria-label={`Editar cuenta ${a.name}`}
+                            >
+                                <Pencil size={13} />
+                            </button>
                             <span style={{ fontSize: 10, fontWeight: 600, background: a.type === 'cc' ? '#ECFEFF' : '#FFF1F2', color: a.type === 'cc' ? '#0891B2' : '#E11D48', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>
                                 {ACCOUNT_TYPE_LABEL[a.type] || a.type}
                             </span>
@@ -345,6 +389,71 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                     onConfirm={async () => { await onDeleteCat(delId); setDelId(null); }}
                     onCancel={() => setDelId(null)}
                 />
+            )}
+
+            {editingAccount && (
+                <Modal
+                    title="Editar cuenta"
+                    confirmLabel={savingEditAcc ? 'Guardando…' : 'Guardar'}
+                    confirmClass="btn-primary"
+                    onConfirm={handleSaveEditAccount}
+                    onCancel={() => setEditingAccount(null)}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                                Nombre de la cuenta
+                            </label>
+                            <input
+                                value={editAccName}
+                                onChange={e => setEditAccName(e.target.value)}
+                                placeholder="ej: Mi Visa, Cuenta principal…"
+                                maxLength={40}
+                                autoFocus
+                                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                            />
+                            {accounts.some(a => a.id !== editingAccount.id && a.name.toLowerCase() === editAccName.trim().toLowerCase()) && (
+                                <span style={{ fontSize: 11, color: '#E11D48', marginTop: 4, display: 'block' }}>
+                                    Ya tienes una cuenta con ese nombre
+                                </span>
+                            )}
+                        </div>
+                        <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                                Tipo
+                            </label>
+                            <select
+                                value={editAccType}
+                                onChange={e => setEditAccType(e.target.value)}
+                                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14 }}
+                            >
+                                {Object.entries(ACCOUNT_TYPE_LABEL).map(([k, v]) => (
+                                    <option key={k} value={k}>{v}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                                Banco
+                            </label>
+                            <select
+                                value={editAccBank}
+                                onChange={e => setEditAccBank(e.target.value)}
+                                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14 }}
+                            >
+                                {ACCOUNT_BANKS.map(b => (
+                                    <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>
+                                Color
+                            </label>
+                            <ColorPicker value={editAccColor} onChange={setEditAccColor} />
+                        </div>
+                    </div>
+                </Modal>
             )}
         </div>
     );
