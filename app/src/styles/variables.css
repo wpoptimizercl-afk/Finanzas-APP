@@ -1,14 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
 
 /* ── Light Mode Tokens ───────────────────────────────────────────── */
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans:    'Fira Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Fira Code', ui-monospace, monospace;
 
   /* Brand */
-  --primary:        #2563EB;
-  --primary-light:  #EFF6FF;
-  --primary-border: #BFDBFE;
-  --primary-hover:  #1D4ED8;
+  --primary:        #059669;
+  --primary-light:  #F0F8F6;
+  --primary-border: #6EE7B7;
+  --primary-hover:  #047857;
 
   /* Semantic */
   --success:        #059669;
@@ -22,12 +23,12 @@
   --danger-border:  #FECACA;
 
   /* Backgrounds */
-  --bg-app:         #F4F6FA;
+  --bg-app:         #F8FAFC;
   --bg-card:        #FFFFFF;
   --bg-sidebar:     #FFFFFF;
   --bg-input:       #F9FAFB;
   --bg-hover:       #F3F4F6;
-  --bg-active:      #EFF6FF;
+  --bg-active:      #ECFDF5;
 
   /* Text */
   --text-primary:   #0F172A;
@@ -45,7 +46,7 @@
   --shadow-sm:  0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
   --shadow-md:  0 4px 16px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.04);
   --shadow-lg:  0 20px 40px rgba(15,23,42,.12), 0 8px 16px rgba(15,23,42,.06);
-  --shadow-glow: 0 0 0 3px rgba(37,99,235,.15);
+  --shadow-glow: 0 0 0 3px rgba(5,150,105,.15);
 
   /* Layout */
   --radius-sm:  8px;
@@ -84,7 +85,7 @@
   --border-medium:  #1E293B;
   --border-strong:  #334155;
 
-  --primary-light:  rgba(37, 99, 235, 0.15);
+  --primary-light:  rgba(5, 150, 105, 0.15);
   --success-light:  rgba(5, 150, 105, 0.15);
   --warning-light:  rgba(217, 119, 6, 0.15);
   --danger-light:   rgba(220, 38, 38, 0.15);

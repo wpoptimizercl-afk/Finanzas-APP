@@ -22,6 +22,10 @@ body {
     transition: background var(--transition-base), color var(--transition-base);
 }
 
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+}
+
 /* Remove tap highlight on mobile */
 * {
     -webkit-tap-highlight-color: transparent;
