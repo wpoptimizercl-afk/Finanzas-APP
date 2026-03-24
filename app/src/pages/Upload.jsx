@@ -71,16 +71,23 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
 
     const selectedAccount = accounts.find(a => a.id === accountId) ?? null;
 
-    const processFiles = useCallback(async (files) => {
+    const processFiles = useCallback(async (files, retryItemId = null) => {
         if (!accountId) return;
         const items = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
         if (!items.length) return;
 
         const bankForAPI = selectedAccount ? `${selectedAccount.bank}_${selectedAccount.type}` : 'santander_tc';
 
-        const initial = items.map(f => ({ id: f.name + Date.now(), file: f, status: 'pending', msg: '', progress: 0 }));
-        setQueue(initial);
-        setStatus(STATUS.queue);
+        let initial;
+        if (retryItemId) {
+            // Retry: reusar el item existente en la cola, no reemplazarla
+            initial = [{ id: retryItemId, file: items[0], status: 'pending', msg: '', progress: 0 }];
+            setQueue(q => q.map(x => x.id === retryItemId ? { ...x, status: 'pending', progress: 0, msg: '' } : x));
+        } else {
+            initial = items.map(f => ({ id: f.name + Date.now(), file: f, status: 'pending', msg: '', progress: 0 }));
+            setQueue(initial);
+            setStatus(STATUS.queue);
+        }
 
         for (const item of initial) {
             const ctrl = new AbortController();
@@ -189,7 +196,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
     useEffect(() => {
         if (pendingRetry) {
             setPendingRetry(null);
-            processFiles([pendingRetry.file]);
+            processFiles([pendingRetry.file], pendingRetry.itemId);
         }
     }, [pendingRetry, processFiles]);
 
@@ -202,7 +209,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
             setAccountId(matchAccount.id);
             setMismatchInfo(prev => { const n = { ...prev }; delete n[itemId]; return n; });
             const qItem = queue.find(x => x.id === itemId);
-            if (qItem) setPendingRetry({ file: qItem.file });
+            if (qItem) setPendingRetry({ file: qItem.file, itemId });
         } else {
             setNewAccBank(info.bank);
             setNewAccType(targetType);
