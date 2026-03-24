@@ -278,6 +278,21 @@ R10. Normaliza nombres: MAYÚSCULAS → capitalización normal. Quitar números 
 R11. Extraer saldo_inicial (primer saldo mostrado o inferido) y saldo_final (último saldo mostrado).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CÓMO ENCONTRAR EL PERÍODO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+El encabezado de la cartola incluye el período con alguno de estos formatos:
+  "PERÍODO DEL 01/02/2026 AL 28/02/2026"
+  "CARTOLA CUENTA CORRIENTE — FEBRERO 2026"
+  "PERÍODO: 01/02/2026 - 28/02/2026"
+  "Período: Febrero 2026"
+Extrae el mes y año REALES y devuélvelos así:
+  → periodo: "Febrero 2026"   (nombre del mes EN ESPAÑOL + espacio + año de 4 dígitos)
+  → periodo_desde: "01/02/2026"
+  → periodo_hasta: "28/02/2026"
+⚠️ NUNCA devuelvas "Mes YYYY" — ese es el FORMATO de ejemplo, NO el valor real.
+⚠️ Si no encuentras el mes y año explícitos en el documento, deja periodo: "".
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CATEGORÍAS PARA CUENTA CORRIENTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - transferencia_recibida: depósitos y transferencias entrantes
@@ -293,9 +308,9 @@ FORMATO DE RESPUESTA (JSON EXACTO)
 Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 {
   "razonamiento": "Movimientos encontrados: X cargos, Y abonos. Total cargos: $Z, total abonos: $W.",
-  "periodo": "Mes YYYY",
-  "periodo_desde": "DD/MM/YYYY",
-  "periodo_hasta": "DD/MM/YYYY",
+  "periodo": "Febrero 2026",
+  "periodo_desde": "01/02/2026",
+  "periodo_hasta": "28/02/2026",
   "saldo_inicial": 0,
   "saldo_final": 0,
   "source_type": "cc",
@@ -329,15 +344,21 @@ const BANK_HINTS = {
     otro: 'Estado de cuenta bancario chileno genérico.',
 };
 
+const VALID_MONTHS_RE = /^(Enero|Febrero|Marzo|Abril|Mayo|Junio|Julio|Agosto|Septiembre|Octubre|Noviembre|Diciembre)\s+\d{4}$/i;
+const DATE_RE = /^\d{2}\/\d{2}\/\d{4}$/;
+
 // ── Normalización (exportada para tests) ─────────────────────────────────────
 export function normalizeAIResponse(data) {
     const isCC = data.source_type === 'cc';
     const validCats = isCC ? VALID_CATS_CC : VALID_CATS;
+    const rawPeriodo = data.periodo || '';
+    const rawDesde = data.periodo_desde || '';
+    const rawHasta = data.periodo_hasta || '';
     return {
         id: `month_${Date.now()}`,
-        periodo: data.periodo || 'Desconocido',
-        periodo_desde: data.periodo_desde || '',
-        periodo_hasta: data.periodo_hasta || '',
+        periodo: VALID_MONTHS_RE.test(rawPeriodo.trim()) ? rawPeriodo.trim() : 'Desconocido',
+        periodo_desde: DATE_RE.test(rawDesde) ? rawDesde : '',
+        periodo_hasta: DATE_RE.test(rawHasta) ? rawHasta : '',
         total_operaciones: Number(data.total_operaciones) || 0,
         total_facturado: Number(data.total_facturado) || 0,
         // CC-specific fields (optional, won't affect TC)

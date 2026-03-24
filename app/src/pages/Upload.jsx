@@ -1,17 +1,30 @@
-import { useState, useRef, useCallback } from 'react';
-import { Upload, X, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { Upload, X, FileText, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { BANKS, MONTH_NAMES } from '../lib/constants';
 
 const STATUS = { idle: 'idle', drag: 'drag', queue: 'queue', done: 'done' };
 
-export default function UploadPage({ months, catRules, allCats, onSaveMonth, onGoManual }) {
+export default function UploadPage({ months, catRules, allCats, accounts, onSaveMonth, onSaveAccount, onSaveIncome, onGoManual }) {
     const [status, setStatus] = useState(STATUS.idle);
-    const [bank, setBank] = useState('santander_tc');
+    const [accountId, setAccountId] = useState('');
     const [queue, setQueue] = useState([]);
     const [overridePeriod, setOverride] = useState(null);
+    const [suggestIncome, setSuggestIncome] = useState(null); // { amount, periodo }
+    // New account form
+    const [showNewAcc, setShowNewAcc] = useState(false);
+    const [newAccName, setNewAccName] = useState('');
+    const [newAccBank, setNewAccBank] = useState('santander');
+    const [newAccType, setNewAccType] = useState('tc');
+    const [savingAcc, setSavingAcc] = useState(false);
+
     const inputRef = useRef();
     const abortMap = useRef({});
     const timerMap = useRef({});
+
+    // Auto-select first account when accounts load
+    useEffect(() => {
+        if (!accountId && accounts.length > 0) setAccountId(accounts[0].id);
+    }, [accounts, accountId]);
 
     const PHASES = [
         { until: 12, step: 3,   label: 'Leyendo PDF…' },
@@ -34,9 +47,33 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
         delete timerMap.current[id];
     };
 
+    const handleCreateAccount = async () => {
+        if (!newAccName.trim()) return;
+        setSavingAcc(true);
+        try {
+            const saved = await onSaveAccount({
+                name: newAccName.trim(),
+                bank: newAccBank,
+                type: newAccType,
+                color: newAccType === 'cc' ? '#0891B2' : '#E11D48',
+                icon: newAccType === 'cc' ? 'bank' : 'card',
+            });
+            setAccountId(saved.id);
+            setShowNewAcc(false);
+            setNewAccName('');
+        } finally {
+            setSavingAcc(false);
+        }
+    };
+
     const processFiles = useCallback(async (files) => {
+        if (!accountId) return;
         const items = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
         if (!items.length) return;
+
+        const selectedAccount = accounts.find(a => a.id === accountId);
+        const bankForAPI = selectedAccount ? `${selectedAccount.bank}_${selectedAccount.type}` : 'santander_tc';
+
         const initial = items.map(f => ({ id: f.name + Date.now(), file: f, status: 'pending', msg: '', progress: 0 }));
         setQueue(initial);
         setStatus(STATUS.queue);
@@ -52,7 +89,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 const res = await fetch('/api/process-pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pdfBase64: b64, bank }),
+                    body: JSON.stringify({ pdfBase64: b64, bank: bankForAPI }),
                     signal: ctrl.signal,
                 });
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -60,28 +97,18 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 if (data.error) throw new Error(data.error);
 
                 const parsed = typeof data === 'string' ? JSON.parse(data) : data;
-
-                // Determine if this is a CC (cuenta corriente) response
                 const isCC = parsed.source_type === 'cc';
 
-                // Protected categories that should not be overridden by catRules
-                const protectedCats = isCC
-                    ? ['traspaso_tc', 'comision_banco']
-                    : ['cargos_banco'];
-
-                // Apply catRules to transactions (never override protected categories)
+                const protectedCats = isCC ? ['traspaso_tc', 'comision_banco'] : ['cargos_banco'];
                 const txs = (parsed.transacciones || []).map(t => {
                     if (protectedCats.includes(t.categoria)) return t;
                     const key = (t.descripcion || '').toLowerCase().trim();
                     return catRules[key] ? { ...t, categoria: catRules[key] } : t;
                 });
 
-                // Recalculate categorias from transactions
                 const cats = {};
                 let totalCargos = 0;
                 txs.forEach(t => {
-                    // For CC: abonos go into categorias but not into totalCargos
-                    // traspaso_tc is not a real expense either
                     if (t.tipo === 'abono' || t.tipo === 'traspaso_tc') {
                         cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
                         return;
@@ -89,31 +116,37 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                     if (t.tipo === 'cargo') {
                         cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
                         if (isCC) {
-                            // CC: exclude traspaso_tc and comision_banco from total
                             if (t.categoria !== 'traspaso_tc') totalCargos += t.monto;
                         } else {
-                            // TC: exclude cargos_banco to match "TOTAL OPERACIONES" del PDF
                             if (t.categoria !== 'cargos_banco') totalCargos += t.monto;
                         }
                     }
                 });
 
-                const monthData = {
-                    ...parsed,
-                    transacciones: txs,
-                    categorias: cats,
-                    total_cargos: totalCargos,
-                };
-
-                // Mismatch check only applies to TC (CC cartolas don't have total_operaciones)
+                const monthData = { ...parsed, transacciones: txs, categorias: cats, total_cargos: totalCargos };
                 const totalOps = parsed.total_operaciones || 0;
                 const mismatch = !isCC && totalOps > 0 && Math.abs(totalOps - totalCargos) > 100;
 
-                // Check for existing period
-                const existing = months.find(m => m.periodo === parsed.periodo);
+                const existing = months.find(m => m.periodo === parsed.periodo && m.account_id === accountId);
                 const saveKey = overridePeriod || parsed.periodo;
-                await onSaveMonth({ ...monthData, periodo: saveKey });
+
+                if (saveKey === 'Desconocido') {
+                    stopProgress(item.id);
+                    setQueue(q => q.map(x => x.id === item.id ? { ...x, status: 'error', progress: 0, msg: 'La IA no pudo detectar el período. Selecciona el período manualmente arriba y vuelve a subir.' } : x));
+                    continue;
+                }
+
+                await onSaveMonth({ ...monthData, account_id: accountId, periodo: saveKey });
                 stopProgress(item.id);
+
+                // CC income suggestion
+                if (isCC) {
+                    const abonoTotal = txs
+                        .filter(t => t.tipo === 'abono' && t.categoria === 'transferencia_recibida')
+                        .reduce((s, t) => s + t.monto, 0);
+                    if (abonoTotal > 0) setSuggestIncome({ amount: abonoTotal, periodo: saveKey });
+                }
+
                 const doneMsg = mismatch
                     ? `Guardado — faltan ~$${(totalOps - totalCargos).toLocaleString('es-CL')} según PDF`
                     : existing && !overridePeriod ? 'Actualizado ✓' : 'Guardado ✓';
@@ -128,7 +161,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
             }
             delete abortMap.current[item.id];
         }
-    }, [bank, catRules, months, onSaveMonth, overridePeriod]);
+    }, [accountId, accounts, catRules, months, onSaveMonth, overridePeriod]);
 
     const toBase64 = (file) => new Promise((res, rej) => {
         const reader = new FileReader();
@@ -154,13 +187,57 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 </div>
             </div>
 
-            {/* Bank selector */}
+            {/* Account selector */}
             <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7 }}>Banco y producto</label>
-                <select value={bank} onChange={e => setBank(e.target.value)} className="input">
-                    {BANKS.map(b => <option key={b.id} value={b.id}>{b.label}</option>)}
-                </select>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7 }}>Cuenta bancaria</label>
+                {accounts.length === 0 ? (
+                    <div style={{ fontSize: 13, color: 'var(--text-tertiary)', padding: '10px 14px', background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-medium)' }}>
+                        No tienes cuentas registradas. Crea una abajo.
+                    </div>
+                ) : (
+                    <select value={accountId} onChange={e => {
+                        if (e.target.value === '__new__') { setShowNewAcc(true); return; }
+                        setAccountId(e.target.value);
+                        setShowNewAcc(false);
+                    }} className="input">
+                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                        <option value="__new__">+ Nueva cuenta…</option>
+                    </select>
+                )}
             </div>
+
+            {/* New account inline form */}
+            {(showNewAcc || accounts.length === 0) && (
+                <div className="card" style={{ marginBottom: '1.25rem', padding: '14px 16px', border: '1px solid var(--primary-light)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--primary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+                        <Plus size={12} style={{ display: 'inline', marginRight: 5 }} />Nueva cuenta
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <input
+                            value={newAccName} onChange={e => setNewAccName(e.target.value)}
+                            placeholder="Ej: Santander TC"
+                            className="input" style={{ flex: 2, minWidth: 140 }}
+                        />
+                        <select value={newAccBank} onChange={e => setNewAccBank(e.target.value)} className="input" style={{ flex: 1, minWidth: 110 }}>
+                            <option value="santander">Santander</option>
+                            <option value="bci">BCI</option>
+                            <option value="chile">Banco de Chile</option>
+                            <option value="scotiabank">Scotiabank</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                        <select value={newAccType} onChange={e => setNewAccType(e.target.value)} className="input" style={{ flex: 1, minWidth: 90 }}>
+                            <option value="tc">Tarjeta crédito</option>
+                            <option value="cc">Cuenta corriente</option>
+                        </select>
+                        <button onClick={handleCreateAccount} disabled={!newAccName.trim() || savingAcc} className="btn btn-primary">
+                            {savingAcc ? '…' : 'Crear'}
+                        </button>
+                        {accounts.length > 0 && (
+                            <button onClick={() => { setShowNewAcc(false); setNewAccName(''); }} className="btn btn-ghost">Cancelar</button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Manual period override */}
             <div style={{ marginBottom: '1.5rem' }}>
@@ -179,7 +256,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                 onDragOver={e => { e.preventDefault(); setStatus(STATUS.drag); }}
                 onDragLeave={() => setStatus(STATUS.idle)}
                 onDrop={handleDrop}
-                onClick={() => status !== STATUS.queue && inputRef.current?.click()}
+                onClick={() => status !== STATUS.queue && accounts.length > 0 && !showNewAcc && inputRef.current?.click()}
             >
                 <input ref={inputRef} type="file" multiple accept=".pdf,application/pdf" style={{ display: 'none' }} onChange={e => processFiles(e.target.files)} />
                 <Upload size={32} style={{ color: 'var(--primary)', marginBottom: 12 }} />
@@ -187,7 +264,7 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                     {status === STATUS.drag ? 'Suelta los archivos aquí' : 'Arrastra o selecciona PDF(s)'}
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                    Puedes subir varios meses de una vez
+                    {accounts.length === 0 ? 'Primero crea una cuenta arriba' : 'Puedes subir varios meses de una vez'}
                 </div>
             </div>
 
@@ -236,6 +313,27 @@ export default function UploadPage({ months, catRules, allCats, onSaveMonth, onG
                     <button onClick={() => { setQueue([]); setStatus(STATUS.idle); }} className="btn btn-ghost" style={{ flex: 1 }}>
                         Subir más archivos
                     </button>
+                </div>
+            )}
+
+            {/* CC income suggestion banner */}
+            {suggestIncome && (
+                <div className="card" style={{ marginTop: '1.25rem', padding: '14px 16px', border: '1px solid var(--success-border, #059669)', background: 'var(--success-light, #ECFDF5)' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--success, #059669)', marginBottom: 8 }}>
+                        Ingresos detectados en la cartola CC
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                        Detectamos <strong>${suggestIncome.amount.toLocaleString('es-CL')}</strong> en transferencias recibidas para {suggestIncome.periodo}. ¿Quieres registrarlos como ingreso del mes?
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                            onClick={async () => { await onSaveIncome(suggestIncome.periodo, suggestIncome.amount); setSuggestIncome(null); }}
+                            className="btn btn-primary btn-sm"
+                        >
+                            Sí, registrar ${suggestIncome.amount.toLocaleString('es-CL')}
+                        </button>
+                        <button onClick={() => setSuggestIncome(null)} className="btn btn-ghost btn-sm">Ignorar</button>
+                    </div>
                 </div>
             )}
 

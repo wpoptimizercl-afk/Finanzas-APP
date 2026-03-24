@@ -41,14 +41,24 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
         </div>
     );
 
-    const allSeries = months.map(m => {
-        const income = getMonthIncome(m.periodo, incomeByMonth, extraByMonth, defaultIncome);
-        const fixedTotal = getMonthFixedTotal(m.periodo, fixedByMonth);
-        const tc = m.total_cargos || 0;
-        const gasto = tc + fixedTotal;
-        const ahorro = income - gasto;
-        return { periodo: m.periodo, label: shortLabel(m.periodo), income, fixedTotal, tc, gasto, ahorro, categorias: m.categorias || {} };
-    });
+    const allSeries = useMemo(() => {
+        const seen = new Set();
+        const uniquePeriods = [];
+        months.forEach(m => { if (!seen.has(m.periodo)) { seen.add(m.periodo); uniquePeriods.push(m.periodo); } });
+        return uniquePeriods.map(periodo => {
+            const sources = months.filter(m => m.periodo === periodo);
+            const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome);
+            const fixedTotal = getMonthFixedTotal(periodo, fixedByMonth);
+            const tc = sources.reduce((s, m) => s + (m.total_cargos || 0), 0);
+            const gasto = tc + fixedTotal;
+            const ahorro = income - gasto;
+            const categorias = sources.reduce((acc, m) => {
+                Object.entries(m.categorias || {}).forEach(([k, v]) => { acc[k] = (acc[k] || 0) + v; });
+                return acc;
+            }, {});
+            return { periodo, label: shortLabel(periodo), income, fixedTotal, tc, gasto, ahorro, categorias };
+        });
+    }, [months, incomeByMonth, extraByMonth, fixedByMonth, defaultIncome]);
 
     const totalMonths = allSeries.length;
     const windowOptions = [

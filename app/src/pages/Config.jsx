@@ -5,6 +5,9 @@ import Modal from '../components/ui/Modal';
 import { CAT, CAT_PALETTE } from '../lib/constants';
 import { hexBg } from '../utils/formatters';
 
+const ACCOUNT_TYPE_LABEL = { tc: 'Tarjeta crédito', cc: 'Cuenta corriente', savings: 'Ahorro', cash: 'Efectivo' };
+const ACCOUNT_BANKS = ['santander', 'bci', 'chile', 'scotiabank', 'otro'];
+
 function ColorPicker({ value, onChange }) {
     return (
         <div>
@@ -27,12 +30,36 @@ function ColorPicker({ value, onChange }) {
     );
 }
 
-export default function ConfigPage({ customCats, catRules, onSaveCat, onDeleteCat }) {
+export default function ConfigPage({ customCats, catRules, accounts, onSaveCat, onDeleteCat, onSaveAccount }) {
     const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
     const [editId, setEditId] = useState(null);
     const [label, setLabel] = useState('');
     const [color, setColor] = useState(CAT_PALETTE[0]);
     const [delId, setDelId] = useState(null);
+    // Accounts form
+    const [showNewAcc, setShowNewAcc] = useState(false);
+    const [newAccName, setNewAccName] = useState('');
+    const [newAccBank, setNewAccBank] = useState('santander');
+    const [newAccType, setNewAccType] = useState('tc');
+    const [savingAcc, setSavingAcc] = useState(false);
+
+    const handleCreateAccount = async () => {
+        if (!newAccName.trim()) return;
+        setSavingAcc(true);
+        try {
+            await onSaveAccount({
+                name: newAccName.trim(),
+                bank: newAccBank,
+                type: newAccType,
+                color: newAccType === 'cc' ? '#0891B2' : '#E11D48',
+                icon: newAccType === 'cc' ? 'bank' : 'card',
+            });
+            setShowNewAcc(false);
+            setNewAccName('');
+        } finally {
+            setSavingAcc(false);
+        }
+    };
 
     const resetForm = () => { setLabel(''); setColor(CAT_PALETTE[0]); setEditId(null); };
 
@@ -101,6 +128,52 @@ export default function ConfigPage({ customCats, catRules, onSaveCat, onDeleteCa
                     <div className="page-subtitle">Categorías y reglas de clasificación</div>
                 </div>
             </div>
+
+            {/* Accounts section */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div className="section-label" style={{ marginTop: 0 }}>
+                    Mis cuentas
+                    <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
+                        {accounts.length}
+                    </span>
+                </div>
+                <button onClick={() => setShowNewAcc(v => !v)} className="btn btn-primary btn-sm">
+                    {showNewAcc ? 'Cancelar' : '+ Nueva'}
+                </button>
+            </div>
+
+            {showNewAcc && (
+                <div className="card" style={{ marginBottom: '1rem', padding: '14px 16px', border: '1px solid var(--primary-light)' }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <input value={newAccName} onChange={e => setNewAccName(e.target.value)}
+                            placeholder="Nombre (ej: Santander TC)" className="input" style={{ flex: 2, minWidth: 130 }} />
+                        <select value={newAccBank} onChange={e => setNewAccBank(e.target.value)} className="input" style={{ flex: 1, minWidth: 110 }}>
+                            {ACCOUNT_BANKS.map(b => <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>)}
+                        </select>
+                        <select value={newAccType} onChange={e => setNewAccType(e.target.value)} className="input" style={{ flex: 1, minWidth: 90 }}>
+                            <option value="tc">TC</option>
+                            <option value="cc">CC</option>
+                        </select>
+                        <button onClick={handleCreateAccount} disabled={!newAccName.trim() || savingAcc} className="btn btn-primary">
+                            {savingAcc ? '…' : 'Crear'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {accounts.length > 0 && (
+                <div className="card" style={{ padding: '4px 0', marginBottom: '1.75rem' }}>
+                    {accounts.map((a, i) => (
+                        <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < accounts.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: a.color || '#888', display: 'inline-block', flexShrink: 0 }} />
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{a.name}</span>
+                            <span style={{ fontSize: 10, fontWeight: 600, background: a.type === 'cc' ? '#ECFEFF' : '#FFF1F2', color: a.type === 'cc' ? '#0891B2' : '#E11D48', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>
+                                {ACCOUNT_TYPE_LABEL[a.type] || a.type}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Default cats */}
             <Section mt="0">Categorías predeterminadas</Section>

@@ -28,10 +28,10 @@ function AppInner() {
   const [view, setView] = useState('dashboard');
 
   const {
-    months, sorted,
+    months, sorted, uniqueSortedPeriods, accounts,
     fixedByMonth, incomeByMonth, extraByMonth,
     budget, catRules, customCats, allCats, ready,
-    saveMonth, deleteMonth,
+    saveMonth, deleteMonth, saveAccount,
     saveFixedItems, saveIncome, saveExtraItems,
     saveBudget, saveCustomCat, deleteCustomCat, recategorizeMonth,
   } = useFinanceData();
@@ -79,6 +79,12 @@ function AppInner() {
     toast('Categoría eliminada', 'default');
   }, [deleteCustomCat, toast]);
 
+  const handleSaveAccount = useCallback(async (data) => {
+    const saved = await saveAccount(data);
+    toast('Cuenta guardada', 'success');
+    return saved;
+  }, [saveAccount, toast]);
+
   // Loading
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)' }}>
@@ -92,7 +98,7 @@ function AppInner() {
   if (!user) return <LoginPage />;
 
   const navProps = { view, onNav: setView };
-  const commonDataProps = { months: sorted, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats };
+  const commonDataProps = { months: sorted, allMonths: sorted, uniqueSortedPeriods, accounts, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats };
 
   const renderPage = () => {
     if (!ready) return (
@@ -117,7 +123,10 @@ function AppInner() {
       case 'upload': return (
         <UploadPage
           months={sorted} catRules={catRules} allCats={allCats}
+          accounts={accounts}
           onSaveMonth={handleSaveMonth}
+          onSaveAccount={handleSaveAccount}
+          onSaveIncome={handleSaveIncome}
           onGoManual={() => setView('manual')}
         />
       );
@@ -130,7 +139,8 @@ function AppInner() {
       );
       case 'history': return (
         <HistoryPage
-          sorted={sorted} allCats={allCats}
+          allMonths={sorted} uniqueSortedPeriods={uniqueSortedPeriods} accounts={accounts}
+          allCats={allCats}
           deleteMonth={handleDeleteMonth} recategorizeMonth={recategorizeMonth}
         />
       );
@@ -141,8 +151,9 @@ function AppInner() {
       );
       case 'config': return (
         <ConfigPage
-          customCats={customCats} catRules={catRules}
+          customCats={customCats} catRules={catRules} accounts={accounts}
           onSaveCat={handleSaveCat} onDeleteCat={handleDeleteCat}
+          onSaveAccount={handleSaveAccount}
         />
       );
       case 'manual': return (

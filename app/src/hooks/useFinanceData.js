@@ -17,6 +17,7 @@ export function useFinanceData() {
     const [budget, setBudget] = useState(DEF_BUDGET);
     const [catRules, setCatRules] = useState({});
     const [customCats, setCustomCats] = useState({});
+    const [accounts, setAccounts] = useState([]);
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
@@ -25,7 +26,7 @@ export function useFinanceData() {
 
         (async () => {
             try {
-                const [mR, fR, iR, eR, bR, crR, ccR, txR] = await Promise.all([
+                const [mR, fR, iR, eR, bR, crR, ccR, txR, acR] = await Promise.all([
                     supabase.from('months').select('*').eq('user_id', uid).order('periodo'),
                     supabase.from('fixed_expenses').select('*').eq('user_id', uid),
                     supabase.from('income').select('*').eq('user_id', uid),
@@ -34,6 +35,7 @@ export function useFinanceData() {
                     supabase.from('category_rules').select('*').eq('user_id', uid),
                     supabase.from('custom_categories').select('*').eq('user_id', uid),
                     supabase.from('transactions').select('*').eq('user_id', uid),
+                    supabase.from('accounts').select('*').eq('user_id', uid).eq('active', true).order('created_at'),
                 ]);
 
                 const txMap = {};
@@ -71,6 +73,8 @@ export function useFinanceData() {
                 const cats = {};
                 (ccR.data || []).forEach(r => { cats[r.cat_id] = { label: r.label, color: r.color, bg: r.bg }; });
                 setCustomCats(cats);
+
+                setAccounts(acR.data || []);
             } catch (err) {
                 console.warn('⚠️ Fallo en carga de datos (App en modo local sin backend conectado)');
             } finally {
@@ -81,6 +85,15 @@ export function useFinanceData() {
 
     const sorted = useMemo(() => sortMonths(months), [months]);
     const allCats = useMemo(() => ({ ...CAT, ...customCats }), [customCats]);
+
+    const uniqueSortedPeriods = useMemo(() => {
+        const seen = new Set();
+        return sortMonths(months).filter(m => {
+            if (seen.has(m.periodo)) return false;
+            seen.add(m.periodo);
+            return true;
+        }).map(m => m.periodo);
+    }, [months]);
 
     // ── Savers ─────────────────────────────────────────────────────────
     const saveMonth = useCallback(async (mData) => {
@@ -95,7 +108,7 @@ export function useFinanceData() {
         
         const { data: saved, error } = await supabase
             .from('months')
-            .upsert(payload, { onConflict: 'user_id,periodo' })
+            .upsert(payload, { onConflict: 'account_id,periodo' })
             .select()
             .single();
         
@@ -119,16 +132,17 @@ export function useFinanceData() {
 
         const full = { ...saved, categorias, cuotas_vigentes, transacciones };
         setMonths(prev => {
-            const next = [full, ...prev.filter(m => m.periodo !== mData.periodo)].slice(0, 18);
+            const next = [full, ...prev.filter(m => !(m.account_id === mData.account_id && m.periodo === mData.periodo))].slice(0, 18);
             return sortMonths(next);
         });
     }, [uid]);
 
     const deleteMonth = useCallback(async (periodo) => {
-        const m = months.find(x => x.periodo === periodo);
-        if (!m) return;
-        await supabase.from('transactions').delete().eq('month_id', m.id);
-        await supabase.from('months').delete().eq('id', m.id);
+        const toDelete = months.filter(x => x.periodo === periodo);
+        for (const m of toDelete) {
+            await supabase.from('transactions').delete().eq('month_id', m.id);
+            await supabase.from('months').delete().eq('id', m.id);
+        }
         setMonths(prev => prev.filter(x => x.periodo !== periodo));
     }, [months]);
 
@@ -158,6 +172,16 @@ export function useFinanceData() {
         await supabase.from('budgets')
             .upsert({ ...data, user_id: uid, categories: JSON.stringify(data.categories) }, { onConflict: 'user_id' });
         setBudget(data);
+    }, [uid]);
+
+    const saveAccount = useCallback(async (data) => {
+        const { data: saved, error } = await supabase
+            .from('accounts')
+            .upsert({ ...data, user_id: uid }, { onConflict: 'user_id,name' })
+            .select().single();
+        if (error) throw new Error(error.message);
+        setAccounts(prev => [saved, ...prev.filter(a => a.id !== saved.id)]);
+        return saved;
     }, [uid]);
 
     const saveCatRule = useCallback(async (desc, cat) => {
@@ -226,10 +250,12 @@ export function useFinanceData() {
     }, [months, saveCatRule, uid]);
 
     return {
-        months, sorted, fixedByMonth, incomeByMonth, extraByMonth,
+        months, sorted, uniqueSortedPeriods, accounts,
+        fixedByMonth, incomeByMonth, extraByMonth,
         budget, catRules, customCats, allCats, ready,
         setMonths,
-        saveMonth, deleteMonth, saveFixedItems, saveIncome, saveExtraItems,
+        saveMonth, deleteMonth, saveAccount,
+        saveFixedItems, saveIncome, saveExtraItems,
         saveBudget, saveCatRule, saveCustomCat, deleteCustomCat, recategorizeMonth,
     };
 }

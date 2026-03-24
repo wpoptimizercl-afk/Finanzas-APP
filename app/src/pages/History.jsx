@@ -5,23 +5,36 @@ import Modal from '../components/ui/Modal';
 import { ClickableTag } from '../components/CategoryPicker';
 import { CLP } from '../utils/formatters';
 
-export default function HistoryPage({ sorted, allCats, deleteMonth, recategorizeMonth }) {
+export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, allCats, deleteMonth, recategorizeMonth }) {
     const [selIdx, setSelIdx] = useState(0);
     const [query, setQuery] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [delModal, setDelModal] = useState(false);
+    const [activeSourceId, setActiveSourceId] = useState(null); // null = todas
 
-    const idx = sorted.length > 0 ? Math.min(selIdx, sorted.length - 1) : 0;
-    const month = sorted[idx] || null;
+    const idx = uniqueSortedPeriods.length > 0 ? Math.min(selIdx, uniqueSortedPeriods.length - 1) : 0;
+    const periodo = uniqueSortedPeriods[idx] || null;
+    const sources = allMonths.filter(m => m.periodo === periodo);
+    const primarySource = sources[0] || null;
 
-    // Helper to parse DD/MM/YYYY into Date
+    // Reset filters when changing period
+    useEffect(() => {
+        setDateRange({ start: '', end: '' });
+        setActiveSourceId(null);
+    }, [selIdx]);
+
+    useEffect(() => {
+        if (uniqueSortedPeriods.length > 0 && selIdx >= uniqueSortedPeriods.length) {
+            setSelIdx(uniqueSortedPeriods.length - 1);
+        }
+    }, [uniqueSortedPeriods.length, selIdx]);
+
     const parseTxDate = (dStr) => {
         if (!dStr) return null;
         const [d, m, y] = dStr.split('/').map(Number);
         return new Date(y, m - 1, d);
     };
 
-    // Helper to format DD/MM/YYYY into YYYY-MM-DD for <input type="date">
     const formatInputDate = (dStr) => {
         if (!dStr) return '';
         const parts = dStr.split('/');
@@ -30,21 +43,22 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
         return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
     };
 
-    useEffect(() => {
-        if (sorted.length > 0 && selIdx >= sorted.length) {
-            setSelIdx(sorted.length - 1);
-        }
-    }, [sorted.length, selIdx]);
+    // All transactions from all sources for this period, with account metadata
+    const allTxs = useMemo(() => sources.flatMap(s => {
+        const account = accounts.find(a => a.id === s.account_id);
+        return (s.transacciones || []).map(t => ({
+            ...t,
+            _sourceId: s.id,
+            _accountName: account?.name || (s.source_type === 'cc' ? 'Cuenta Corriente' : 'Tarjeta'),
+            _accountColor: account?.color || (s.source_type === 'cc' ? '#0891B2' : '#E11D48'),
+            _isCC: s.source_type === 'cc',
+        }));
+    }), [sources, accounts]);
 
-    // Reset date filter when changing month
-    useEffect(() => {
-        setDateRange({ start: '', end: '' });
-    }, [selIdx]);
+    const txsForFilter = activeSourceId ? allTxs.filter(t => t._sourceId === activeSourceId) : allTxs;
 
-    const txs = month?.transacciones || [];
-    const isCC = month?.source_type === 'cc';
     const filtered = useMemo(() => {
-        let res = txs;
+        let res = txsForFilter;
         if (query.trim()) {
             const q = query.toLowerCase();
             res = res.filter(t => (t.descripcion || '').toLowerCase().includes(q) || (t.categoria || '').toLowerCase().includes(q));
@@ -58,21 +72,14 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
             res = res.filter(t => parseTxDate(t.fecha) <= e);
         }
         return res;
-    }, [txs, query, dateRange]);
+    }, [txsForFilter, query, dateRange]);
+
+    const hasIngresos = useMemo(() => allTxs.some(t => t.tipo === 'abono' && t.tipo !== 'traspaso_tc' && t.categoria !== 'traspaso_tc'), [allTxs]);
 
     const byCategory = useMemo(() => {
         const sortEntries = (m) => Object.entries(m).sort(
             (a, b) => b[1].reduce((s, t) => s + t.monto, 0) - a[1].reduce((s, t) => s + t.monto, 0)
         );
-        if (!isCC) {
-            const map = {};
-            filtered.filter(t => t.tipo === 'cargo').forEach(t => {
-                const k = t.categoria || 'otros';
-                (map[k] = map[k] || []).push(t);
-            });
-            return { egresos: sortEntries(map), ingresos: [] };
-        }
-        // CC: separar egresos e ingresos; excluir traspaso_tc (movimiento interno)
         const eMap = {}, iMap = {};
         filtered.forEach(t => {
             if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') return;
@@ -80,14 +87,14 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
             if (t.tipo === 'cargo') (eMap[k] = eMap[k] || []).push(t);
             else if (t.tipo === 'abono') (iMap[k] = iMap[k] || []).push(t);
         });
+        if (!hasIngresos) return { egresos: sortEntries(eMap), ingresos: [] };
         return { egresos: sortEntries(eMap), ingresos: sortEntries(iMap) };
-    }, [filtered, isCC]);
+    }, [filtered, hasIngresos]);
 
-    const totalEgresos = byCategory.egresos.reduce((s, [, txList]) => s + txList.reduce((a, t) => a + t.monto, 0), 0);
-    const totalIngresos = byCategory.ingresos.reduce((s, [, txList]) => s + txList.reduce((a, t) => a + t.monto, 0), 0);
-    const totalTx = isCC ? totalEgresos : filtered.filter(t => t.tipo === 'cargo').reduce((s, t) => s + t.monto, 0);
+    const totalEgresos = byCategory.egresos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0);
+    const totalIngresos = byCategory.ingresos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0);
 
-    if (!sorted.length) return (
+    if (!uniqueSortedPeriods.length) return (
         <div className="animate-fadeIn">
             <div className="empty-state">
                 <div className="empty-state-icon">📈</div>
@@ -100,7 +107,7 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
     return (
         <>
         <div className="animate-fadeIn">
-            {/* Month nav */}
+            {/* Period nav */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <button onClick={() => setSelIdx(i => Math.max(0, i - 1))} disabled={idx === 0}
@@ -108,11 +115,11 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                         <ChevronLeft size={16} />
                     </button>
                     <div style={{ minWidth: 140 }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{month?.periodo}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{month?.periodo_desde} — {month?.periodo_hasta}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{periodo}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{primarySource?.periodo_desde} — {primarySource?.periodo_hasta}</div>
                     </div>
-                    <button onClick={() => setSelIdx(i => Math.min(sorted.length - 1, i + 1))} disabled={idx === sorted.length - 1}
-                        style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-medium)', background: idx === sorted.length - 1 ? 'var(--bg-input)' : 'var(--bg-card)', cursor: idx === sorted.length - 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: idx === sorted.length - 1 ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
+                    <button onClick={() => setSelIdx(i => Math.min(uniqueSortedPeriods.length - 1, i + 1))} disabled={idx === uniqueSortedPeriods.length - 1}
+                        style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-medium)', background: idx === uniqueSortedPeriods.length - 1 ? 'var(--bg-input)' : 'var(--bg-card)', cursor: idx === uniqueSortedPeriods.length - 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: idx === uniqueSortedPeriods.length - 1 ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
                         <ChevronRight size={16} />
                     </button>
                 </div>
@@ -121,6 +128,29 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                     <Trash2 size={15} />
                 </button>
             </div>
+
+            {/* Account filter pills (multi-account) */}
+            {sources.length > 1 && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
+                    <button onClick={() => setActiveSourceId(null)}
+                        style={{ fontSize: 12, padding: '4px 12px', borderRadius: 'var(--radius-full)', border: `1px solid ${activeSourceId === null ? 'var(--primary)' : 'var(--border-medium)'}`, background: activeSourceId === null ? 'var(--primary-light)' : 'var(--bg-card)', color: activeSourceId === null ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 500, cursor: 'pointer' }}>
+                        Todas
+                    </button>
+                    {sources.map(s => {
+                        const acc = accounts.find(a => a.id === s.account_id);
+                        const name = acc?.name || (s.source_type === 'cc' ? 'CC' : 'TC');
+                        const color = acc?.color || (s.source_type === 'cc' ? '#0891B2' : '#E11D48');
+                        const isActive = activeSourceId === s.id;
+                        return (
+                            <button key={s.id} onClick={() => setActiveSourceId(isActive ? null : s.id)}
+                                style={{ fontSize: 12, padding: '4px 12px', borderRadius: 'var(--radius-full)', border: `1px solid ${isActive ? color : 'var(--border-medium)'}`, background: isActive ? `${color}18` : 'var(--bg-card)', color: isActive ? color : 'var(--text-secondary)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                                {name}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Filters bar */}
             <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr auto', gap: 10, marginBottom: '1.25rem' }}>
@@ -135,41 +165,27 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                     />
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <input
-                        type="date"
-                        value={dateRange.start}
-                        min={formatInputDate(month?.periodo_desde)}
-                        max={formatInputDate(month?.periodo_hasta)}
+                    <input type="date" value={dateRange.start}
+                        min={formatInputDate(primarySource?.periodo_desde)}
+                        max={formatInputDate(primarySource?.periodo_hasta)}
                         onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                        className="input"
-                        style={{ width: 'auto', fontSize: 12, padding: '8px 10px' }}
-                    />
+                        className="input" style={{ width: 'auto', fontSize: 12, padding: '8px 10px' }} />
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>a</span>
-                    <input
-                        type="date"
-                        value={dateRange.end}
-                        min={formatInputDate(month?.periodo_desde)}
-                        max={formatInputDate(month?.periodo_hasta)}
+                    <input type="date" value={dateRange.end}
+                        min={formatInputDate(primarySource?.periodo_desde)}
+                        max={formatInputDate(primarySource?.periodo_hasta)}
                         onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                        className="input"
-                        style={{ width: 'auto', fontSize: 12, padding: '8px 10px' }}
-                    />
+                        className="input" style={{ width: 'auto', fontSize: 12, padding: '8px 10px' }} />
                     {(dateRange.start || dateRange.end) && (
-                        <button 
-                            onClick={() => setDateRange({ start: '', end: '' })}
-                            className="btn-icon btn-sm"
-                            style={{ padding: 6, borderRadius: 'var(--radius-sm)' }}
-                            title="Limpiar fechas"
-                        >
-                            ✕
-                        </button>
+                        <button onClick={() => setDateRange({ start: '', end: '' })} className="btn-icon btn-sm"
+                            style={{ padding: 6, borderRadius: 'var(--radius-sm)' }} title="Limpiar fechas">✕</button>
                     )}
                 </div>
             </div>
 
             {/* Summary chip */}
             <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-                {isCC ? (
+                {hasIngresos ? (
                     <>
                         <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--danger)' }}>
                             ↓ {byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} egresos · {CLP(totalEgresos)}
@@ -179,9 +195,9 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                         </span>
                     </>
                 ) : (
-                <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    {filtered.filter(t => t.tipo === 'cargo').length} transacciones · {CLP(totalTx)}
-                </span>
+                    <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-secondary)' }}>
+                        {filtered.filter(t => t.tipo === 'cargo').length} transacciones · {CLP(totalEgresos)}
+                    </span>
                 )}
                 {query && (
                     <button onClick={() => setQuery('')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
@@ -190,7 +206,7 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                 )}
             </div>
 
-            {/* By category — helper para renderizar una lista de [cat, txList] */}
+            {/* Transaction groups */}
             {(() => {
                 const renderGroup = (entries) => entries.map(([cat, txList]) => {
                     const catObj = allCats[cat] || { label: cat, color: '#888', bg: '#F3F4F6' };
@@ -209,15 +225,21 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                                     <div key={t.id} className="tx-row">
                                         <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
                                             <div className="tx-desc">{t.descripcion}</div>
-                                            <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                                            <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
                                                 <span>{t.fecha}</span>
+                                                {/* Account badge (multi-account) */}
+                                                {sources.length > 1 && (
+                                                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: `${t._accountColor}18`, color: t._accountColor, fontWeight: 600, border: `1px solid ${t._accountColor}30` }}>
+                                                        {t._accountName}
+                                                    </span>
+                                                )}
                                                 <ClickableTag
                                                     label={catObj.label}
                                                     color={catObj.color}
                                                     bg={catObj.bg}
                                                     categoria={t.categoria}
                                                     txId={t.id}
-                                                    periodo={month.periodo}
+                                                    periodo={periodo}
                                                     onRecategorize={recategorizeMonth}
                                                     allCats={allCats}
                                                 />
@@ -231,7 +253,7 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                     );
                 });
 
-                if (!isCC) return renderGroup(byCategory.egresos);
+                if (!hasIngresos) return renderGroup(byCategory.egresos);
 
                 return (
                     <>
@@ -255,7 +277,7 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
                 );
             })()}
 
-            {txs.length > 0 && byCategory.egresos.length === 0 && byCategory.ingresos.length === 0 && query && (
+            {allTxs.length > 0 && byCategory.egresos.length === 0 && byCategory.ingresos.length === 0 && query && (
                 <div className="empty-state" style={{ paddingTop: '2rem' }}>
                     <div className="empty-state-title">Sin resultados</div>
                     <div className="empty-state-desc">"{query}" no coincide con ninguna transacción.</div>
@@ -263,11 +285,11 @@ export default function HistoryPage({ sorted, allCats, deleteMonth, recategorize
             )}
         </div>
         {delModal && (
-            <Modal title="Eliminar mes" desc={`¿Seguro que quieres eliminar ${month?.periodo}? Se borrará todo el historial de ese mes.`}
+            <Modal title="Eliminar período" desc={`¿Seguro que quieres eliminar ${periodo}? Se borrará el historial de todas las cuentas de ese mes.`}
                 confirmLabel="Eliminar"
-                onConfirm={async () => { 
-                    const p = month?.periodo;
-                    setDelModal(false); 
+                onConfirm={async () => {
+                    const p = periodo;
+                    setDelModal(false);
                     if (p) await deleteMonth(p);
                 }}
                 onCancel={() => setDelModal(false)} />

@@ -7,22 +7,26 @@ import { CLP, pct, shortLabel } from '../utils/formatters';
 import { getMonthFixed, getMonthFixedTotal, getMonthSalary, getMonthExtraItems, getMonthExtraTotal } from '../utils/calculations';
 import { SOURCE_OPTS } from '../lib/constants';
 
-export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload }) {
+export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload }) {
     const defaultIdx = useMemo(() => {
-        if (!allMonths.length) return 0;
-        // Find last month with data, otherwise last month in general
-        const lastWithData = [...allMonths].reverse().findIndex(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0);
-        if (lastWithData === -1) return allMonths.length - 1;
-        return allMonths.length - 1 - lastWithData;
-    }, [allMonths]);
+        if (!uniqueSortedPeriods.length) return 0;
+        for (let i = uniqueSortedPeriods.length - 1; i >= 0; i--) {
+            const srcs = allMonths.filter(m => m.periodo === uniqueSortedPeriods[i]);
+            if (srcs.some(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0)) return i;
+        }
+        return uniqueSortedPeriods.length - 1;
+    }, [uniqueSortedPeriods, allMonths]);
 
     const [selIdx, setSelIdx] = useState(defaultIdx);
 
-    const clampedIdx = allMonths.length > 0 ? Math.min(selIdx, allMonths.length - 1) : 0;
-    const latest = allMonths[clampedIdx] || null;
-    const prevMonth = clampedIdx > 0 ? allMonths[clampedIdx - 1] : null;
+    const clampedIdx = uniqueSortedPeriods.length > 0 ? Math.min(selIdx, uniqueSortedPeriods.length - 1) : 0;
+    const periodo = uniqueSortedPeriods[clampedIdx] || null;
+    const sources = allMonths.filter(m => m.periodo === periodo);
+    const tcSources = sources.filter(m => m.source_type !== 'cc');
+    const ccSources = sources.filter(m => m.source_type === 'cc');
+    const primarySource = tcSources[0] || ccSources[0] || null;
 
-    if (!latest) return (
+    if (!periodo || sources.length === 0) return (
         <div className="empty-state animate-fadeIn">
             <div className="empty-state-icon"><Upload size={26} /></div>
             <div className="empty-state-title">Sin datos todavía</div>
@@ -31,36 +35,48 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
         </div>
     );
 
-    const fixedItems = getMonthFixed(latest.periodo, fixedByMonth);
-    const fixedTotal = getMonthFixedTotal(latest.periodo, fixedByMonth);
-    const salary = getMonthSalary(latest.periodo, incomeByMonth, defaultIncome);
-    const extraItems = getMonthExtraItems(latest.periodo, extraByMonth);
-    const extraTotal = getMonthExtraTotal(latest.periodo, extraByMonth);
+    const fixedItems = getMonthFixed(periodo, fixedByMonth);
+    const fixedTotal = getMonthFixedTotal(periodo, fixedByMonth);
+    const salary = getMonthSalary(periodo, incomeByMonth, defaultIncome);
+    const extraItems = getMonthExtraItems(periodo, extraByMonth);
+    const extraTotal = getMonthExtraTotal(periodo, extraByMonth);
     const income = salary + extraTotal;
-    const incomeIsDefault = incomeByMonth[latest.periodo] == null && extraItems.length === 0;
-    const isCC = latest?.source_type === 'cc';
-    const tcTotal = latest.total_cargos || 0;
-    const totalGasto = tcTotal + fixedTotal;
+    const incomeIsDefault = incomeByMonth[periodo] == null && extraItems.length === 0;
+
+    const tcBankTotal = tcSources.reduce((s, m) => s + (m.total_cargos || 0), 0);
+    const ccBankTotal = ccSources.reduce((s, m) => s + (m.total_cargos || 0), 0);
+    const totalGasto = tcBankTotal + ccBankTotal + fixedTotal;
     const ahorro = income - totalGasto;
     const aRate = pct(ahorro, income);
     const aColor = ahorro >= income * .15 ? 'var(--success)' : ahorro >= 0 ? 'var(--warning)' : 'var(--danger)';
+
     const budgetCats = budget.categories || {};
     const savingsGoal = budget.savingsGoal || 0;
-    const prevCats = prevMonth ? (prevMonth.categorias || {}) : {};
-    const totalDeuda = (latest.cuotas_vigentes || []).reduce((s, c) => s + (c.monto_cuota || 0) * Math.max(0, (c.total_cuotas || 0) - (c.cuota_actual || 0)), 0);
     const goalMet = ahorro >= savingsGoal;
     const goalColor = goalMet ? 'var(--success)' : ahorro > 0 ? 'var(--warning)' : 'var(--danger)';
     const goalPct = pct(ahorro, savingsGoal);
-    const canPrev = clampedIdx > 0;
-    const canNext = clampedIdx < allMonths.length - 1;
-    const isLatest = clampedIdx === allMonths.length - 1;
-    const prevLabel = prevMonth ? shortLabel(prevMonth.periodo) : null;
 
-    const catRows = Object.entries(latest.categorias || {}).filter(([k]) => !isCC || k !== 'traspaso_tc').map(([k, v]) => {
-        const prevVal = prevCats[k] || 0;
-        const delta = prevVal > 0 ? Math.round(((v - prevVal) / prevVal) * 100) : null;
-        return { key: k, value: v, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', tope: budgetCats[k] || 0, delta };
-    }).sort((a, b) => b.value - a.value);
+    // Previous period for comparison
+    const prevPeriodo = clampedIdx > 0 ? uniqueSortedPeriods[clampedIdx - 1] : null;
+    const prevSources = prevPeriodo ? allMonths.filter(m => m.periodo === prevPeriodo) : [];
+    const prevCats = prevSources.reduce((acc, m) => {
+        Object.entries(m.categorias || {}).forEach(([k, v]) => { acc[k] = (acc[k] || 0) + v; });
+        return acc;
+    }, {});
+    const prevLabel = prevPeriodo ? shortLabel(prevPeriodo) : null;
+
+    // TC combined data
+    const tcCats = tcSources.reduce((acc, m) => {
+        Object.entries(m.categorias || {}).filter(([k]) => k !== 'traspaso_tc').forEach(([k, v]) => { acc[k] = (acc[k] || 0) + v; });
+        return acc;
+    }, {});
+    const allCuotas = tcSources.flatMap(m => m.cuotas_vigentes || []);
+    const totalDeuda = allCuotas.reduce((s, c) => s + (c.monto_cuota || 0) * Math.max(0, (c.total_cuotas || 0) - (c.cuota_actual || 0)), 0);
+    const tcSaldoTotal = tcSources.reduce((s, m) => s + (m.total_facturado || m.total_cargos || 0), 0);
+
+    const canPrev = clampedIdx > 0;
+    const canNext = clampedIdx < uniqueSortedPeriods.length - 1;
+    const isLatest = clampedIdx === uniqueSortedPeriods.length - 1;
 
     const navBtn = (enabled) => ({
         width: 32, height: 32, borderRadius: 'var(--radius-sm)',
@@ -71,30 +87,65 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     });
 
+    const renderCatRow = (c, i, arr) => {
+        const over = c.tope > 0 && c.value > c.tope;
+        const barPct = c.tope > 0 ? Math.min(pct(c.value, c.tope), 100) : 0;
+        const dColor = c.delta === null ? null : c.delta <= 0 ? '#065F46' : '#fff';
+        const dBg = c.delta === null ? null : c.delta <= 0 ? '#D1FAE5' : c.delta > 20 ? '#B91C1C' : '#B45309';
+        return (
+            <div key={c.key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none', background: over ? 'var(--danger-light)' : 'transparent' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: c.tope > 0 ? 8 : 0 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0, display: 'block' }} />
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{c.label}</span>
+                    {dColor && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: dColor, background: dBg, border: `1px solid ${dBg}`, padding: '2px 7px', borderRadius: 6 }}>
+                            {c.delta > 0 ? '↑' : '↓'}{Math.abs(c.delta)}% vs {prevLabel}
+                        </span>
+                    )}
+                    <div style={{ width: 90, textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: over ? 'var(--danger)' : 'var(--text-primary)' }}>{CLP(c.value)}</div>
+                        {over && <div style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 500 }}>+{CLP(c.value - c.tope)} sobre tope</div>}
+                    </div>
+                </div>
+                {c.tope > 0 && (
+                    <div style={{ paddingLeft: 18 }}>
+                        <div style={{ height: 4, borderRadius: 4, background: over ? 'var(--danger-border)' : 'var(--bg-hover)', overflow: 'hidden' }}>
+                            <div style={{ width: barPct + '%', height: 4, borderRadius: 4, background: over ? 'var(--danger)' : barPct > 80 ? 'var(--warning)' : 'var(--success)', transition: 'width .5s ease' }} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                            <span style={{ fontSize: 10, color: over ? 'var(--danger)' : 'var(--text-tertiary)', fontWeight: 500 }}>{barPct}% del tope</span>
+                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>tope {CLP(c.tope)}</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="animate-fadeIn">
-            {/* Month selector */}
+            {/* Period nav */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <button style={navBtn(canPrev)} onClick={() => canPrev && setSelIdx(clampedIdx - 1)} disabled={!canPrev}><ChevronLeft size={16} /></button>
                     <div>
-                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{latest.periodo}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{latest.periodo_desde} — {latest.periodo_hasta}</div>
+                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{periodo}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{primarySource?.periodo_desde} — {primarySource?.periodo_hasta}</div>
                     </div>
                     <button style={navBtn(canNext)} onClick={() => canNext && setSelIdx(clampedIdx + 1)} disabled={!canNext}><ChevronRight size={16} /></button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                     {incomeIsDefault && <Tag label="Ingreso estimado" color="var(--warning)" bg="var(--warning-light)" />}
                     {!isLatest && <Tag label="Mes anterior" color="var(--text-tertiary)" bg="var(--bg-hover)" />}
-                    {isCC && <Tag label="Cta. Corriente" color="#0891B2" bg="#ECFEFF" />}
+                    {tcSources.length > 0 && ccSources.length > 0 && <Tag label="TC + CC" color="#0891B2" bg="#ECFEFF" />}
                 </div>
             </div>
 
-            {/* Metrics grid */}
+            {/* Combined metrics */}
             <div className="dashboard-grid" style={{ marginBottom: 10 }}>
                 <Metric label="Ingreso" value={CLP(income)} color="var(--primary)" />
                 <Metric label="Gasto del mes" value={CLP(totalGasto)} color="var(--danger)" />
-                <Metric label={isCC ? 'Saldo Final' : 'Saldo Tarjeta'} value={CLP(isCC ? (latest.saldo_final || 0) : (latest.total_facturado || tcTotal))} color="var(--text-secondary)" />
+                <Metric label="Saldo TC" value={CLP(tcSaldoTotal)} color="var(--text-secondary)" />
                 <Metric label="Ahorro" value={CLP(ahorro)} color={aColor} />
             </div>
 
@@ -132,128 +183,153 @@ export default function HomePage({ allMonths, fixedByMonth, incomeByMonth, extra
                 </div>
             )}
 
-            {/* Cuotas — solo para TC */}
-            {!isCC && (() => {
-                const currentCuotas = (latest.cuotas_vigentes || []).filter(c => (c.cuota_actual || 0) > 0);
-                if (currentCuotas.length === 0) return null;
+            {/* ── TC section ───────────────────────────────────────────────── */}
+            {tcSources.length > 0 && (() => {
+                const catRows = Object.entries(tcCats).map(([k, v]) => {
+                    const prevVal = prevCats[k] || 0;
+                    const delta = prevVal > 0 ? Math.round(((v - prevVal) / prevVal) * 100) : null;
+                    return { key: k, value: v, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', tope: budgetCats[k] || 0, delta };
+                }).sort((a, b) => b.value - a.value);
+
+                const currentCuotas = allCuotas.filter(c => (c.cuota_actual || 0) > 0);
 
                 return (
                     <div>
-                        <Section mt="0">Cuotas del mes</Section>
-                        <div className="card" style={{ padding: '4px 0', marginBottom: '1.5rem' }}>
-                            {currentCuotas.map((c, i) => {
-                                const restantes = c.total_cuotas - c.cuota_actual;
-                                const isLast = restantes === 0;
-                                return (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: i < currentCuotas.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                                        <div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                                                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{c.descripcion}</span>
-                                                {isLast && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--success)', background: 'var(--success-light)', border: '1px solid var(--success-border, var(--success))', padding: '1px 6px', borderRadius: 20 }}>✓ Última cuota</span>}
-                                            </div>
-                                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                                                Cuota {c.cuota_actual} de {c.total_cuotas}{isLast ? ' · ¡se termina este mes!' : ` · ${restantes} restante${restantes !== 1 ? 's' : ''}`}
-                                            </div>
-                                        </div>
-                                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                                            {CLP(c.monto_cuota)}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)' }}>/mes</span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderTop: '2px solid var(--border-medium)', background: 'var(--bg-input)' }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Total cuotas del mes</span>
-                                <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-.4px' }}>{CLP(currentCuotas.reduce((s, c) => s + (c.monto_cuota || 0), 0))}</span>
+                        {ccSources.length > 0 && (
+                            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: 8 }}>
+                                💳 Tarjeta de crédito
                             </div>
-                        </div>
+                        )}
+
+                        {/* Cuotas del mes */}
+                        {currentCuotas.length > 0 && (
+                            <div>
+                                <Section mt="0">Cuotas del mes</Section>
+                                <div className="card" style={{ padding: '4px 0', marginBottom: '1.5rem' }}>
+                                    {currentCuotas.map((c, i) => {
+                                        const restantes = c.total_cuotas - c.cuota_actual;
+                                        const isLast = restantes === 0;
+                                        return (
+                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: i < currentCuotas.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                                                <div>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                                                        <span style={{ fontSize: 13, fontWeight: 500 }}>{c.descripcion}</span>
+                                                        {isLast && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--success)', background: 'var(--success-light)', border: '1px solid var(--success-border, var(--success))', padding: '1px 6px', borderRadius: 20 }}>✓ Última cuota</span>}
+                                                    </div>
+                                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                                                        Cuota {c.cuota_actual} de {c.total_cuotas}{isLast ? ' · ¡se termina este mes!' : ` · ${restantes} restante${restantes !== 1 ? 's' : ''}`}
+                                                    </div>
+                                                </div>
+                                                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                                    {CLP(c.monto_cuota)}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)' }}>/mes</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', borderTop: '2px solid var(--border-medium)', background: 'var(--bg-input)' }}>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Total cuotas del mes</span>
+                                        <span style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-.4px' }}>{CLP(currentCuotas.reduce((s, c) => s + (c.monto_cuota || 0), 0))}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Cuotas futuras */}
+                        {totalDeuda > 0 && (
+                            <div>
+                                <Section mt="0">Deuda futura en cuotas</Section>
+                                <div className="card" style={{ padding: '4px 0', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                                    {allCuotas.map(c => ({ ...c, restantes: Math.max(0, c.total_cuotas - c.cuota_actual) }))
+                                        .filter(c => c.restantes > 0)
+                                        .map((c, i, arr) => (
+                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                                                <div>
+                                                    <div style={{ fontSize: 13, fontWeight: 500 }}>{c.descripcion}</div>
+                                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{c.restantes} cuota{c.restantes !== 1 ? 's' : ''} × {CLP(c.monto_cuota)}</div>
+                                                </div>
+                                                <div style={{ fontSize: 13, fontWeight: 600 }}>{CLP(c.monto_cuota * c.restantes)}</div>
+                                            </div>
+                                        ))}
+                                    {(() => {
+                                        const nextItems = allCuotas.filter(c => Math.max(0, c.total_cuotas - c.cuota_actual) > 0);
+                                        const nextTotal = nextItems.reduce((s, c) => s + (c.monto_cuota || 0), 0);
+                                        return (
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderTop: '1px solid var(--border-medium)', background: 'var(--bg-input)' }}>
+                                                <div>
+                                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Pago el próximo mes</div>
+                                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>{nextItems.length} cuota{nextItems.length !== 1 ? 's' : ''} activa{nextItems.length !== 1 ? 's' : ''}</div>
+                                                </div>
+                                                <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-.3px' }}>{CLP(nextTotal)}</div>
+                                            </div>
+                                        );
+                                    })()}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderTop: '2px solid var(--border-medium)', background: 'var(--bg-input)' }}>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Total deuda futura</span>
+                                        <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--warning)', letterSpacing: '-.4px' }}>{CLP(totalDeuda)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TC Category breakdown */}
+                        {catRows.length > 0 && (
+                            <>
+                                <Section mt="0">Tarjeta por categoría</Section>
+                                {prevLabel && (
+                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
+                                        Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
+                                    </div>
+                                )}
+                                <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                                    {catRows.map((c, i, arr) => renderCatRow(c, i, arr))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 );
             })()}
 
-            {/* Cuotas futuras — solo para TC */}
-            {!isCC && totalDeuda > 0 && (
-                <div>
-                    <Section mt="0">Deuda futura en cuotas</Section>
-                    <div className="card" style={{ padding: '4px 0', overflow: 'hidden', marginBottom: '1.5rem' }}>
-                        {(latest.cuotas_vigentes || [])
-                            .map(c => ({ ...c, restantes: Math.max(0, c.total_cuotas - c.cuota_actual) }))
-                            .filter(c => c.restantes > 0)
-                            .map((c, i, arr) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                                    <div>
-                                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{c.descripcion}</div>
-                                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{c.restantes} cuota{c.restantes !== 1 ? 's' : ''} × {CLP(c.monto_cuota)}</div>
-                                    </div>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{CLP(c.monto_cuota * c.restantes)}</div>
-                                </div>
-                            ))
-                        }
-                        {/* Next month subtotal */}
-                        {(() => {
-                            const nextMonthItems = (latest.cuotas_vigentes || []).filter(c => Math.max(0, c.total_cuotas - c.cuota_actual) > 0);
-                            const nextMonthTotal = nextMonthItems.reduce((s, c) => s + (c.monto_cuota || 0), 0);
-                            return (
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderTop: '1px solid var(--border-medium)', background: 'var(--bg-input)' }}>
-                                    <div>
-                                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>Pago el próximo mes</div>
-                                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>{nextMonthItems.length} cuota{nextMonthItems.length !== 1 ? 's' : ''} activa{nextMonthItems.length !== 1 ? 's' : ''}</div>
-                                    </div>
-                                    <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-.3px' }}>{CLP(nextMonthTotal)}</div>
-                                </div>
-                            );
-                        })()}
-                        {/* Grand total */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderTop: '2px solid var(--border-medium)', background: 'var(--bg-input)' }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Total deuda futura</span>
-                            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--warning)', letterSpacing: '-.4px' }}>{CLP(totalDeuda)}</span>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* ── CC section ───────────────────────────────────────────────── */}
+            {ccSources.length > 0 && (() => {
+                const ccSource = ccSources[0];
+                const ccTxs = ccSource.transacciones || [];
+                const ccEgCats = {};
+                const ccIngCats = {};
+                ccTxs.forEach(t => {
+                    if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') return;
+                    const k = t.categoria || 'otros';
+                    if (t.tipo === 'cargo') ccEgCats[k] = (ccEgCats[k] || 0) + t.monto;
+                    else if (t.tipo === 'abono') ccIngCats[k] = (ccIngCats[k] || 0) + t.monto;
+                });
+                const ccEgRows = Object.entries(ccEgCats).map(([k, v]) => ({
+                    key: k, value: v, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', tope: budgetCats[k] || 0, delta: null,
+                })).sort((a, b) => b.value - a.value);
+                const ccIngTotal = Object.values(ccIngCats).reduce((s, v) => s + v, 0);
 
-            {/* Category breakdown */}
-            <Section mt="0">{isCC ? 'Cuenta corriente por categoría' : 'Tarjeta por categoría'}</Section>
-            {prevLabel && (
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
-                    Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
-                </div>
-            )}
-            <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                {catRows.map((c, i) => {
-                    const over = c.tope > 0 && c.value > c.tope;
-                    const barPct = c.tope > 0 ? Math.min(pct(c.value, c.tope), 100) : 0;
-                    const dColor = c.delta === null ? null : c.delta <= 0 ? '#065F46' : '#fff';
-                    const dBg = c.delta === null ? null : c.delta <= 0 ? '#D1FAE5' : c.delta > 20 ? '#B91C1C' : '#B45309';
-                    return (
-                        <div key={c.key} style={{ padding: '12px 16px', borderBottom: i < catRows.length - 1 ? '1px solid var(--border-light)' : 'none', background: over ? 'var(--danger-light)' : 'transparent' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: c.tope > 0 ? 8 : 0 }}>
-                                <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0, display: 'block' }} />
-                                <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{c.label}</span>
-                                {dColor && (
-                                    <span style={{ fontSize: 10, fontWeight: 700, color: dColor, background: dBg, border: `1px solid ${dBg}`, padding: '2px 7px', borderRadius: 6 }}>
-                                        {c.delta > 0 ? '↑' : '↓'}{Math.abs(c.delta)}% vs {prevLabel}
-                                    </span>
-                                )}
-                                <div style={{ width: 90, textAlign: 'right', flexShrink: 0 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: over ? 'var(--danger)' : 'var(--text-primary)' }}>{CLP(c.value)}</div>
-                                    {over && <div style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 500 }}>+{CLP(c.value - c.tope)} sobre tope</div>}
-                                </div>
-                            </div>
-                            {c.tope > 0 && (
-                                <div style={{ paddingLeft: 18 }}>
-                                    <div style={{ height: 4, borderRadius: 4, background: over ? 'var(--danger-border)' : 'var(--bg-hover)', overflow: 'hidden' }}>
-                                        <div style={{ width: barPct + '%', height: 4, borderRadius: 4, background: over ? 'var(--danger)' : barPct > 80 ? 'var(--warning)' : 'var(--success)', transition: 'width .5s ease' }} />
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                                        <span style={{ fontSize: 10, color: over ? 'var(--danger)' : 'var(--text-tertiary)', fontWeight: 500 }}>{barPct}% del tope</span>
-                                        <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>tope {CLP(c.tope)}</span>
-                                    </div>
-                                </div>
-                            )}
+                return (
+                    <div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#0891B2', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: tcSources.length > 0 ? 8 : 0 }}>
+                            🏦 Cuenta corriente
                         </div>
-                    );
-                })}
-            </div>
+
+                        {/* CC balance + income */}
+                        <div className="dashboard-grid" style={{ marginBottom: '1.25rem' }}>
+                            <Metric label="Saldo Final" value={CLP(ccSource.saldo_final || 0)} color="var(--text-secondary)" />
+                            <Metric label="Ingresos CC" value={CLP(ccIngTotal)} color="var(--success, #059669)" />
+                        </div>
+
+                        {/* CC Category breakdown */}
+                        {ccEgRows.length > 0 && (
+                            <>
+                                <Section mt="0">Cuenta corriente por categoría</Section>
+                                <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                                    {ccEgRows.map((c, i, arr) => renderCatRow(c, i, arr))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* Fixed items */}
             {fixedItems.length > 0 && (
