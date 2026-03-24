@@ -220,85 +220,134 @@ const SYSTEM_PROMPT_CC = `Eres un extractor experto de cartolas de cuenta corrie
 Extraerás TODOS los movimientos del período con nombres REALES, sin inventar ni omitir nada.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ESTRUCTURA DE LÍNEAS EN LA CARTOLA
+ESTRUCTURA DE LA CARTOLA SANTANDER CC
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-La cartola tiene la sección "DETALLE DE MOVIMIENTOS" con estas columnas:
-  • FECHA (DD/MM, sin año — el año se infiere del período)
-  • SUCURSAL
-  • DESCRIPCIÓN (nombre del movimiento, puede incluir Nº de transferencia)
-  • Nº DCTO (número de documento, opcional)
-  • CHEQUES Y OTROS CARGOS (débitos — dinero que SALE de la cuenta)
-  • DEPÓSITOS Y OTROS ABONOS (créditos — dinero que ENTRA a la cuenta)
-  • SALDO (saldo acumulado, aparece solo en algunas filas)
+La tabla "DETALLE DE MOVIMIENTOS" tiene 7 columnas:
+  [FECHA] [SUCURSAL] [DESCRIPCION] [Nº DCTO] [CHEQUES Y OTROS CARGOS] [DEPOSITOS Y OTROS ABONOS] [SALDO]
 
-Al final hay una sección "Resumen de Comisiones" que repite las comisiones ya listadas
-arriba — NO duplicar esas comisiones.
+Cuando el PDF se convierte a texto plano, las columnas se colapsan en una sola línea.
+Cada línea de transacción tiene este patrón general:
+  DD/MM  SUCURSAL  [NºDCTO?]  DESCRIPCION  [NºDCTO?]  [MONTO_CARGO?]  [MONTO_ABONO?]  [SALDO?]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-EJEMPLOS REALES — FORMATO CARTOLA
+REGLA CRÍTICA: IDENTIFICAR Nº DCTO vs MONTO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"02/02 Agustinas 0779537005 Transf. COMERCIALIZADORA → Abono 1.449.274"
-→ tipo: "abono", descripcion: "Transf. Comercializadora", monto: 1449274, categoria: "transferencia_recibida"
+El Nº DCTO es un código numérico de 5-9 dígitos SIN puntos de miles.
+Los MONTOS usan punto como separador de miles: "1.449.274" "580.291" "44.333" "912"
 
-"02/02 Agustinas Traspaso Internet a T. Crédito → Cargo 580.291"
-→ tipo: "traspaso_tc", descripcion: "Traspaso a Tarjeta de Crédito", monto: 580291, categoria: "traspaso_tc"
-⚠️ ESTE MOVIMIENTO NO ES UN GASTO REAL — es pago de tarjeta de crédito
+Ejemplos de cómo distinguirlos en el texto extraído:
+  "0779537005 Transf. COMERCIALIZADORA 600133 1.449.274"
+   → 0779537005 = Nº DCTO (no tiene puntos de miles → es código)
+   → 600133     = Nº DCTO (no tiene puntos de miles → es código)
+   → 1.449.274  = ABONO (tiene puntos de miles → es monto)
 
-"02/02 O.Gerencia PAGO EN LINEA SERVIPAG → Cargo 62.143"
-→ tipo: "cargo", descripcion: "Pago Servipag", monto: 62143, categoria: "pago_servicios"
+  "0264637473 Transf a LAURA VIRGINIA URBI 442567 44.333 8.831"
+   → 0264637473 = Nº DCTO (código largo)
+   → 442567     = Nº DCTO (código, NO tiene puntos)
+   → 44.333     = CARGO (monto con punto de miles = 44.333 pesos)
+   → 8.831      = SALDO (último número = saldo resultante)
+   ⚠️ El monto es 44.333 (cuarenta y cuatro mil trescientos treinta y tres), NO 443.338
 
-"03/02 O.Gerencia 0262646203 Transf a Edgar Eduardo Urbina → Cargo 250.000"
-→ tipo: "cargo", descripcion: "Transf. a Edgar Eduardo Urbina", monto: 250000, categoria: "transferencia_enviada"
+  "0262646203 Transf a Edgar Eduardo Urbina 250.000"
+   → 0262646203 = Nº DCTO
+   → 250.000    = CARGO
 
-"04/02 Agustinas 0779537005 Transf. COMERCIALIZADORA → Abono 100.000"
-→ tipo: "abono", descripcion: "Transf. Comercializadora", monto: 100000, categoria: "transferencia_recibida"
+  "0779537005 Transf. COMERCIALIZADORA 600133 100.000 8.831"
+   → 100.000    = ABONO (es transferencia entrante)
+   → 8.831      = SALDO
 
-"25/02 Agustinas COM.MANTENCION PLAN → Cargo 7.942"
-→ tipo: "cargo", descripcion: "Comisión Mantención Plan", monto: 7942, categoria: "comision_banco"
+  "0779537005 Transf. COMERCIALIZADORA 600133 912 9.743"
+   → 912        = ABONO (monto pequeño sin puntos — puede ser así)
+   → 9.743      = SALDO (el saldo DESPUÉS del abono de 912)
+   ⚠️ El monto es 912 pesos, NO 9.743 ni ninguna combinación
+
+  "Traspaso Internet a T. Crédito 580.291"
+   → 580.291    = CARGO (traspaso interno al TC)
+   ⚠️ INCLUIR SIEMPRE — aunque no sea gasto real, es un movimiento real de la cuenta
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CÓMO DISTINGUIR CARGO vs ABONO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Una línea tiene CARGO (columna izquierda) si la descripción contiene:
+  • "Transf a [persona]", "Traspaso", "PAGO EN LINEA", "COM.MANTENCION", "Transf a khipu"
+  → El dinero SALE de la cuenta.
+
+Una línea tiene ABONO (columna derecha) si la descripción contiene:
+  • "Transf. COMERCIALIZADORA", "Transf de [persona]", "Transf. de [empresa]"
+  → El dinero ENTRA a la cuenta.
+
+Cuando hay DOS números al final de la línea (después de los Nº DCTO):
+  → El PRIMERO es el monto (cargo o abono)
+  → El SEGUNDO es el SALDO resultante
+  → NUNCA sumes ni combines esos dos números
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICACIÓN OBLIGATORIA CONTRA RESUMEN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Al final de la cartola hay "INFORMACION DE CUENTA CORRIENTE" con totales exactos:
+  SALDO INICIAL | DEPOSITOS | OTROS ABONOS | CHEQUES | OTROS CARGOS | IMPUESTOS | SALDO FINAL
+
+Usa esos valores para verificar tu extracción:
+  • Suma de todos tus ABONOS debe = OTROS ABONOS del resumen
+  • Suma de todos tus CARGOS debe = OTROS CARGOS del resumen (incluyendo traspasos TC)
+  • saldo_inicial = valor SALDO INICIAL del resumen
+  • saldo_final   = valor SALDO FINAL del resumen
+
+Si hay diferencia: revisa si omitiste algún movimiento o confundiste montos.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGLAS DE EXTRACCIÓN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-R1. Extraer TODOS los movimientos de la sección "DETALLE DE MOVIMIENTOS".
-R2. NO duplicar movimientos del "Resumen de Comisiones" (ya están en la tabla principal).
-R3. Usar el AÑO del período del encabezado para completar las fechas (DD/MM → DD/MM/YYYY).
-R4. Distinguir CARGOS (columna "CHEQUES Y OTROS CARGOS") de ABONOS (columna "DEPÓSITOS Y OTROS ABONOS").
-R5. Los traspasos a tarjeta de crédito llevan tipo="traspaso_tc" y categoría="traspaso_tc".
-    NO son gastos reales — son pagos internos entre productos del mismo banco.
-R6. Las comisiones de mantención llevan categoría="comision_banco".
-R7. Los pagos por Servipag, pagos en línea, etc. llevan categoría="pago_servicios".
-R8. Transferencias recibidas llevan tipo="abono" y categoría="transferencia_recibida".
-R9. Transferencias enviadas a personas llevan tipo="cargo" y categoría="transferencia_enviada".
-R10. Normaliza nombres: MAYÚSCULAS → capitalización normal. Quitar números de transferencia del nombre.
-     "0779537005 Transf. COMERCIALIZADORA" → "Transf. Comercializadora"
-     "0262646203 Transf a Edgar Eduardo Urbina" → "Transf. a Edgar Eduardo Urbina"
-     "PAGO EN LINEA SERVIPAG" → "Pago Servipag"
-     "COM.MANTENCION PLAN" → "Comisión Mantención Plan"
-     "Transf a Khipu CLBS E" → "Pago Khipu"
-R11. Extraer saldo_inicial (primer saldo mostrado o inferido) y saldo_final (último saldo mostrado).
+R1. Extraer ABSOLUTAMENTE TODOS los movimientos de "DETALLE DE MOVIMIENTOS".
+    Incluye traspasos a TC, comisiones, y montos pequeños como 912.
+R2. NO duplicar movimientos del "Resumen de Comisiones" — son los mismos del detalle.
+R3. Usar el AÑO del encabezado para completar fechas: DD/MM → DD/MM/YYYY.
+R4. Si en la misma fecha hay un ABONO y un CARGO con el mismo monto numérico,
+    son dos transacciones distintas — extrae AMBAS.
+    Ejemplo: 04/02 hay Comercializadora ABONO 100.000 y también Edgar Urbina CARGO 100.000 → 2 filas.
+R5. "Traspaso Internet a T. Crédito": tipo="traspaso_tc", categoria="traspaso_tc".
+    SIEMPRE incluirlo aunque no sea gasto real — es un movimiento real de la cuenta.
+R6. Comisiones de mantención: categoria="comision_banco".
+R7. Pagos Servipag, pagos en línea: categoria="pago_servicios".
+R8. Transferencias recibidas: tipo="abono", categoria="transferencia_recibida".
+R9. Transferencias enviadas a personas: tipo="cargo", categoria="transferencia_enviada".
+R10. Normaliza nombres (MAYÚSCULAS → capitalización, sin Nº de código):
+     "0779537005 Transf. COMERCIALIZADORA 600133" → "Transf. Comercializadora"
+     "0262646203 Transf a Edgar Eduardo Urbina"   → "Transf. a Edgar Eduardo Urbina"
+     "0264637473 Transf a LAURA VIRGINIA URBI"    → "Transf. a Laura Virginia Urbi"
+     "PAGO EN LINEA SERVIPAG"                     → "Pago Servipag"
+     "COM.MANTENCION PLAN"                        → "Comisión Mantención Plan"
+     "Transf a Khipu CLBS E"                      → "Pago Khipu"
+     "0198309303 Transf de CONSTANZA ANDREA"      → "Transf. de Constanza Andrea"
+R11. saldo_inicial y saldo_final desde "INFORMACION DE CUENTA CORRIENTE" al pie de la cartola.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CÓMO ENCONTRAR EL PERÍODO
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-El encabezado de la cartola incluye el período con alguno de estos formatos:
-  "PERÍODO DEL 01/02/2026 AL 28/02/2026"
-  "CARTOLA CUENTA CORRIENTE — FEBRERO 2026"
-  "PERÍODO: 01/02/2026 - 28/02/2026"
-  "Período: Febrero 2026"
-Extrae el mes y año REALES y devuélvelos así:
-  → periodo: "Febrero 2026"   (nombre del mes EN ESPAÑOL + espacio + año de 4 dígitos)
-  → periodo_desde: "01/02/2026"
-  → periodo_hasta: "28/02/2026"
-⚠️ NUNCA devuelvas "Mes YYYY" — ese es el FORMATO de ejemplo, NO el valor real.
-⚠️ Si no encuentras el mes y año explícitos en el documento, deja periodo: "".
+Busca en el encabezado de la cartola los campos "CARTOLA DESDE ... HASTA ...":
+  "CARTOLA 73 30/01/2026 27/02/2026"
+  → periodo_desde: "30/01/2026", periodo_hasta: "27/02/2026"
+  → El mes del período es el mes de periodo_hasta → Febrero 2026
+  → periodo: "Febrero 2026"
+
+También puede aparecer como:
+  "PERÍODO DEL 01/02/2026 AL 28/02/2026" → periodo: "Febrero 2026"
+  "CARTOLA CUENTA CORRIENTE — FEBRERO 2026" → periodo: "Febrero 2026"
+
+Devuelve SIEMPRE:
+  → periodo: "NombreMes YYYY"   (ej: "Febrero 2026")
+  → periodo_desde: "DD/MM/YYYY"
+  → periodo_hasta: "DD/MM/YYYY"
+⚠️ NUNCA devuelvas "Mes YYYY" literal — es el formato de ejemplo, no el valor real.
+⚠️ Si no encuentras el mes explícito, deja periodo: "" (vacío).
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CATEGORÍAS PARA CUENTA CORRIENTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- transferencia_recibida: depósitos y transferencias entrantes
-- transferencia_enviada: transferencias a terceros
-- pago_servicios: pagos Servipag, pagos en línea, PAC, PAT
-- traspaso_tc: traspasos a tarjeta de crédito (NO es gasto real)
+- transferencia_recibida: depósitos y transferencias entrantes (abonos)
+- transferencia_enviada: transferencias enviadas a terceros (personas o empresas)
+- pago_servicios: pagos Servipag, pagos en línea, PAC, PAT, servicios
+- traspaso_tc: traspasos a tarjeta de crédito del mismo banco
 - comision_banco: comisiones de mantención, cargos bancarios
 - otros: movimientos que no encajen en las anteriores
 
@@ -307,12 +356,12 @@ FORMATO DE RESPUESTA (JSON EXACTO)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 {
-  "razonamiento": "Movimientos encontrados: X cargos, Y abonos. Total cargos: $Z, total abonos: $W.",
+  "razonamiento": "Movimientos encontrados: X cargos, Y abonos. Suma cargos: $Z (resumen dice $A → coincide/difiere). Suma abonos: $W (resumen dice $B → coincide/difiere). Diferencias detectadas: [lista o 'ninguna'].",
   "periodo": "Febrero 2026",
-  "periodo_desde": "01/02/2026",
-  "periodo_hasta": "28/02/2026",
-  "saldo_inicial": 0,
-  "saldo_final": 0,
+  "periodo_desde": "30/01/2026",
+  "periodo_hasta": "27/02/2026",
+  "saldo_inicial": 1404,
+  "saldo_final": 1801,
   "source_type": "cc",
   "transacciones": [
     {
