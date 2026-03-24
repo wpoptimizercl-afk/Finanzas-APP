@@ -3,9 +3,9 @@ export const getMonthExtraItems = (p, ebm) => ebm[p] || [];
 export const getMonthExtraTotal = (p, ebm) => getMonthExtraItems(p, ebm).reduce((s, i) => s + (Number(i.amount) || 0), 0);
 export const getCCAbonos = (p, months) =>
     months
-        .filter(m => m.periodo === p && m.source_type === 'cc')
+        .filter(m => m.periodo === p)
         .flatMap(m => m.transacciones || [])
-        .filter(t => t.tipo === 'abono' && t.categoria !== 'traspaso_tc')
+        .filter(t => t.tipo === 'abono' && t.categoria === 'transferencia_recibida')
         .reduce((s, t) => s + (Number(t.monto) || 0), 0);
 export const getMonthIncome = (p, ibm, ebm, def, months = []) => {
     const extraTotal = getMonthExtraTotal(p, ebm);

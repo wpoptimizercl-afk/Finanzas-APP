@@ -223,11 +223,19 @@ describe('getCCAbonos', () => {
         expect(getCCAbonos('2026-02', months)).toBe(1_000_000);
     });
 
-    it('no cuenta meses TC', () => {
+    it('funciona sin source_type (meses legacy sin multi-account)', () => {
+        const months = [{
+            periodo: '2026-02',
+            transacciones: [{ tipo: 'abono', categoria: 'transferencia_recibida', monto: 999 }],
+        }];
+        expect(getCCAbonos('2026-02', months)).toBe(999);
+    });
+
+    it('ignora abonos que no son transferencia_recibida', () => {
         const months = [{
             periodo: '2026-02',
             source_type: 'tc',
-            transacciones: [{ tipo: 'abono', categoria: 'transferencia_recibida', monto: 999 }],
+            transacciones: [{ tipo: 'abono', categoria: 'pago_cuota', monto: 500_000 }],
         }];
         expect(getCCAbonos('2026-02', months)).toBe(0);
     });
@@ -329,5 +337,33 @@ describe('Regresión: $3.257.347 — CC abonos en transactions resuelven el fall
         const income = getMonthIncome('2026-02', ibm, ebm, DEF, months);
         expect(income).toBe(1_564_258);
         expect(income).not.toBe(DEF); // NO debe mostrar $3,257,347
+    });
+
+    it('BUG REAL: mes con source_type="tc" (default DB) pero CON transferencias_recibidas', () => {
+        const months = [{
+            periodo: '2026-02',
+            source_type: 'tc',  // ← default de Supabase, incluso para CC legacy
+            transacciones: [
+                { tipo: 'abono', categoria: 'transferencia_recibida', monto: 800_000 },
+                { tipo: 'abono', categoria: 'transferencia_recibida', monto: 764_258 },
+                { tipo: 'cargo', categoria: 'alimentacion', monto: 150_000 },
+            ],
+        }];
+        const income = getMonthIncome('2026-02', {}, {}, DEF, months);
+        expect(income).toBe(1_564_258);
+        expect(income).not.toBe(DEF);
+    });
+
+    it('BUG REAL: mes SIN source_type (undefined) pero CON transferencias_recibidas', () => {
+        const months = [{
+            periodo: '2026-02',
+            // sin source_type — simula mes legacy
+            transacciones: [
+                { tipo: 'abono', categoria: 'transferencia_recibida', monto: 1_564_258 },
+            ],
+        }];
+        const income = getMonthIncome('2026-02', {}, {}, DEF, months);
+        expect(income).toBe(1_564_258);
+        expect(income).not.toBe(DEF);
     });
 });
