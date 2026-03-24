@@ -33,6 +33,7 @@ function AppInner() {
     budget, catRules, customCats, allCats, ready,
     saveMonth, deleteMonth, saveAccount,
     saveFixedItems, saveIncome, saveExtraItems,
+    saveIncomeCategory, deleteIncomeCategory, saveIncomeItems, incomeCategories,
     saveBudget, saveCustomCat, deleteCustomCat, recategorizeMonth,
   } = useFinanceData();
 
@@ -85,6 +86,16 @@ function AppInner() {
     return saved;
   }, [saveAccount, toast]);
 
+  const handleSaveIncomeItems = useCallback(async (periodo, items) => {
+    await saveIncomeItems(periodo, items);
+    toast(`${items.length} ingreso${items.length > 1 ? 's' : ''} registrado${items.length > 1 ? 's' : ''}`, 'success');
+  }, [saveIncomeItems, toast]);
+
+  const handleSaveIncomeCategory = useCallback(async (data) => {
+    await saveIncomeCategory(data);
+    toast('Categoría de ingreso creada', 'success');
+  }, [saveIncomeCategory, toast]);
+
   // Loading
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-app)' }}>
@@ -123,10 +134,12 @@ function AppInner() {
       case 'upload': return (
         <UploadPage
           months={sorted} catRules={catRules} allCats={allCats}
-          accounts={accounts}
+          accounts={accounts} incomeCategories={incomeCategories}
           onSaveMonth={handleSaveMonth}
           onSaveAccount={handleSaveAccount}
           onSaveIncome={handleSaveIncome}
+          onSaveIncomeItems={handleSaveIncomeItems}
+          onSaveIncomeCategory={handleSaveIncomeCategory}
           onGoManual={() => setView('manual')}
         />
       );
@@ -152,8 +165,11 @@ function AppInner() {
       case 'config': return (
         <ConfigPage
           customCats={customCats} catRules={catRules} accounts={accounts}
+          incomeCategories={incomeCategories}
           onSaveCat={handleSaveCat} onDeleteCat={handleDeleteCat}
           onSaveAccount={handleSaveAccount}
+          onSaveIncomeCategory={handleSaveIncomeCategory}
+          onDeleteIncomeCategory={async (id) => { await deleteIncomeCategory(id); toast('Categoría eliminada', 'default'); }}
         />
       );
       case 'manual': return (

@@ -18,6 +18,7 @@ export function useFinanceData() {
     const [catRules, setCatRules] = useState({});
     const [customCats, setCustomCats] = useState({});
     const [accounts, setAccounts] = useState([]);
+    const [incomeCategories, setIncomeCategories] = useState([]);
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
@@ -26,7 +27,7 @@ export function useFinanceData() {
 
         (async () => {
             try {
-                const [mR, fR, iR, eR, bR, crR, ccR, txR, acR] = await Promise.all([
+                const [mR, fR, iR, eR, bR, crR, ccR, txR, acR, icR] = await Promise.all([
                     supabase.from('months').select('*').eq('user_id', uid).order('periodo'),
                     supabase.from('fixed_expenses').select('*').eq('user_id', uid),
                     supabase.from('income').select('*').eq('user_id', uid),
@@ -36,6 +37,7 @@ export function useFinanceData() {
                     supabase.from('custom_categories').select('*').eq('user_id', uid),
                     supabase.from('transactions').select('*').eq('user_id', uid),
                     supabase.from('accounts').select('*').eq('user_id', uid).eq('active', true).order('created_at'),
+                    supabase.from('income_categories').select('*').eq('user_id', uid).order('created_at'),
                 ]);
 
                 const txMap = {};
@@ -75,6 +77,7 @@ export function useFinanceData() {
                 setCustomCats(cats);
 
                 setAccounts(acR.data || []);
+                setIncomeCategories(icR.data || []);
             } catch (err) {
                 console.warn('⚠️ Fallo en carga de datos (App en modo local sin backend conectado)');
             } finally {
@@ -184,6 +187,40 @@ export function useFinanceData() {
         return saved;
     }, [uid]);
 
+    const deleteIncomeCategory = useCallback(async (id) => {
+        await supabase.from('income_categories').delete().eq('id', id).eq('user_id', uid);
+        setIncomeCategories(prev => prev.filter(c => c.id !== id));
+    }, [uid]);
+
+    const saveIncomeCategory = useCallback(async ({ nombre, color }) => {
+        const { data, error } = await supabase
+            .from('income_categories')
+            .upsert({ user_id: uid, nombre, color }, { onConflict: 'user_id,nombre' })
+            .select().single();
+        if (error) throw new Error(error.message);
+        setIncomeCategories(prev => [data, ...prev.filter(c => c.id !== data.id)]);
+        return data;
+    }, [uid]);
+
+    const saveIncomeItems = useCallback(async (periodo, items) => {
+        // items: [{ name, amount, categoria_ingreso }]
+        const rows = items.map(it => ({
+            id: `inc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            user_id: uid,
+            periodo,
+            name: it.name,
+            amount: it.amount,
+            categoria_ingreso: it.categoria_ingreso || 'otros',
+        }));
+        const { error } = await supabase.from('extra_income').insert(rows);
+        if (error) throw new Error(error.message);
+        setEBM(prev => {
+            const next = { ...prev };
+            next[periodo] = [...(next[periodo] || []), ...rows];
+            return next;
+        });
+    }, [uid]);
+
     const saveCatRule = useCallback(async (desc, cat) => {
         const key = (desc || '').toLowerCase().trim();
         if (!key) return;
@@ -250,12 +287,13 @@ export function useFinanceData() {
     }, [months, saveCatRule, uid]);
 
     return {
-        months, sorted, uniqueSortedPeriods, accounts,
+        months, sorted, uniqueSortedPeriods, accounts, incomeCategories,
         fixedByMonth, incomeByMonth, extraByMonth,
         budget, catRules, customCats, allCats, ready,
         setMonths,
         saveMonth, deleteMonth, saveAccount,
         saveFixedItems, saveIncome, saveExtraItems,
+        saveIncomeCategory, deleteIncomeCategory, saveIncomeItems,
         saveBudget, saveCatRule, saveCustomCat, deleteCustomCat, recategorizeMonth,
     };
 }

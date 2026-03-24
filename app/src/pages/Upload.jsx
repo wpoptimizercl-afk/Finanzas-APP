@@ -1,15 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Upload, X, FileText, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { BANKS, MONTH_NAMES } from '../lib/constants';
+import IncomeCategorizationPanel from '../components/IncomeCategorizationPanel';
 
 const STATUS = { idle: 'idle', drag: 'drag', queue: 'queue', done: 'done' };
 
-export default function UploadPage({ months, catRules, allCats, accounts, onSaveMonth, onSaveAccount, onSaveIncome, onGoManual }) {
+export default function UploadPage({ months, catRules, allCats, accounts, incomeCategories, onSaveMonth, onSaveAccount, onSaveIncome, onSaveIncomeItems, onSaveIncomeCategory, onGoManual }) {
     const [status, setStatus] = useState(STATUS.idle);
     const [accountId, setAccountId] = useState('');
     const [queue, setQueue] = useState([]);
     const [overridePeriod, setOverride] = useState(null);
-    const [suggestIncome, setSuggestIncome] = useState(null); // { amount, periodo }
+    const [suggestIncome, setSuggestIncome] = useState(null); // { items: [...], periodo }
     // New account form
     const [showNewAcc, setShowNewAcc] = useState(false);
     const [newAccName, setNewAccName] = useState('');
@@ -139,12 +140,12 @@ export default function UploadPage({ months, catRules, allCats, accounts, onSave
                 await onSaveMonth({ ...monthData, account_id: accountId, periodo: saveKey });
                 stopProgress(item.id);
 
-                // CC income suggestion
+                // CC income suggestion — lista individual de abonos
                 if (isCC) {
-                    const abonoTotal = txs
+                    const abonoItems = txs
                         .filter(t => t.tipo === 'abono' && t.categoria === 'transferencia_recibida')
-                        .reduce((s, t) => s + t.monto, 0);
-                    if (abonoTotal > 0) setSuggestIncome({ amount: abonoTotal, periodo: saveKey });
+                        .map(t => ({ id: t.id, descripcion: t.descripcion, monto: t.monto, fecha: t.fecha }));
+                    if (abonoItems.length > 0) setSuggestIncome({ items: abonoItems, periodo: saveKey });
                 }
 
                 const doneMsg = mismatch
@@ -316,25 +317,19 @@ export default function UploadPage({ months, catRules, allCats, accounts, onSave
                 </div>
             )}
 
-            {/* CC income suggestion banner */}
+            {/* CC income categorization panel */}
             {suggestIncome && (
-                <div className="card" style={{ marginTop: '1.25rem', padding: '14px 16px', border: '1px solid var(--success-border, #059669)', background: 'var(--success-light, #ECFDF5)' }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--success, #059669)', marginBottom: 8 }}>
-                        Ingresos detectados en la cartola CC
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
-                        Detectamos <strong>${suggestIncome.amount.toLocaleString('es-CL')}</strong> en transferencias recibidas para {suggestIncome.periodo}. ¿Quieres registrarlos como ingreso del mes?
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <button
-                            onClick={async () => { await onSaveIncome(suggestIncome.periodo, suggestIncome.amount); setSuggestIncome(null); }}
-                            className="btn btn-primary btn-sm"
-                        >
-                            Sí, registrar ${suggestIncome.amount.toLocaleString('es-CL')}
-                        </button>
-                        <button onClick={() => setSuggestIncome(null)} className="btn btn-ghost btn-sm">Ignorar</button>
-                    </div>
-                </div>
+                <IncomeCategorizationPanel
+                    items={suggestIncome.items}
+                    periodo={suggestIncome.periodo}
+                    incomeCategories={incomeCategories}
+                    onSaveItems={async (periodo, items) => {
+                        await onSaveIncomeItems(periodo, items);
+                        setSuggestIncome(null);
+                    }}
+                    onSaveCategory={onSaveIncomeCategory}
+                    onDismiss={() => setSuggestIncome(null)}
+                />
             )}
 
             {/* Manual entry shortcut */}

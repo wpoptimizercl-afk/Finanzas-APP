@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit2, X } from 'lucide-react';
 import Section from '../components/ui/Section';
 import Modal from '../components/ui/Modal';
-import { CAT, CAT_PALETTE } from '../lib/constants';
+import { CAT, CAT_PALETTE, INCOME_CATS_BUILTIN, INCOME_CAT_COLORS } from '../lib/constants';
 import { hexBg } from '../utils/formatters';
 
 const ACCOUNT_TYPE_LABEL = { tc: 'Tarjeta crédito', cc: 'Cuenta corriente', savings: 'Ahorro', cash: 'Efectivo' };
@@ -30,12 +30,29 @@ function ColorPicker({ value, onChange }) {
     );
 }
 
-export default function ConfigPage({ customCats, catRules, accounts, onSaveCat, onDeleteCat, onSaveAccount }) {
+export default function ConfigPage({ customCats, catRules, accounts, incomeCategories, onSaveCat, onDeleteCat, onSaveAccount, onSaveIncomeCategory, onDeleteIncomeCategory }) {
     const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
     const [editId, setEditId] = useState(null);
     const [label, setLabel] = useState('');
     const [color, setColor] = useState(CAT_PALETTE[0]);
     const [delId, setDelId] = useState(null);
+    // Income categories form
+    const [showNewIncomeCat, setShowNewIncomeCat] = useState(false);
+    const [newIncCatName, setNewIncCatName] = useState('');
+    const [newIncCatColorIdx, setNewIncCatColorIdx] = useState(0);
+    const [savingIncCat, setSavingIncCat] = useState(false);
+    const [delIncCatId, setDelIncCatId] = useState(null);
+
+    const handleCreateIncomeCat = async () => {
+        if (!newIncCatName.trim()) return;
+        setSavingIncCat(true);
+        try {
+            await onSaveIncomeCategory({ nombre: newIncCatName.trim(), color: INCOME_CAT_COLORS[newIncCatColorIdx] });
+            setNewIncCatName('');
+            setShowNewIncomeCat(false);
+        } finally { setSavingIncCat(false); }
+    };
+
     // Accounts form
     const [showNewAcc, setShowNewAcc] = useState(false);
     const [newAccName, setNewAccName] = useState('');
@@ -173,6 +190,83 @@ export default function ConfigPage({ customCats, catRules, accounts, onSaveCat, 
                         </div>
                     ))}
                 </div>
+            )}
+
+            {/* Income categories */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div className="section-label" style={{ marginTop: 0 }}>
+                    Categorías de ingresos
+                    {(incomeCategories || []).length > 0 && (
+                        <span style={{ background: 'var(--success-light, #ECFDF5)', color: 'var(--success, #059669)', borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
+                            {(incomeCategories || []).length}
+                        </span>
+                    )}
+                </div>
+                <button onClick={() => setShowNewIncomeCat(v => !v)} className="btn btn-primary btn-sm">
+                    {showNewIncomeCat ? 'Cancelar' : '+ Nueva'}
+                </button>
+            </div>
+
+            {/* Built-in income cats */}
+            <div className="card" style={{ padding: '4px 0', marginBottom: (incomeCategories || []).length > 0 || showNewIncomeCat ? '0.5rem' : '1.75rem' }}>
+                {INCOME_CATS_BUILTIN.map((cat, i) => (
+                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < INCOME_CATS_BUILTIN.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, display: 'inline-block', flexShrink: 0 }} />
+                        <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.nombre}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, background: cat.color + '22', color: cat.color, padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>predeterminada</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Custom income cats */}
+            {(incomeCategories || []).length > 0 && (
+                <div className="card" style={{ padding: '4px 0', marginBottom: showNewIncomeCat ? '0.5rem' : '1.75rem' }}>
+                    {incomeCategories.map((cat, i) => (
+                        <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < incomeCategories.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, display: 'inline-block', flexShrink: 0 }} />
+                            <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.nombre}</span>
+                            {onDeleteIncomeCategory && (
+                                <button onClick={() => setDelIncCatId(cat.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4 }}>
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {showNewIncomeCat && (
+                <div className="card" style={{ marginBottom: '1.75rem', padding: '12px 14px', border: '1px solid var(--success-border, #059669)' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input
+                            value={newIncCatName}
+                            onChange={e => setNewIncCatName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && handleCreateIncomeCat()}
+                            placeholder="Nombre (ej: Arriendo recibido)"
+                            className="input" style={{ flex: 1 }}
+                            autoFocus
+                        />
+                        <button
+                            onClick={() => setNewIncCatColorIdx(i => (i + 1) % INCOME_CAT_COLORS.length)}
+                            style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid var(--border)', background: INCOME_CAT_COLORS[newIncCatColorIdx], cursor: 'pointer', flexShrink: 0 }}
+                            title="Cambiar color"
+                        />
+                        <button onClick={handleCreateIncomeCat} disabled={savingIncCat || !newIncCatName.trim()} className="btn btn-primary">
+                            {savingIncCat ? '…' : 'Crear'}
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {delIncCatId && (
+                <Modal
+                    title="Eliminar categoría"
+                    desc={`¿Eliminar categoría de ingreso? Los ingresos ya guardados mantendrán su etiqueta.`}
+                    confirmLabel="Eliminar"
+                    confirmClass="btn btn-danger"
+                    onConfirm={async () => { await onDeleteIncomeCategory(delIncCatId); setDelIncCatId(null); }}
+                    onCancel={() => setDelIncCatId(null)}
+                />
             )}
 
             {/* Default cats */}

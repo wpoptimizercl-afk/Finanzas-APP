@@ -36,6 +36,14 @@ export const SOURCE_OPTS = [
     { id: 'debito', label: 'Débito', color: '#D97706', bg: '#FFFBEB' },
 ];
 
+export const INCOME_CATS_BUILTIN = [
+    { id: 'sueldo',    nombre: 'Sueldo Mensual', color: '#2563EB' },
+    { id: 'freelance', nombre: 'Freelance',       color: '#7C3AED' },
+    { id: 'otros',     nombre: 'Otros',           color: '#6B7280' },
+];
+
+export const INCOME_CAT_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0891B2'];
+
 export const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
