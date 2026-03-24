@@ -168,12 +168,22 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                 await onSaveMonth({ ...monthData, account_id: accountId, periodo: saveKey });
                 stopProgress(item.id);
 
-                // CC income suggestion — lista individual de abonos
+                // CC abonos: auto-save como ingreso + panel para re-categorización opcional
                 if (isCC) {
-                    const abonoItems = txs
-                        .filter(t => t.tipo === 'abono' && t.categoria === 'transferencia_recibida')
-                        .map(t => ({ id: t.id, descripcion: t.descripcion, monto: t.monto, fecha: t.fecha }));
-                    if (abonoItems.length > 0) setSuggestIncome({ items: abonoItems, periodo: saveKey });
+                    const abonos = txs.filter(t => t.tipo === 'abono' && t.categoria === 'transferencia_recibida');
+                    if (abonos.length > 0) {
+                        try {
+                            await onSaveIncomeItems(saveKey, abonos.map(t => ({
+                                name: t.descripcion, amount: t.monto, categoria_ingreso: 'otros',
+                            })));
+                        } catch (e) {
+                            console.warn('[Upload] Auto-save ingresos CC falló:', e);
+                        }
+                        setSuggestIncome({
+                            items: abonos.map(t => ({ id: t.id, descripcion: t.descripcion, monto: t.monto, fecha: t.fecha })),
+                            periodo: saveKey,
+                        });
+                    }
                 }
 
                 const doneMsg = mismatch
@@ -190,7 +200,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
             }
             delete abortMap.current[item.id];
         }
-    }, [accountId, accounts, catRules, months, onSaveMonth, overridePeriod, selectedAccount]);
+    }, [accountId, accounts, catRules, months, onSaveMonth, onSaveIncomeItems, overridePeriod, selectedAccount]);
 
     // Ejecutar retry DESPUÉS de que React re-renderice con el nuevo accountId
     useEffect(() => {

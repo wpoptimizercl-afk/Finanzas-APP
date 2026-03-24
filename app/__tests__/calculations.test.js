@@ -142,10 +142,50 @@ describe('Regresión: INGRESO inflado con 2 PDFs del mismo período', () => {
     });
 
     it('extras duplicados (subido 2 veces) deben ser imposibles tras fix de saveIncomeItems', () => {
-        // Con el fix, saveIncomeItems hace DELETE antes de INSERT,
-        // así que extra_income nunca tendrá filas duplicadas por el mismo upload.
-        // Este test verifica que si llegan datos limpios, el cálculo es correcto.
         const ebm = { '2026-02': [{ amount: 1_564_258, categoria_ingreso: 'sueldo' }] };
         expect(getMonthExtraTotal('2026-02', ebm)).toBe(1_564_258);
+    });
+});
+
+// ── Regresión: bug $3.257.347 (defaultIncome fallback por falta de auto-save) ─
+describe('Regresión: auto-save CC abonos con categoria_ingreso "otros"', () => {
+    const DEF = 3_257_347;
+
+    it('abonos auto-guardados con categoria "otros" producen income correcto', () => {
+        // Simulando auto-save: items con categoria_ingreso = 'otros'
+        const ebm = {
+            '2026-02': [
+                { amount: 800_000, categoria_ingreso: 'otros' },
+                { amount: 764_258, categoria_ingreso: 'otros' },
+            ],
+        };
+        expect(getMonthIncome('2026-02', {}, ebm, DEF)).toBe(1_564_258);
+    });
+
+    it('abonos auto-guardados evitan caer a defaultIncome', () => {
+        const ebm = { '2026-02': [{ amount: 100, categoria_ingreso: 'otros' }] };
+        expect(getMonthIncome('2026-02', {}, ebm, DEF)).toBe(100);
+        expect(getMonthIncome('2026-02', {}, ebm, DEF)).not.toBe(DEF);
+    });
+
+    it('re-categorización reemplaza "otros" — income sigue correcto', () => {
+        // Después de que el usuario re-categoriza, los items tienen categorías reales
+        const ebm = {
+            '2026-02': [
+                { amount: 800_000, categoria_ingreso: 'sueldo' },
+                { amount: 764_258, categoria_ingreso: 'freelance' },
+            ],
+        };
+        expect(getMonthIncome('2026-02', {}, ebm, DEF)).toBe(1_564_258);
+    });
+
+    it('mezcla de extras manuales (sin cat) + CC auto-saved (con cat) suman correctamente', () => {
+        const ebm = {
+            '2026-02': [
+                { amount: 100_000 },                                    // manual (Fixed page)
+                { amount: 1_564_258, categoria_ingreso: 'sueldo' },     // CC auto-saved
+            ],
+        };
+        expect(getMonthIncome('2026-02', {}, ebm, DEF)).toBe(1_664_258);
     });
 });
