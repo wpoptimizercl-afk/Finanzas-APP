@@ -140,13 +140,18 @@ export function useFinanceData() {
         });
     }, [uid]);
 
-    const deleteMonth = useCallback(async (periodo) => {
-        const toDelete = months.filter(x => x.periodo === periodo);
+    const deleteMonth = useCallback(async (periodo, monthId = null) => {
+        const toDelete = monthId
+            ? months.filter(x => x.id === monthId)
+            : months.filter(x => x.periodo === periodo);
         for (const m of toDelete) {
             await supabase.from('transactions').delete().eq('month_id', m.id);
             await supabase.from('months').delete().eq('id', m.id);
         }
-        setMonths(prev => prev.filter(x => x.periodo !== periodo));
+        setMonths(prev => monthId
+            ? prev.filter(x => x.id !== monthId)
+            : prev.filter(x => x.periodo !== periodo)
+        );
     }, [months]);
 
     const saveFixedItems = useCallback(async (periodo, items) => {
@@ -185,6 +190,18 @@ export function useFinanceData() {
         if (error) throw new Error(error.message);
         setAccounts(prev => [saved, ...prev.filter(a => a.id !== saved.id)]);
         return saved;
+    }, [uid]);
+
+    const updateAccount = useCallback(async (id, data) => {
+        const { data: updated, error } = await supabase
+            .from('accounts')
+            .update(data)
+            .eq('id', id)
+            .eq('user_id', uid)
+            .select().single();
+        if (error) throw new Error(error.message);
+        setAccounts(prev => prev.map(a => a.id === id ? updated : a));
+        return updated;
     }, [uid]);
 
     const deleteIncomeCategory = useCallback(async (id) => {
@@ -290,7 +307,7 @@ export function useFinanceData() {
         fixedByMonth, incomeByMonth, extraByMonth,
         budget, catRules, customCats, allCats, ready,
         setMonths,
-        saveMonth, deleteMonth, saveAccount,
+        saveMonth, deleteMonth, saveAccount, updateAccount,
         saveFixedItems, saveIncome, saveExtraItems,
         saveIncomeCategory, deleteIncomeCategory, saveIncomeItems,
         saveBudget, saveCatRule, saveCustomCat, deleteCustomCat, recategorizeMonth,

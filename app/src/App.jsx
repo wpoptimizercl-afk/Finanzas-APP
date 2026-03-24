@@ -31,7 +31,7 @@ function AppInner() {
     months, sorted, uniqueSortedPeriods, accounts,
     fixedByMonth, incomeByMonth, extraByMonth,
     budget, catRules, customCats, allCats, ready,
-    saveMonth, deleteMonth, saveAccount,
+    saveMonth, deleteMonth, saveAccount, updateAccount,
     saveFixedItems, saveIncome, saveExtraItems,
     saveIncomeCategory, deleteIncomeCategory, saveIncomeItems, incomeCategories,
     saveBudget, saveCustomCat, deleteCustomCat, recategorizeMonth,
@@ -45,8 +45,8 @@ function AppInner() {
     toast('Mes guardado correctamente', 'success');
   }, [saveMonth, toast]);
 
-  const handleDeleteMonth = useCallback(async (periodo) => {
-    await deleteMonth(periodo);
+  const handleDeleteMonth = useCallback(async (periodo, monthId = null) => {
+    await deleteMonth(periodo, monthId);
     toast(`${periodo} eliminado`, 'default');
   }, [deleteMonth, toast]);
 
@@ -85,6 +85,12 @@ function AppInner() {
     toast('Cuenta guardada', 'success');
     return saved;
   }, [saveAccount, toast]);
+
+  const handleUpdateAccount = useCallback(async (id, data) => {
+    const updated = await updateAccount(id, data);
+    toast('Cuenta actualizada', 'success');
+    return updated;
+  }, [updateAccount, toast]);
 
   const handleSaveIncomeItems = useCallback(async (periodo, items) => {
     await saveIncomeItems(periodo, items);
@@ -168,6 +174,7 @@ function AppInner() {
           incomeCategories={incomeCategories}
           onSaveCat={handleSaveCat} onDeleteCat={handleDeleteCat}
           onSaveAccount={handleSaveAccount}
+          onUpdateAccount={handleUpdateAccount}
           onSaveIncomeCategory={handleSaveIncomeCategory}
           onDeleteIncomeCategory={async (id) => { await deleteIncomeCategory(id); toast('Categoría eliminada', 'default'); }}
         />

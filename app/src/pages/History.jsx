@@ -284,16 +284,25 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                 </div>
             )}
         </div>
-        {delModal && (
-            <Modal title="Eliminar período" desc={`¿Seguro que quieres eliminar ${periodo}? Se borrará el historial de todas las cuentas de ese mes.`}
-                confirmLabel="Eliminar"
-                onConfirm={async () => {
-                    const p = periodo;
-                    setDelModal(false);
-                    if (p) await deleteMonth(p);
-                }}
-                onCancel={() => setDelModal(false)} />
-        )}
+        {delModal && (() => {
+            const activeSource = sources.find(s => s.id === activeSourceId);
+            const activeAcc = activeSource ? accounts.find(a => a.id === activeSource.account_id) : null;
+            const activeName = activeAcc?.name || (activeSource?.source_type === 'cc' ? 'CC' : 'TC');
+            const desc = activeSourceId
+                ? `¿Seguro que quieres eliminar ${periodo} de "${activeName}"? Solo se borrará esa cuenta.`
+                : `¿Seguro que quieres eliminar ${periodo}? Se borrará el historial de todas las cuentas de ese mes.`;
+            return (
+                <Modal title="Eliminar período" desc={desc}
+                    confirmLabel="Eliminar"
+                    onConfirm={async () => {
+                        const p = periodo;
+                        const mid = activeSourceId;
+                        setDelModal(false);
+                        if (p) await deleteMonth(p, mid);
+                    }}
+                    onCancel={() => setDelModal(false)} />
+            );
+        })()}
         </>
     );
 }
