@@ -148,11 +148,38 @@ export function useFinanceData() {
             await supabase.from('transactions').delete().eq('month_id', m.id);
             await supabase.from('months').delete().eq('id', m.id);
         }
+
+        // Limpiar filas CC de extra_income si ya no quedan meses para ese período
+        const remainingMonths = monthId
+            ? months.filter(x => x.id !== monthId)
+            : months.filter(x => x.periodo !== periodo);
+        const affectedPeriods = [...new Set(toDelete.map(m => m.periodo))];
+        for (const p of affectedPeriods) {
+            if (!remainingMonths.some(m => m.periodo === p)) {
+                await supabase.from('extra_income')
+                    .delete()
+                    .eq('user_id', uid)
+                    .eq('periodo', p)
+                    .not('categoria_ingreso', 'is', null);
+            }
+        }
+
         setMonths(prev => monthId
             ? prev.filter(x => x.id !== monthId)
             : prev.filter(x => x.periodo !== periodo)
         );
-    }, [months]);
+        setEBM(prev => {
+            const next = { ...prev };
+            for (const p of affectedPeriods) {
+                if (!remainingMonths.some(m => m.periodo === p) && next[p]) {
+                    const manualOnly = next[p].filter(i => i.categoria_ingreso == null);
+                    if (manualOnly.length === 0) delete next[p];
+                    else next[p] = manualOnly;
+                }
+            }
+            return next;
+        });
+    }, [months, uid]);
 
     const saveFixedItems = useCallback(async (periodo, items) => {
         await supabase.from('fixed_expenses').delete().eq('user_id', uid).eq('periodo', periodo);
@@ -228,11 +255,20 @@ export function useFinanceData() {
             amount: it.amount,
             categoria_ingreso: it.categoria_ingreso || 'otros',
         }));
+        // Eliminar filas CC previas (tienen categoria_ingreso) antes de re-insertar
+        // para evitar acumulación al subir el mismo período varias veces.
+        // Las filas manuales (sin categoria_ingreso, del Fixed page) se preservan.
+        await supabase.from('extra_income')
+            .delete()
+            .eq('user_id', uid)
+            .eq('periodo', periodo)
+            .not('categoria_ingreso', 'is', null);
         const { data, error } = await supabase.from('extra_income').insert(rows).select();
         if (error) throw new Error(error.message);
         setEBM(prev => {
             const next = { ...prev };
-            next[periodo] = [...(next[periodo] || []), ...(data || rows)];
+            const manualItems = (next[periodo] || []).filter(i => i.categoria_ingreso == null);
+            next[periodo] = [...manualItems, ...(data || rows)];
             return next;
         });
     }, [uid]);
