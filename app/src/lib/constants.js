@@ -13,7 +13,7 @@ export const CAT = {
     cuotas: { label: 'Cuotas', color: '#DC2626', bg: '#FEF2F2' },
     cargos_banco: { label: 'Cargos bancarios', color: '#9CA3AF', bg: '#F9FAFB' },
     // CC (cuenta corriente) categories
-    transferencia_recibida: { label: 'Transferencia recibida', color: '#059669', bg: '#ECFDF5' },
+    transferencia_recibida: { label: 'Ingresos', color: '#059669', bg: '#ECFDF5' },
     transferencia_enviada: { label: 'Transferencia enviada', color: '#7C3AED', bg: '#F5F3FF' },
     pago_servicios: { label: 'Pago de servicios', color: '#0891B2', bg: '#ECFEFF' },
     traspaso_tc: { label: 'Traspaso a TC', color: '#6B7280', bg: '#F3F4F6' },
