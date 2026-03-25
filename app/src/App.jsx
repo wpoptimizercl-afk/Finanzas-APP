@@ -24,7 +24,7 @@ import './styles/components.css';
 import './styles/pages.css';
 
 function AppInner() {
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
   const { toast } = useToast();
   const [view, setView] = useState('dashboard');
 
@@ -150,6 +150,7 @@ function AppInner() {
         <UploadPage
           months={sorted} catRules={catRules} allCats={allCats}
           accounts={accounts} incomeCategories={incomeCategories}
+          accessToken={session?.access_token}
           onSaveMonth={handleSaveMonth}
           onSaveAccount={handleSaveAccount}
           onSaveIncome={handleSaveIncome}

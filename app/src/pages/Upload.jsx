@@ -47,7 +47,7 @@ function StepIndicator({ step }) {
     );
 }
 
-export default function UploadPage({ months, catRules, allCats, accounts, incomeCategories, onSaveMonth, onSaveAccount, onSaveIncome, onSaveIncomeItems, onSaveIncomeCategory, onGoManual }) {
+export default function UploadPage({ months, catRules, allCats, accounts, incomeCategories, accessToken, onSaveMonth, onSaveAccount, onSaveIncome, onSaveIncomeItems, onSaveIncomeCategory, onGoManual }) {
     const [step, setStep] = useState(1);
     const [status, setStatus] = useState(STATUS.idle);
     const [accountId, setAccountId] = useState('');
@@ -142,7 +142,10 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                 const b64 = await toBase64(item.file);
                 const res = await fetch('/api/process-pdf', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+                    },
                     body: JSON.stringify({ pdfBase64: b64, bank: bankForAPI }),
                     signal: ctrl.signal,
                 });
@@ -243,7 +246,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
             }
             delete abortMap.current[item.id];
         }
-    }, [accountId, accounts, catRules, months, onSaveMonth, onSaveIncomeItems, overridePeriod, selectedAccount]);
+    }, [accessToken, accountId, accounts, catRules, months, onSaveMonth, onSaveIncomeItems, overridePeriod, selectedAccount]);
 
     useEffect(() => {
         if (pendingRetry) {

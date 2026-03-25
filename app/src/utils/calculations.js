@@ -68,5 +68,4 @@ export const getExpenseTotal = (p, months, fbm, viewMode = VIEW_MODE.ALL) => {
     return ccExp + tcExp + fixedExp;
 };
 
-// ─── Utilidades ───────────────────────────────────────────────────────────────
-export const pct = (a, b) => b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0;
+// pct consolidado en formatters.js — importar desde allí

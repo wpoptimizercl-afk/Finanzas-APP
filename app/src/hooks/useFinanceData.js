@@ -122,14 +122,17 @@ export function useFinanceData() {
 
         // Upsert transactions
         if (transacciones.length) {
-            try {
-                await supabase.from('transactions').delete().eq('month_id', saved.id);
-                // Strip the fake local text ID so Supabase uses gen_random_uuid
-                await supabase.from('transactions').insert(
-                    transacciones.map(({ id, es_cuota, cuota_actual, total_cuotas, ...t }) => ({ ...t, user_id: uid, month_id: saved.id }))
-                );
-            } catch (err) {
-                console.warn('⚠️ No se pudieron persistir transacciones en Supabase.', err);
+            const { error: delTxErr } = await supabase.from('transactions').delete().eq('month_id', saved.id);
+            if (delTxErr) {
+                console.error('Error eliminando transacciones previas:', delTxErr);
+                throw new Error('Error eliminando transacciones previas. El mes se guardó pero las transacciones no se actualizaron.');
+            }
+            const { error: insTxErr } = await supabase.from('transactions').insert(
+                transacciones.map(({ id, es_cuota, cuota_actual, total_cuotas, ...t }) => ({ ...t, user_id: uid, month_id: saved.id }))
+            );
+            if (insTxErr) {
+                console.error('Error insertando transacciones:', insTxErr);
+                throw new Error('Error guardando transacciones. El mes se guardó pero las transacciones no.');
             }
         }
 
@@ -145,8 +148,10 @@ export function useFinanceData() {
             ? months.filter(x => x.id === monthId)
             : months.filter(x => x.periodo === periodo);
         for (const m of toDelete) {
-            await supabase.from('transactions').delete().eq('month_id', m.id);
-            await supabase.from('months').delete().eq('id', m.id);
+            const { error: txErr } = await supabase.from('transactions').delete().eq('month_id', m.id);
+            if (txErr) throw new Error(`Error eliminando transacciones del mes: ${txErr.message}`);
+            const { error: mErr } = await supabase.from('months').delete().eq('id', m.id);
+            if (mErr) throw new Error(`Error eliminando mes: ${mErr.message}`);
         }
 
         // Limpiar filas CC de extra_income si ya no quedan meses para ese período
@@ -182,23 +187,28 @@ export function useFinanceData() {
     }, [months, uid]);
 
     const saveFixedItems = useCallback(async (periodo, items) => {
-        await supabase.from('fixed_expenses').delete().eq('user_id', uid).eq('periodo', periodo);
+        const { error: delErr } = await supabase.from('fixed_expenses').delete().eq('user_id', uid).eq('periodo', periodo);
+        if (delErr) throw new Error(`Error eliminando gastos fijos: ${delErr.message}`);
         if (items.length) {
-            await supabase.from('fixed_expenses').insert(items.map(i => ({ ...i, user_id: uid, periodo })));
+            const { error: insErr } = await supabase.from('fixed_expenses').insert(items.map(i => ({ ...i, user_id: uid, periodo })));
+            if (insErr) throw new Error(`Error guardando gastos fijos: ${insErr.message}`);
         }
         setFBM(prev => ({ ...prev, [periodo]: items }));
     }, [uid]);
 
     const saveIncome = useCallback(async (periodo, amount) => {
-        await supabase.from('income')
+        const { error } = await supabase.from('income')
             .upsert({ user_id: uid, periodo, amount }, { onConflict: 'user_id,periodo' });
+        if (error) throw new Error(`Error guardando ingreso: ${error.message}`);
         setIBM(prev => ({ ...prev, [periodo]: amount }));
     }, [uid]);
 
     const saveExtraItems = useCallback(async (periodo, items) => {
-        await supabase.from('extra_income').delete().eq('user_id', uid).eq('periodo', periodo);
+        const { error: delErr } = await supabase.from('extra_income').delete().eq('user_id', uid).eq('periodo', periodo);
+        if (delErr) throw new Error(`Error eliminando ingresos extra: ${delErr.message}`);
         if (items.length) {
-            await supabase.from('extra_income').insert(items.map(i => ({ ...i, user_id: uid, periodo })));
+            const { error: insErr } = await supabase.from('extra_income').insert(items.map(i => ({ ...i, user_id: uid, periodo })));
+            if (insErr) throw new Error(`Error guardando ingresos extra: ${insErr.message}`);
         }
         setEBM(prev => ({ ...prev, [periodo]: items }));
     }, [uid]);

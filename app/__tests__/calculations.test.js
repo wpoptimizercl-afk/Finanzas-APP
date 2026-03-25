@@ -5,8 +5,8 @@ import {
     getMonthIncome,
     getMonthFixedTotal,
     getCCAbonos,
-    pct,
 } from '../src/utils/calculations.js';
+import { pct } from '../src/utils/formatters.js';
 
 // ── getMonthIncome — lógica de fallback ────────────────────────────────────
 describe('getMonthIncome', () => {

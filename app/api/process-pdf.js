@@ -4,10 +4,28 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
 
 console.log('[API] process-pdf initialized with classic pdf-parse');
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Max payload size: ~10MB base64 ≈ ~7.5MB PDF
+const MAX_PAYLOAD_BYTES = 10 * 1024 * 1024;
+
+// CORS: restrict to known origins
+const IS_PRODUCTION = !!process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'development';
+
+const ALLOWED_ORIGINS = [
+    process.env.ALLOWED_ORIGIN,
+    process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`,
+    ...(!IS_PRODUCTION ? ['http://localhost:5173'] : []),
+].filter(Boolean);
+
+function getCorsOrigin(reqOrigin) {
+    if (!reqOrigin) return null;
+    return ALLOWED_ORIGINS.includes(reqOrigin) ? reqOrigin : null;
+}
 
 // ── Bank-specific prompt builders ────────────────────────────────────
 const VALID_CATS = [
@@ -416,7 +434,7 @@ Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 // Categorías válidas (TC + CC combinadas)
 const VALID_CATS_CC = [
     'transferencia_recibida', 'transferencia_enviada', 'pago_servicios',
-    'traspaso_tc', 'comision_banco', 'otros',
+    'traspaso_tc', 'cargos_banco', 'otros',
 ];
 
 const BANK_HINTS = {
@@ -483,11 +501,15 @@ export function normalizeAIResponse(data) {
 }
 
 export default async function handler(req, res) {
-    // CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    if (req.method === 'OPTIONS') return res.status(200).end();
+    // CORS — restricted to known origins
+    const origin = req.headers?.origin;
+    const corsOrigin = getCorsOrigin(origin);
+    if (corsOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', corsOrigin);
+        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    }
+    if (req.method === 'OPTIONS') return res.status(corsOrigin ? 200 : 403).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     // Check API Key
@@ -496,9 +518,39 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: 'Falta la API Key de OpenAI en Vercel.' });
     }
 
+    // Auth — verify Supabase JWT (fail-closed: block if env vars missing)
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+        console.error('[process-pdf] MISSING SUPABASE_URL or SUPABASE_ANON_KEY — auth cannot proceed');
+        return res.status(503).json({ error: 'Configuración de autenticación incompleta.' });
+    }
+
+    const authHeader = req.headers?.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Token de autenticación requerido.' });
+    }
+    try {
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+        if (error || !data?.user) {
+            console.error('[process-pdf] Auth failed:', error?.message);
+            return res.status(401).json({ error: 'Token inválido o expirado.' });
+        }
+        console.log(`[process-pdf] Authenticated user: ${data.user.id}`);
+    } catch (authErr) {
+        console.error('[process-pdf] Auth error:', authErr);
+        return res.status(401).json({ error: 'Error verificando autenticación.' });
+    }
+
     try {
         const { pdfBase64, bank = 'santander_tc' } = req.body;
         if (!pdfBase64) return res.status(400).json({ error: 'pdfBase64 es requerido' });
+
+        // Validate payload size
+        if (pdfBase64.length > MAX_PAYLOAD_BYTES) {
+            return res.status(413).json({ error: 'El PDF es demasiado grande. Máximo ~7.5MB.' });
+        }
 
         console.log('[process-pdf] Iniciando extraccion de PDF (v1.1.1)...');
 

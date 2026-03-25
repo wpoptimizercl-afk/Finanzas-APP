@@ -1,5 +1,4 @@
-import { pct } from '../utils/calculations';
-import { CLP } from '../utils/formatters';
+import { CLP, pct } from '../utils/formatters';
 
 export default function HealthSemaphore({ series, budget, isAverage }) {
     if (!series?.length) return null;
