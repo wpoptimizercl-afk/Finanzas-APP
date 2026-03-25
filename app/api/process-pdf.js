@@ -407,6 +407,13 @@ CATEGORÍAS PARA CUENTA CORRIENTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMATO DE RESPUESTA (JSON EXACTO)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️ CRÍTICO — FORMATO DE MONTOS EN JSON:
+   Todos los valores numéricos monetarios (monto, saldo_inicial, saldo_final)
+   deben ser NÚMEROS ENTEROS sin puntos ni comas.
+   CORRECTO:   "monto": 1525025
+   INCORRECTO: "monto": "1.525.025"   ← string con puntos
+   INCORRECTO: "monto": 1525.025      ← punto decimal
+   El valor 1.525.025 pesos chilenos se escribe como el entero 1525025.
 Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 {
   "razonamiento": "Movimientos encontrados: X cargos, Y abonos. Suma cargos: $Z (resumen dice $A → coincide/difiere). Suma abonos: $W (resumen dice $B → coincide/difiere). Diferencias detectadas: [lista o 'ninguna'].",
@@ -462,6 +469,25 @@ function derivePeriodo(rawPeriodo, rawDesde) {
     return 'Desconocido';
 }
 
+/**
+ * Parsea un monto en formato chileno (punto = separador de miles)
+ * y lo devuelve como número entero.
+ * Ejemplos:
+ *   "1.525.025" → 1525025
+ *   "18.994"    → 18994
+ *   "384.495"   → 384495
+ *   44333       → 44333   (ya es número, pasa directo)
+ *   null / ""   → 0
+ */
+function parseChileanAmount(value) {
+    if (value == null || value === '') return 0;
+    if (typeof value === 'number') return Math.round(value);
+    // Eliminar todos los puntos de miles y convertir a entero
+    const cleaned = String(value).replace(/\./g, '').replace(/,.*$/, '');
+    const result = parseInt(cleaned, 10);
+    return isNaN(result) ? 0 : result;
+}
+
 // ── Normalización (exportada para tests) ─────────────────────────────────────
 export function normalizeAIResponse(data) {
     const isCC = data.source_type === 'cc';
@@ -474,17 +500,17 @@ export function normalizeAIResponse(data) {
         periodo: derivePeriodo(rawPeriodo, rawDesde),
         periodo_desde: DATE_RE.test(rawDesde) ? rawDesde : '',
         periodo_hasta: DATE_RE.test(rawHasta) ? rawHasta : '',
-        total_operaciones: Number(data.total_operaciones) || 0,
-        total_facturado: Number(data.total_facturado) || 0,
+        total_operaciones: parseChileanAmount(data.total_operaciones),
+        total_facturado: parseChileanAmount(data.total_facturado),
         // CC-specific fields (optional, won't affect TC)
         source_type: data.source_type || 'tc',
-        saldo_inicial: data.saldo_inicial != null ? Number(data.saldo_inicial) : null,
-        saldo_final: data.saldo_final != null ? Number(data.saldo_final) : null,
+        saldo_inicial: data.saldo_inicial != null ? parseChileanAmount(data.saldo_inicial) : null,
+        saldo_final: data.saldo_final != null ? parseChileanAmount(data.saldo_final) : null,
         transacciones: (data.transacciones || []).map((t, i) => ({
             id: `tx_${i + 1}`,
             fecha: t.fecha,
             descripcion: t.descripcion,
-            monto: Math.abs(Number(t.monto) || 0),
+            monto: Math.abs(parseChileanAmount(t.monto)),
             tipo: t.tipo || 'cargo',
             categoria: validCats.includes(t.categoria) ? t.categoria : 'otros',
             es_cuota: Boolean(t.es_cuota),
@@ -495,8 +521,41 @@ export function normalizeAIResponse(data) {
             descripcion: c.descripcion,
             cuota_actual: Number(c.cuota_actual),
             total_cuotas: Number(c.total_cuotas),
-            monto_cuota: Number(c.monto_cuota)
+            monto_cuota: parseChileanAmount(c.monto_cuota)
         }))
+    };
+}
+
+/**
+ * Valida que la suma de transacciones extraídas coincida con los totales
+ * que la propia IA declaró en su razonamiento.
+ * Devuelve un objeto con los resultados de la validación para loguear.
+ */
+function validateCCTotals(output, razonamiento) {
+    const cargos = output.transacciones.filter(t => t.tipo === 'cargo');
+    const abonos = output.transacciones.filter(t => t.tipo === 'abono');
+    const sumCargos = cargos.reduce((s, t) => s + t.monto, 0);
+    const sumAbonos = abonos.reduce((s, t) => s + t.monto, 0);
+
+    // Intentar extraer totales del texto de razonamiento
+    // Ejemplo: "Suma cargos: $1.640.880 (resumen dice $1.640.880 → coincide)"
+    const cargoMatch = razonamiento?.match(/suma cargos[^$]*\$([\d.]+)/i);
+    const abonoMatch = razonamiento?.match(/suma abonos[^$]*\$([\d.]+)/i);
+
+    const expectedCargos = cargoMatch ? parseChileanAmount(cargoMatch[1]) : null;
+    const expectedAbonos = abonoMatch ? parseChileanAmount(abonoMatch[1]) : null;
+
+    const cargoMismatch = expectedCargos !== null && sumCargos !== expectedCargos;
+    const abonoMismatch = expectedAbonos !== null && sumAbonos !== expectedAbonos;
+
+    return {
+        sumCargos,
+        sumAbonos,
+        expectedCargos,
+        expectedAbonos,
+        cargoMismatch,
+        abonoMismatch,
+        ok: !cargoMismatch && !abonoMismatch,
     };
 }
 
@@ -627,12 +686,25 @@ export default async function handler(req, res) {
             console.log('[process-pdf] RAZONAMIENTO IA:', data.razonamiento);
         }
         if (isCC) {
-            // CC logging
             const cargos = output.transacciones.filter(t => t.tipo === 'cargo');
             const abonos = output.transacciones.filter(t => t.tipo === 'abono');
-            const sumCargos = cargos.reduce((s, t) => s + t.monto, 0);
-            const sumAbonos = abonos.reduce((s, t) => s + t.monto, 0);
-            console.log(`[process-pdf] CC: ${cargos.length} cargos ($${sumCargos}), ${abonos.length} abonos ($${sumAbonos}), saldo: ${output.saldo_inicial} → ${output.saldo_final}`);
+            const validation = validateCCTotals(output, data.razonamiento);
+
+            console.log(`[process-pdf] CC: ${cargos.length} cargos ($${validation.sumCargos}), ${abonos.length} abonos ($${validation.sumAbonos}), saldo: ${output.saldo_inicial} → ${output.saldo_final}`);
+
+            if (!validation.ok) {
+                if (validation.cargoMismatch) {
+                    console.warn(`[process-pdf] ⚠️ MISMATCH CARGOS: extraído $${validation.sumCargos} vs esperado $${validation.expectedCargos} (diff: ${validation.sumCargos - validation.expectedCargos})`);
+                }
+                if (validation.abonoMismatch) {
+                    console.warn(`[process-pdf] ⚠️ MISMATCH ABONOS: extraído $${validation.sumAbonos} vs esperado $${validation.expectedAbonos} (diff: ${validation.sumAbonos - validation.expectedAbonos})`);
+                }
+                // El output igual se devuelve al frontend, pero el warning en logs
+                // permite detectar el problema sin bloquear al usuario.
+                // En el futuro se puede convertir en un error 422 si se desea.
+            } else {
+                console.log(`[process-pdf] ✅ Totales CC validados correctamente`);
+            }
         } else {
             // TC logging (unchanged)
             const sumSinBanco = output.transacciones
