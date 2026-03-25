@@ -141,10 +141,14 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
 
             {/* Combined metrics */}
             <div className="dashboard-grid" style={{ marginBottom: 10 }}>
-                <Metric label="Ingreso" value={CLP(income)} color="var(--primary)" />
-                <Metric label="Gasto del mes" value={CLP(totalGasto)} color="var(--danger)" />
-                <Metric label="Saldo TC" value={CLP(tcSaldoTotal)} color="var(--text-secondary)" />
-                <Metric label="Ahorro" value={CLP(ahorro)} color={aColor} />
+                <Metric label="Ingreso" value={CLP(income)} color="var(--primary)"
+                    note={incomeIsDefault ? 'ingreso estimado (configurable)' : 'sueldo + extras'} />
+                <Metric label="Gasto del mes" value={CLP(totalGasto)} color="var(--danger)"
+                    note={tcSources.length > 0 && ccSources.length > 0 ? 'TC + CC + fijos' : tcSources.length > 0 ? 'TC + fijos' : 'CC + fijos'} />
+                <Metric label="Saldo TC" value={CLP(tcSaldoTotal)} color="var(--text-secondary)"
+                    note="total facturado en tarjeta" />
+                <Metric label="Ahorro" value={CLP(ahorro)} color={aColor}
+                    note={`ingreso − gasto · ${aRate}%`} />
             </div>
 
             {/* Savings rate bar */}
