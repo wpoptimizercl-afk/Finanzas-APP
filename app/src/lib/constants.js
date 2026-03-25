@@ -16,7 +16,7 @@ export const CAT = {
     transferencia_recibida: { label: 'Ingresos', color: '#059669', bg: '#ECFDF5' },
     transferencia_enviada: { label: 'Transferencia enviada', color: '#7C3AED', bg: '#F5F3FF' },
     pago_servicios: { label: 'Pago de servicios', color: '#0891B2', bg: '#ECFEFF' },
-    traspaso_tc: { label: 'Traspaso a TC', color: '#6B7280', bg: '#F3F4F6' },
+    traspaso_tc: { label: 'Pago Tarjetas de Crédito', color: '#6B7280', bg: '#F3F4F6' },
     ahorro: { label: 'Ahorro / inversión', color: '#059669', bg: '#ECFDF5' },
     comision_banco: { label: 'Comisión bancaria', color: '#9CA3AF', bg: '#F9FAFB' },
     otros: { label: 'Otros', color: '#4B5563', bg: '#F9FAFB' },
