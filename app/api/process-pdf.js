@@ -340,6 +340,11 @@ R6. Comisiones de mantención: categoria="comision_banco".
 R7. Pagos Servipag, pagos en línea: categoria="pago_servicios".
 R8. Transferencias recibidas: tipo="abono", categoria="transferencia_recibida".
 R9. Transferencias enviadas a personas: tipo="cargo", categoria="transferencia_enviada".
+R9b. Auto-transferencias (ahorro): si el nombre del receptor en una transferencia enviada
+     coincide con el nombre del titular que aparece en el encabezado del PDF
+     (ej: "Transf a Edgar Eduardo Urbina" cuando el titular es "URBINA TARAZONA EDGAR EDUARDO"),
+     usar tipo="cargo", categoria="ahorro".
+     El titular aparece al inicio del PDF en la línea con su nombre en mayúsculas junto al número de cuenta.
 R10. Normaliza nombres (MAYÚSCULAS → capitalización, sin Nº de código):
      "0779537005 Transf. COMERCIALIZADORA 600133" → "Transf. Comercializadora"
      "0262646203 Transf a Edgar Eduardo Urbina"   → "Transf. a Edgar Eduardo Urbina"
@@ -374,9 +379,10 @@ Devuelve SIEMPRE:
 CATEGORÍAS PARA CUENTA CORRIENTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - transferencia_recibida: depósitos y transferencias entrantes (abonos)
-- transferencia_enviada: transferencias enviadas a terceros (personas o empresas)
+- transferencia_enviada: transferencias enviadas a terceros (personas o empresas distintas al titular)
 - pago_servicios: pagos Servipag, pagos en línea, PAC, PAT, servicios
 - traspaso_tc: traspasos a tarjeta de crédito del mismo banco
+- ahorro: transferencias enviadas al MISMO titular de la cuenta (auto-transferencias a cuenta de ahorro propia)
 - comision_banco: comisiones de mantención, cargos bancarios
 - otros: movimientos que no encajen en las anteriores
 
