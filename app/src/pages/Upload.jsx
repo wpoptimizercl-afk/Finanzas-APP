@@ -171,7 +171,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                 const parsed = typeof data === 'string' ? JSON.parse(data) : data;
                 const isCC = parsed.source_type === 'cc';
 
-                const protectedCats = isCC ? ['traspaso_tc', 'comision_banco'] : ['cargos_banco'];
+                const protectedCats = isCC ? ['traspaso_tc', 'cargos_banco'] : ['cargos_banco'];
                 const txs = (parsed.transacciones || []).map(t => {
                     if (protectedCats.includes(t.categoria)) return t;
                     if (t.tipo === 'abono') return t;

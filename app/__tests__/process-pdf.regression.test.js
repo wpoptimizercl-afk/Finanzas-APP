@@ -25,7 +25,7 @@ import goldenAIResponse from './fixtures/santander-golden-ai-response.json';
 
 const VALID_CATS = [
   'supermercado', 'minimarket', 'delivery', 'transporte', 'mascotas', 'lavanderia',
-  'ropa_moda', 'restaurantes', 'entretenimiento', 'servicios_hogar',
+  'ropa_moda', 'restaurantes', 'entretenimiento', 'pago_servicios',
   'telefonia_internet', 'cuotas', 'cargos_banco', 'otros',
 ];
 

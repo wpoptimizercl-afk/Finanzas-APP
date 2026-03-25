@@ -36,7 +36,7 @@
     { "fecha": "07/02/2026", "descripcion": "Albert Milan Flores", "monto": 2100, "tipo": "cargo", "categoria": "restaurantes", "es_cuota": false, "cuota_actual": null, "total_cuotas": null },
     { "fecha": "07/02/2026", "descripcion": "DKF Lira", "monto": 20480, "tipo": "cargo", "categoria": "restaurantes", "es_cuota": false, "cuota_actual": null, "total_cuotas": null },
     { "fecha": "07/02/2026", "descripcion": "Cannon Vivo Imperio", "monto": 9663, "tipo": "cargo", "categoria": "otros", "es_cuota": true, "cuota_actual": 1, "total_cuotas": 3 },
-    { "fecha": "08/02/2026", "descripcion": "Comercial Home Store", "monto": 2780, "tipo": "cargo", "categoria": "servicios_hogar", "es_cuota": false, "cuota_actual": null, "total_cuotas": null },
+    { "fecha": "08/02/2026", "descripcion": "Comercial Home Store", "monto": 2780, "tipo": "cargo", "categoria": "pago_servicios", "es_cuota": false, "cuota_actual": null, "total_cuotas": null },
     { "fecha": "08/02/2026", "descripcion": "Uber", "monto": 10736, "tipo": "cargo", "categoria": "transporte", "es_cuota": false, "cuota_actual": null, "total_cuotas": null },
     { "fecha": "08/02/2026", "descripcion": "Uber", "monto": 10401, "tipo": "cargo", "categoria": "transporte", "es_cuota": false, "cuota_actual": null, "total_cuotas": null },
     { "fecha": "08/02/2026", "descripcion": "Supermercado Supervecino", "monto": 13433, "tipo": "cargo", "categoria": "supermercado", "es_cuota": false, "cuota_actual": null, "total_cuotas": null },

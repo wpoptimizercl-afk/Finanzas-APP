@@ -12,7 +12,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 // ── Bank-specific prompt builders ────────────────────────────────────
 const VALID_CATS = [
     'supermercado', 'minimarket', 'delivery', 'transporte', 'mascotas', 'lavanderia',
-    'ropa_moda', 'restaurantes', 'entretenimiento', 'servicios_hogar',
+    'ropa_moda', 'restaurantes', 'entretenimiento', 'pago_servicios',
     'telefonia_internet', 'cuotas', 'cargos_banco', 'otros',
 ];
 
@@ -174,7 +174,7 @@ CATEGORÍAS
 - ropa_moda: H&M, Zara, Falabella, Ripley, Jyotis, San Diego Ltda, Rosarito, Reebok, TRICOT, MercadoPago*ReebokChile
 - restaurantes: restaurante, café, DKF Lira, La Dorita (LA DORITA), 2 Animales (2 ANIMALES CATERING), Man Ji, Italian Imperio (INVERSIONES ITALIAN IMPER), Albert Milan Flores, María Almiron
 - entretenimiento: Cinemark, Cineplanet, Cinepolis, Fantasilandia, Ticketplus, Netflix, Spotify, WPAY PLUS
-- servicios_hogar: agua, luz, gas, Enel, Metrogas, Aguas Andinas, gastos comunes, seguros, Comercial Home Store
+- pago_servicios: agua, luz, gas, Enel, Metrogas, Aguas Andinas, gastos comunes, seguros, Comercial Home Store
 - telefonia_internet: Entel (ENTEL ONECLICK), Movistar, WOM, Claro, VTR, HBO Max (HELP.HBOMAX.COM), Google Play, Streaming
 - cuotas: compras en cuotas (CUOTA FIJA, N/CUOTAS PRECIO, etc.) cuando cuota_actual >= 1
 - cargos_banco: COMISION TC, IMPTO DECRETO LEY, IVA USO INTERNACIONAL, SERVICIO COMPRA INTERNACIONAL
@@ -336,7 +336,7 @@ R4. Si en la misma fecha hay un ABONO y un CARGO con el mismo monto numérico,
     Ejemplo: 04/02 hay Comercializadora ABONO 100.000 y también Edgar Urbina CARGO 100.000 → 2 filas.
 R5. "Traspaso Internet a T. Crédito": tipo="traspaso_tc", categoria="traspaso_tc".
     SIEMPRE incluirlo aunque no sea gasto real — es un movimiento real de la cuenta.
-R6. Comisiones de mantención: categoria="comision_banco".
+R6. Comisiones de mantención: categoria="cargos_banco".
 R7. Pagos Servipag, pagos en línea: categoria="pago_servicios".
 R8. Transferencias recibidas: tipo="abono", categoria="transferencia_recibida".
 R9. Transferencias enviadas a personas: tipo="cargo", categoria="transferencia_enviada".
@@ -383,7 +383,7 @@ CATEGORÍAS PARA CUENTA CORRIENTE
 - pago_servicios: pagos Servipag, pagos en línea, PAC, PAT, servicios
 - traspaso_tc: traspasos a tarjeta de crédito del mismo banco
 - ahorro: transferencias enviadas al MISMO titular de la cuenta (auto-transferencias a cuenta de ahorro propia)
-- comision_banco: comisiones de mantención, cargos bancarios
+- cargos_banco: comisiones de mantención, cargos bancarios
 - otros: movimientos que no encajen en las anteriores
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

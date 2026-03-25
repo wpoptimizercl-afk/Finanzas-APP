@@ -8,7 +8,6 @@ export const CAT = {
     ropa_moda: { label: 'Ropa y moda', color: '#EC4899', bg: '#FDF2F8' },
     restaurantes: { label: 'Restaurantes', color: '#D97706', bg: '#FFFBEB' },
     entretenimiento: { label: 'Entretenimiento', color: '#10B981', bg: '#ECFDF5' },
-    servicios_hogar: { label: 'Servicios del hogar', color: '#0EA5E9', bg: '#F0F9FF' },
     telefonia_internet: { label: 'Telefonía e internet', color: '#2563EB', bg: '#EFF6FF' },
     cuotas: { label: 'Cuotas', color: '#DC2626', bg: '#FEF2F2' },
     cargos_banco: { label: 'Cargos bancarios', color: '#9CA3AF', bg: '#F9FAFB' },
@@ -18,7 +17,6 @@ export const CAT = {
     pago_servicios: { label: 'Pago de servicios', color: '#0891B2', bg: '#ECFEFF' },
     traspaso_tc: { label: 'Pago tarjeta de crédito', color: '#6B7280', bg: '#F3F4F6' },
     ahorro: { label: 'Ahorro / inversión', color: '#059669', bg: '#ECFDF5' },
-    comision_banco: { label: 'Comisión bancaria', color: '#9CA3AF', bg: '#F9FAFB' },
     otros: { label: 'Otros', color: '#4B5563', bg: '#F9FAFB' },
 };
 
@@ -84,11 +82,11 @@ export const DEF_BUDGET = {
     categories: {
         supermercado: 0, minimarket: 0, delivery: 0, transporte: 0,
         mascotas: 0, lavanderia: 0, ropa_moda: 0, restaurantes: 0,
-        entretenimiento: 0, servicios_hogar: 0, telefonia_internet: 0,
+        entretenimiento: 0, telefonia_internet: 0,
         cuotas: 0, cargos_banco: 0,
         // CC categories
         transferencia_recibida: 0, transferencia_enviada: 0,
-        pago_servicios: 0, traspaso_tc: 0, comision_banco: 0,
+        pago_servicios: 0, traspaso_tc: 0,
         otros: 0,
     },
 };
