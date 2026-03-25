@@ -11,6 +11,9 @@
  *   REG-04: Campo total_operaciones ausente o cero
  *   REG-05: Categorías inválidas (no están en VALID_CATS)
  *   REG-06: Cargos banco (sección 3) omitidos
+ *   REG-07: CC categoria 'ahorro' normalizada a 'otros' (faltaba en VALID_CATS_CC)
+ *   REG-08: CC auto-transferencia mismo nombre — Nº DCTO "500017" confundido como monto
+ *           y abono real de $66.000 desaparece (cartola-72.pdf)
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -22,6 +25,7 @@ vi.mock('openai', () => ({
 
 import { normalizeAIResponse } from '../api/process-pdf.js';
 import goldenAIResponse from './fixtures/santander-golden-ai-response.json';
+import ccGoldenFixture from './fixtures/santander-cc-golden-ai-response.json';
 
 const VALID_CATS = [
   'supermercado', 'minimarket', 'delivery', 'transporte', 'mascotas', 'lavanderia',
@@ -255,5 +259,110 @@ describe('normalización de campos', () => {
     const unique = new Set(ids);
     expect(unique.size).toBe(ids.length);
     expect(result.transacciones[0].id).toBe('tx_1');
+  });
+});
+
+// ── REG-07: CC categoría ahorro ───────────────────────────────────────────────
+
+describe('REG-07: CC categoria ahorro se preserva (no cae a otros)', () => {
+  // Antes del fix, 'ahorro' no estaba en VALID_CATS_CC → normalizeAIResponse
+  // lo convertía a 'otros'. Esto afecta la visualización de auto-transferencias
+  // en la categoría "Ahorro / inversión" de la UI.
+
+  it('transaccion cargo con categoria ahorro se mantiene como ahorro', () => {
+    const ccResponse = {
+      source_type: 'cc',
+      periodo: 'Enero 2026',
+      periodo_desde: '02/01/2026',
+      periodo_hasta: '30/01/2026',
+      saldo_inicial: 32265,
+      saldo_final: 1404,
+      total_operaciones: 0,
+      total_facturado: 0,
+      transacciones: [{
+        fecha: '02/01/2026',
+        descripcion: 'Transf. a Edgar Eduardo Urbina',
+        monto: 372000,
+        tipo: 'cargo',
+        categoria: 'ahorro',
+        es_cuota: false,
+        cuota_actual: null,
+        total_cuotas: null,
+      }],
+      cuotas_vigentes: [],
+    };
+    const r = normalizeAIResponse(ccResponse);
+    expect(r.transacciones[0].categoria).toBe('ahorro');
+  });
+
+  it('ahorro es categoria válida en CC (no se convierte a otros)', () => {
+    // Verifica también que ninguna tx del fixture CC tiene categoria 'otros'
+    // cuando debería ser 'ahorro'
+    const r = normalizeAIResponse(ccGoldenFixture);
+    const autoTransfer = r.transacciones.find(
+      t => t.descripcion.toLowerCase().includes('edgar eduardo urbina') && t.tipo === 'cargo'
+    );
+    expect(autoTransfer, 'auto-transferencia a Edgar Urbina ausente').toBeDefined();
+    expect(autoTransfer.categoria).toBe('ahorro');
+  });
+});
+
+// ── REG-08: CC mismo titular — Nº DCTO confundido como monto ─────────────────
+
+describe('REG-08: CC mismo nombre abono+cargo — cartola-72', () => {
+  // Bug: "Transf. Edgar Eduardo Urbina 500017 66.000"
+  // OpenAI generaba un cargo ficticio monto=500017 (el Nº DCTO) y perdía el abono de $66.000.
+  // Fixture: respuesta CORRECTA que la IA debe producir tras el fix del prompt.
+
+  const ccResult = normalizeAIResponse(ccGoldenFixture);
+
+  it('cargos: exactamente 8 transacciones', () => {
+    const cargos = ccResult.transacciones.filter(t => t.tipo === 'cargo');
+    expect(cargos.length).toBe(8);
+  });
+
+  it('abonos: exactamente 3 transacciones', () => {
+    const abonos = ccResult.transacciones.filter(t => t.tipo === 'abono');
+    expect(abonos.length).toBe(3);
+  });
+
+  it('suma cargos = $1.640.880 (coincide con resumen banco)', () => {
+    const sum = ccResult.transacciones
+      .filter(t => t.tipo === 'cargo')
+      .reduce((s, t) => s + t.monto, 0);
+    expect(sum).toBe(1640880);
+  });
+
+  it('suma abonos = $1.610.019 (coincide con resumen banco)', () => {
+    const sum = ccResult.transacciones
+      .filter(t => t.tipo === 'abono')
+      .reduce((s, t) => s + t.monto, 0);
+    expect(sum).toBe(1610019);
+  });
+
+  it('NO existe transacción con monto 500017 (Nº DCTO confundido como monto)', () => {
+    const ficticio = ccResult.transacciones.find(t => t.monto === 500017);
+    expect(ficticio).toBeUndefined();
+  });
+
+  it('SÍ existe abono de $66.000 — Transf. Edgar Eduardo Urbina (incoming)', () => {
+    const abono = ccResult.transacciones.find(
+      t => t.tipo === 'abono' && t.monto === 66000
+    );
+    expect(abono, 'abono $66.000 de Edgar Urbina ausente').toBeDefined();
+  });
+
+  it('SÍ existe cargo de $372.000 — auto-transferencia ahorro (outgoing)', () => {
+    const cargo = ccResult.transacciones.find(
+      t => t.tipo === 'cargo' && t.monto === 372000 && t.categoria === 'ahorro'
+    );
+    expect(cargo, 'cargo ahorro $372.000 ausente o categoria incorrecta').toBeDefined();
+  });
+
+  it('traspaso TC de $733.626 está presente (mayor cargo)', () => {
+    const traspaso = ccResult.transacciones.find(
+      t => t.tipo === 'cargo' && t.monto === 733626 && t.categoria === 'traspaso_tc'
+    );
+    expect(traspaso, 'traspaso TC $733.626 ausente').toBeDefined();
   });
 });

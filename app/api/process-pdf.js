@@ -281,6 +281,15 @@ Ejemplos de cómo distinguirlos en el texto extraído:
    → 9.743      = SALDO (el saldo DESPUÉS del abono de 912)
    ⚠️ El monto es 912 pesos, NO 9.743 ni ninguna combinación
 
+  "0262646203 Transf. Edgar Eduardo Urbina 500017 66.000"
+   → 0262646203 = Nº DCTO (código largo)
+   → 500017     = Nº DCTO (código, NO tiene puntos de miles → descartado)
+   → 66.000     = ABONO (el dinero ENTRA — Edgar Urbina envía $66.000 a la cuenta)
+   ⚠️ "Transf. [NOMBRE]" (SIN la palabra "a") = ABONO entrante — el dinero llega DE esa persona
+   ⚠️ NUNCA confundir "500017" con un monto: no tiene puntos de miles → es código de referencia
+   ⚠️ Puede haber en la misma fecha un ABONO "Transf. Edgar Eduardo Urbina" ($66.000)
+      Y un CARGO "Transf a Edgar Eduardo Urbina" ($372.000) — son dos operaciones distintas
+
   "Traspaso Internet a T. Crédito 580.291"
    → 580.291    = CARGO (traspaso interno al TC)
    ⚠️ INCLUIR SIEMPRE — aunque no sea gasto real, es un movimiento real de la cuenta
@@ -358,11 +367,16 @@ R6. Comisiones de mantención: categoria="cargos_banco".
 R7. Pagos Servipag, pagos en línea: categoria="pago_servicios".
 R8. Transferencias recibidas: tipo="abono", categoria="transferencia_recibida".
 R9. Transferencias enviadas a personas: tipo="cargo", categoria="transferencia_enviada".
-R9b. Auto-transferencias (ahorro): si el nombre del receptor en una transferencia enviada
-     coincide con el nombre del titular que aparece en el encabezado del PDF
+R9b. Auto-transferencias (ahorro): SOLO aplica a "Transf a [NOMBRE]" (cargo saliente, CON "a").
+     Si el nombre del receptor en "Transf a ..." coincide con el titular del PDF
      (ej: "Transf a Edgar Eduardo Urbina" cuando el titular es "URBINA TARAZONA EDGAR EDUARDO"),
      usar tipo="cargo", categoria="ahorro".
      El titular aparece al inicio del PDF en la línea con su nombre en mayúsculas junto al número de cuenta.
+     ⚠️ "Transf. [NOMBRE]" (SIN "a", con punto) = ABONO entrante — NO es auto-transferencia.
+        Ejemplo: "Transf. Edgar Eduardo Urbina 500017 66.000" → ABONO $66.000, 500017 = Nº DCTO.
+     ⚠️ Es perfectamente posible que en la misma fecha existan AMBAS:
+        un ABONO "Transf. Edgar Eduardo Urbina $66.000" Y un CARGO "Transf a Edgar Eduardo Urbina $372.000".
+        Son dos transacciones completamente distintas — extrae las DOS.
 R10. Normaliza nombres (MAYÚSCULAS → capitalización, sin Nº de código):
      "0779537005 Transf. COMERCIALIZADORA 600133" → "Transf. Comercializadora"
      "0262646203 Transf a Edgar Eduardo Urbina"   → "Transf. a Edgar Eduardo Urbina"
@@ -441,7 +455,7 @@ Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
 // Categorías válidas (TC + CC combinadas)
 const VALID_CATS_CC = [
     'transferencia_recibida', 'transferencia_enviada', 'pago_servicios',
-    'traspaso_tc', 'cargos_banco', 'otros',
+    'traspaso_tc', 'cargos_banco', 'ahorro', 'otros',
 ];
 
 const BANK_HINTS = {

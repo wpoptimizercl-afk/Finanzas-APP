@@ -1,0 +1,124 @@
+{
+  "source_type": "cc",
+  "razonamiento": "Movimientos encontrados: 8 cargos, 3 abonos. Suma cargos: $1640880 (resumen dice $1640880 → coincide). Suma abonos: $1610019 (resumen dice $1610019 → coincide). Diferencias detectadas: ninguna.",
+  "periodo": "Enero 2026",
+  "periodo_desde": "30/12/2025",
+  "periodo_hasta": "30/01/2026",
+  "saldo_inicial": 32265,
+  "saldo_final": 1404,
+  "total_operaciones": 0,
+  "total_facturado": 0,
+  "transacciones": [
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Transf. Comercializadora",
+      "monto": 1525025,
+      "tipo": "abono",
+      "categoria": "transferencia_recibida",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Transf. Edgar Eduardo Urbina",
+      "monto": 66000,
+      "tipo": "abono",
+      "categoria": "transferencia_recibida",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Transf. de Constanza Andrea",
+      "monto": 18994,
+      "tipo": "abono",
+      "categoria": "transferencia_recibida",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Traspaso Internet a T. Crédito",
+      "monto": 733626,
+      "tipo": "cargo",
+      "categoria": "traspaso_tc",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Pago Khipu",
+      "monto": 384495,
+      "tipo": "cargo",
+      "categoria": "pago_servicios",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Transf. a Edgar Eduardo Urbina",
+      "monto": 372000,
+      "tipo": "cargo",
+      "categoria": "ahorro",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Pago Servipag",
+      "monto": 67065,
+      "tipo": "cargo",
+      "categoria": "pago_servicios",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Transf. a Laura Virginia Urbi",
+      "monto": 44333,
+      "tipo": "cargo",
+      "categoria": "transferencia_enviada",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Traspaso Internet a T. Crédito",
+      "monto": 20416,
+      "tipo": "cargo",
+      "categoria": "traspaso_tc",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "02/01/2026",
+      "descripcion": "Transf. a Sergio Laguna",
+      "monto": 11000,
+      "tipo": "cargo",
+      "categoria": "transferencia_enviada",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    },
+    {
+      "fecha": "28/01/2026",
+      "descripcion": "Comisión Mantención Plan",
+      "monto": 7945,
+      "tipo": "cargo",
+      "categoria": "cargos_banco",
+      "es_cuota": false,
+      "cuota_actual": null,
+      "total_cuotas": null
+    }
+  ],
+  "cuotas_vigentes": []
+}
