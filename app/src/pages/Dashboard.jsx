@@ -37,11 +37,14 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
     const filterOptions = useMemo(() => {
         const opts = [{ id: 'all', label: 'Todas' }];
         const sourceTypes = new Set(months.map(m => m.source_type).filter(Boolean));
-        if (sourceTypes.size > 1) {
-            if (sourceTypes.has('tc')) opts.push({ id: 'tc', label: 'Solo TC' });
-            if (sourceTypes.has('cc')) opts.push({ id: 'cc', label: 'Solo CC' });
-        }
         const uniqueAccountIds = [...new Set(months.map(m => m.account_id).filter(Boolean))];
+        const tcAccounts = uniqueAccountIds.filter(aid => months.some(m => m.account_id === aid && m.source_type === 'tc'));
+        const ccAccounts = uniqueAccountIds.filter(aid => months.some(m => m.account_id === aid && m.source_type === 'cc'));
+        // "Solo TC/CC" solo es útil si hay múltiples cuentas de ese tipo
+        if (sourceTypes.size > 1) {
+            if (sourceTypes.has('tc') && tcAccounts.length > 1) opts.push({ id: 'tc', label: 'Solo TC' });
+            if (sourceTypes.has('cc') && ccAccounts.length > 1) opts.push({ id: 'cc', label: 'Solo CC' });
+        }
         if (uniqueAccountIds.length > 1) {
             uniqueAccountIds.forEach(aid => {
                 const acc = accounts.find(a => a.id === aid);
