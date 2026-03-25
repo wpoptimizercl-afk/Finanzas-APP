@@ -12,10 +12,11 @@ import LoginPage from './pages/Login';
 import DashboardPage from './pages/Dashboard';
 import HomePage from './pages/Home';
 import UploadPage from './pages/Upload';
-import FixedPage from './pages/Fixed';
+import ManualAdjustmentsPage from './pages/ManualAdjustments';
 import HistoryPage from './pages/History';
 import BudgetPage from './pages/Budget';
 import ConfigPage from './pages/Config';
+import OnboardingPage from './pages/Onboarding';
 // Styles
 import './styles/variables.css';
 import './styles/global.css';
@@ -35,6 +36,7 @@ function AppInner() {
     saveFixedItems, saveIncome, saveExtraItems,
     saveIncomeCategory, deleteIncomeCategory, saveIncomeItems, incomeCategories,
     saveBudget, saveCustomCat, deleteCustomCat, recategorizeMonth,
+    saveCatRule, deleteCatRule,
   } = useFinanceData();
 
   const defaultIncome = budget.income || 0;
@@ -125,6 +127,13 @@ function AppInner() {
       </div>
     );
 
+    if (accounts.length === 0) return (
+      <OnboardingPage
+        onSaveAccount={handleSaveAccount}
+        onGoUpload={() => setView('upload')}
+      />
+    );
+
     switch (view) {
       case 'dashboard': return (
         <DashboardPage {...commonDataProps}
@@ -150,10 +159,10 @@ function AppInner() {
         />
       );
       case 'fixed': return (
-        <FixedPage
-          fixedByMonth={fixedByMonth} incomeByMonth={incomeByMonth}
-          extraByMonth={extraByMonth} defaultIncome={defaultIncome} allCats={allCats}
-          onSaveFixed={handleSaveFixed} onSaveIncome={handleSaveIncome} onSaveExtra={handleSaveExtra}
+        <ManualAdjustmentsPage
+          fixedByMonth={fixedByMonth} extraByMonth={extraByMonth} allCats={allCats}
+          incomeCategories={incomeCategories}
+          onSaveFixed={handleSaveFixed} onSaveExtra={handleSaveExtra}
         />
       );
       case 'history': return (
@@ -177,6 +186,7 @@ function AppInner() {
           onUpdateAccount={handleUpdateAccount}
           onSaveIncomeCategory={handleSaveIncomeCategory}
           onDeleteIncomeCategory={async (id) => { await deleteIncomeCategory(id); toast('Categoría eliminada', 'default'); }}
+          onDeleteCatRule={async (key) => { await deleteCatRule(key); toast('Regla eliminada', 'default'); }}
         />
       );
       case 'manual': return (

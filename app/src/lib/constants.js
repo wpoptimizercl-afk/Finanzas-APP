@@ -17,6 +17,7 @@ export const CAT = {
     transferencia_enviada: { label: 'Transferencia enviada', color: '#7C3AED', bg: '#F5F3FF' },
     pago_servicios: { label: 'Pago de servicios', color: '#0891B2', bg: '#ECFEFF' },
     traspaso_tc: { label: 'Traspaso a TC', color: '#6B7280', bg: '#F3F4F6' },
+    ahorro: { label: 'Ahorro / inversión', color: '#059669', bg: '#ECFDF5' },
     comision_banco: { label: 'Comisión bancaria', color: '#9CA3AF', bg: '#F9FAFB' },
     otros: { label: 'Otros', color: '#4B5563', bg: '#F9FAFB' },
 };
@@ -61,6 +62,22 @@ export const CAT_PALETTE = [
     '#0D9488', '#16A34A', '#65A30D', '#CA8A04', '#EA580C',
     '#B45309', '#78716C', '#1D4ED8', '#0369A1', '#047857', '#15803D'
 ];
+
+// ─── Modos de vista para cálculo de egresos ───────────────────────────────────
+// ALL: CC+TC combinados → traspaso_tc excluido (evita doble conteo)
+// TC:  solo tarjeta de crédito
+// CC:  solo cuenta corriente → traspaso_tc incluido (es egreso real de caja)
+export const VIEW_MODE = {
+    ALL: 'all',
+    TC:  'tc',
+    CC:  'cc',
+};
+
+// Categorías CC que NO son gastos reales:
+// - traspaso_tc: pago de TC (el detalle ya está en los cargos TC)
+// - ahorro: transferencia a cuenta de ahorro/inversión
+// Se excluyen de egresos CC en la vista combinada.
+export const INTERNAL_TRANSFER_CATS = ['traspaso_tc', 'ahorro'];
 
 export const DEF_BUDGET = {
     income: 0, savingsGoal: 0,

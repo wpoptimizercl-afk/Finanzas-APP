@@ -150,20 +150,15 @@ R7. TOTAL OPERACIONES DEL PERÍODO ACTUAL:
     Si la suma (sin cargos_banco) es MENOR que total_operaciones: estás omitiendo transacciones
     (verifica cuotas de fechas antiguas). Si es MAYOR: incluiste algo que no corresponde.
 R8. El "MONTO TOTAL FACTURADO A PAGAR" va en 'total_facturado'.
-R9. Normaliza nombres (mayúsculas → capitalización normal):
-    MERPAGO* → MercadoPago*
-    PAYU *UBER TRIP / PAYU*AR*UBER → Uber
-    JUMBO PENALOLEN → Jumbo Peñalolén
-    EKONO SANTA ISABEL → Ekono Santa Isabel
-    LIDER.CL → Lider.cl
-    INVERSIONES ITALIAN IMPER → Inversiones Italian Imperio
-    SUMUP * BONNE SANTE → Bonne Santé
-    MERPAGO*SPINOKMP → MercadoPago*Spinokmp
-    MERPAGO*BIPQR → MercadoPago*BIP
-    ENTEL ONECLICK → Entel
-    HELP.HBOMAX.COM → HBO Max
-    NUITEE* → Nuitee
-    KM1151 APIES → Apies (tienda de conveniencia)
+R9. Preserva el nombre original del movimiento tal como aparece en el PDF.
+    SOLO aplica Title Case (primera letra de cada palabra en mayúscula, resto en minúscula).
+    NO reemplaces, acortes ni cambies el contenido.
+    Ejemplos correctos:
+      PAYU *UBER TRIP → Payu *Uber Trip   (NO "Uber")
+      MERPAGO*BIPQR → Merpago*Bipqr       (NO "MercadoPago*BIP")
+      HELP.HBOMAX.COM → Help.Hbomax.Com  (NO "HBO Max")
+      KM1151 APIES → Km1151 Apies         (NO "Apies")
+      JUMBO PENALOLEN → Jumbo Penalolen   (aplica acentos solo si el PDF los tiene)
 R10. VERIFICACIÓN OBLIGATORIA antes de responder: Lista mentalmente cada transacción cuota (es_cuota=true)
     y confirma que están todas, incluyendo las de fechas antiguas de la primera página del PDF.
 
@@ -247,10 +242,13 @@ Ejemplos de cómo distinguirlos en el texto extraído:
 
   "0264637473 Transf a LAURA VIRGINIA URBI 442567 44.333 8.831"
    → 0264637473 = Nº DCTO (código largo)
-   → 442567     = Nº DCTO (código, NO tiene puntos)
+   → 442567     = Nº DCTO (código, NO tiene puntos de miles → descartado)
    → 44.333     = CARGO (monto con punto de miles = 44.333 pesos)
    → 8.831      = SALDO (último número = saldo resultante)
-   ⚠️ El monto es 44.333 (cuarenta y cuatro mil trescientos treinta y tres), NO 443.338
+   ⚠️ El monto es 44.333 (cuarenta y cuatro mil), NO 444.333 (cuatrocientos cuarenta y cuatro mil)
+   ⚠️ NUNCA prepender ni combinar dígitos del Nº DCTO con el monto: "442567" y "44.333" son
+      valores completamente separados. El Nº DCTO termina donde termina — su último dígito
+      NO forma parte del monto que le sigue.
 
   "0262646203 Transf a Edgar Eduardo Urbina 250.000"
    → 0262646203 = Nº DCTO
@@ -286,6 +284,24 @@ Cuando hay DOS números al final de la línea (después de los Nº DCTO):
   → NUNCA sumes ni combines esos dos números
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+VERIFICACIÓN POR SALDO CORRIENTE (CRÍTICO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+El PDF muestra el saldo acumulado después de cada movimiento (columna SALDO).
+Usa eso para validar cada monto ANTES de incluirlo:
+
+  cargo:  saldo_anterior - monto = saldo_mostrado
+  abono:  saldo_anterior + monto = saldo_mostrado
+
+Ejemplo con la cartola real (sigue la secuencia de saldos):
+  02/02 Traspaso TC 20.416 → saldo 303.164
+  03/02 Edgar Urbina (CARGO 250.000) → 303.164 - 250.000 = 53.164  (saldo no aparece en la línea, es intermedio)
+  03/02 Laura Urbina (CARGO 44.333) → 53.164 - 44.333 = 8.831  ← el PDF muestra 8.831 ✓
+    → Si hubieras leído 444.333: 53.164 - 444.333 = -391.169 ≠ 8.831 → INCORRECTO, corrige a 44.333
+
+Si el saldo resultante no coincide con la aritmética, el monto está MAL LEÍDO.
+Revisa si incluiste dígitos del Nº DCTO adyacente. Usa SOLO los dígitos con punto de miles.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 VERIFICACIÓN OBLIGATORIA CONTRA RESUMEN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Al final de la cartola hay "INFORMACION DE CUENTA CORRIENTE" con totales exactos:
@@ -308,6 +324,11 @@ R0. AUTO-IDENTIFICACIÓN: Si el texto corresponde a un estado de tarjeta de cré
     corriente (columnas CHEQUES/CARGOS/ABONOS/SALDO, encabezado "CARTOLA"), source_type: "cc".
 R1. Extraer ABSOLUTAMENTE TODOS los movimientos de "DETALLE DE MOVIMIENTOS".
     Incluye traspasos a TC, comisiones, y montos pequeños como 912.
+R1b. IDENTIFICACIÓN DE MONTO — regla de oro:
+    El monto es SIEMPRE un número con este patrón: [dígitos].[3 dígitos] (ej: 44.333, 580.291, 1.449.274).
+    Los Nº DCTO (4-9 dígitos SIN punto de miles) NO forman parte del monto.
+    Si encuentras "442567 44.333": el monto es 44.333, NUNCA 444.333, 4425674.333 ni ninguna fusión.
+    Verifica usando saldo: saldo_previo - monto_cargo = saldo_siguiente (ver sección VERIFICACIÓN POR SALDO).
 R2. NO duplicar movimientos del "Resumen de Comisiones" — son los mismos del detalle.
 R3. Usar el AÑO del encabezado para completar fechas: DD/MM → DD/MM/YYYY.
 R4. Si en la misma fecha hay un ABONO y un CARGO con el mismo monto numérico,

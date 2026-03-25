@@ -40,7 +40,7 @@ function MonthGrid({ value, onChange }) {
     );
 }
 
-export default function FixedPage({ fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, onSaveFixed, onSaveIncome, onSaveExtra, allCats }) {
+export default function FixedPage({ fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, onSaveFixed, onSaveIncome, onSaveExtra, allCats, incomeCategories = [] }) {
     const [selPeriodo, setSelPeriodo] = useState(null);
     const [delId, setDelId] = useState(null);
     const [showPicker, setShowPicker] = useState(false);
@@ -170,15 +170,26 @@ export default function FixedPage({ fixedByMonth, incomeByMonth, extraByMonth, d
                     {/* Extra income */}
                     <Section mt="0">Ingresos extra</Section>
                     <div className="card" style={{ padding: '4px 0', marginBottom: '0.75rem' }}>
-                        {extraItems.map((e, i) => (
-                            <div key={e.id} className="list-row list-row-hover">
-                                <span style={{ fontSize: 13, fontWeight: 500 }}>{e.name}</span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--success)' }}>+{CLP(e.amount)}</span>
-                                    <button onClick={() => setExtraItems(prev => prev.filter(x => x.id !== e.id))} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)' }}><Trash2 size={12} /></button>
+                        {extraItems.map((e) => {
+                            const cat = incomeCategories.find(c => c.id === e.categoria_ingreso);
+                            return (
+                                <div key={e.id} className="list-row list-row-hover">
+                                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 13, fontWeight: 500 }}>{e.name}</span>
+                                        {cat && (
+                                            <Tag label={cat.nombre} color={cat.color || '#6366F1'} bg={`${cat.color || '#6366F1'}18`} />
+                                        )}
+                                        {!cat && e.categoria_ingreso && e.categoria_ingreso !== 'otros' && (
+                                            <Tag label={e.categoria_ingreso} color="#6366F1" bg="#EEF2FF" />
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--success)' }}>+{CLP(e.amount)}</span>
+                                        <button onClick={() => setExtraItems(prev => prev.filter(x => x.id !== e.id))} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)' }}><Trash2 size={12} /></button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                         <div className="list-row">
                             <input placeholder="Descripción (bono, freelance…)" value={newExtra.name} onChange={e => setNewExtra(p => ({ ...p, name: e.target.value }))} className="input" style={{ flex: 1, marginRight: 8 }} />
                             <input type="number" placeholder="Monto" value={newExtra.amount} onChange={e => setNewExtra(p => ({ ...p, amount: e.target.value }))} className="input" style={{ width: 100 }} />

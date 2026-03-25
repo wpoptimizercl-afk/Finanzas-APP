@@ -9,13 +9,13 @@ import Section from '../components/ui/Section';
 import ChartTooltip from '../components/charts/ChartTooltip';
 import HealthSemaphore from '../components/HealthSemaphore';
 import { CLP, CLPk, pct, shortLabel } from '../utils/formatters';
-import { getMonthIncome, getMonthFixedTotal } from '../utils/calculations';
+import { getMonthIncome, getMonthFixedTotal, getTCExpenses, getCCExpenses, getSavingsTransfers } from '../utils/calculations';
 
 export default DashboardInner;
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload, onGoHistory }) {
+export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload, onGoHistory }) {
     const defaultWindow = useMemo(() => {
         if (!months?.length) return 1;
         // Find last month with data
@@ -32,6 +32,34 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
         return Math.max(0, lastWithData);
     });
 
+    const [viewFilter, setViewFilter] = useState('all');
+
+    const filterOptions = useMemo(() => {
+        const opts = [{ id: 'all', label: 'Todas' }];
+        const sourceTypes = new Set(months.map(m => m.source_type).filter(Boolean));
+        if (sourceTypes.size > 1) {
+            if (sourceTypes.has('tc')) opts.push({ id: 'tc', label: 'Solo TC' });
+            if (sourceTypes.has('cc')) opts.push({ id: 'cc', label: 'Solo CC' });
+        }
+        const uniqueAccountIds = [...new Set(months.map(m => m.account_id).filter(Boolean))];
+        if (uniqueAccountIds.length > 1) {
+            uniqueAccountIds.forEach(aid => {
+                const acc = accounts.find(a => a.id === aid);
+                opts.push({ id: aid, label: acc?.name || acc?.nombre || acc?.alias || 'Cuenta' });
+            });
+        }
+        return opts;
+    }, [months, accounts]);
+
+    const filteredMonths = useMemo(() => {
+        if (viewFilter === 'all') return months;
+        if (viewFilter === 'tc') return months.filter(m => m.source_type === 'tc');
+        if (viewFilter === 'cc') return months.filter(m => m.source_type === 'cc');
+        return months.filter(m => m.account_id === viewFilter);
+    }, [months, viewFilter]);
+
+    useEffect(() => { setSkipEnd(0); }, [viewFilter]);
+
     if (!months?.length) return (
         <div className="empty-state animate-fadeIn">
             <div className="empty-state-icon"><Upload size={26} /></div>
@@ -44,21 +72,23 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
     const allSeries = useMemo(() => {
         const seen = new Set();
         const uniquePeriods = [];
-        months.forEach(m => { if (!seen.has(m.periodo)) { seen.add(m.periodo); uniquePeriods.push(m.periodo); } });
+        filteredMonths.forEach(m => { if (!seen.has(m.periodo)) { seen.add(m.periodo); uniquePeriods.push(m.periodo); } });
         return uniquePeriods.map(periodo => {
-            const sources = months.filter(m => m.periodo === periodo);
-            const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome, months);
+            const sources = filteredMonths.filter(m => m.periodo === periodo);
+            const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome);
             const fixedTotal = getMonthFixedTotal(periodo, fixedByMonth);
-            const tc = sources.reduce((s, m) => s + (m.total_cargos || 0), 0);
-            const gasto = tc + fixedTotal;
+            const tc = viewFilter === 'cc' ? 0 : getTCExpenses(periodo, sources);
+            const cc = getCCExpenses(periodo, sources, viewFilter === 'cc');
+            const savings = getSavingsTransfers(periodo, sources);
+            const gasto = tc + cc + fixedTotal;
             const ahorro = income - gasto;
             const categorias = sources.reduce((acc, m) => {
                 Object.entries(m.categorias || {}).forEach(([k, v]) => { acc[k] = (acc[k] || 0) + v; });
                 return acc;
             }, {});
-            return { periodo, label: shortLabel(periodo), income, fixedTotal, tc, gasto, ahorro, categorias };
+            return { periodo, label: shortLabel(periodo), income, fixedTotal, tc, cc, savings, gasto, ahorro, categorias };
         });
-    }, [months, incomeByMonth, extraByMonth, fixedByMonth, defaultIncome]);
+    }, [filteredMonths, incomeByMonth, extraByMonth, fixedByMonth, defaultIncome, viewFilter]);
 
     const totalMonths = allSeries.length;
     const windowOptions = [
@@ -82,6 +112,7 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
     const momDelta = n >= 2 ? series[n - 1].gasto - series[n - 2].gasto : null;
     const bestMonth = [...series].sort((a, b) => b.ahorro - a.ahorro)[0];
     const worstMonth = n > 1 ? [...series].sort((a, b) => a.ahorro - b.ahorro)[0] : null;
+    const totalSavings = series.reduce((s, r) => s + (r.savings || 0), 0);
 
     const catAgg = {};
     series.forEach(r => Object.entries(r.categorias).forEach(([k, v]) => { catAgg[k] = (catAgg[k] || 0) + v; }));
@@ -108,6 +139,21 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
                 <button className="btn btn-primary btn-sm" onClick={onGoUpload}>📄 + Subir</button>
             </div>
 
+            {filterOptions.length > 1 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                    {filterOptions.map(opt => (
+                        <button key={opt.id} onClick={() => setViewFilter(opt.id)} style={{
+                            padding: '5px 12px', borderRadius: 'var(--radius-full)',
+                            fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                            background: viewFilter === opt.id ? 'var(--primary)' : 'var(--bg-hover)',
+                            color: viewFilter === opt.id ? '#fff' : 'var(--text-secondary)',
+                            transition: 'background .15s, color .15s',
+                        }}>
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
             <div style={{ marginBottom: 16 }}>
                 <select
                     value={effectiveWindow}
@@ -122,10 +168,14 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
             </div>
 
             <div className="dashboard-grid">
-                <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)" />
-                <Metric label={`Gasto ${metricLabel}`} value={CLP(avgGasto)} color="var(--danger)" />
-                <Metric label={`Ahorro ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor} />
-                <Metric label="Tasa ahorro" value={avgRate + '%'} color={rateColor} />
+                <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
+                    note={viewFilter === 'all' ? 'sueldo + extras + abonos CC' : viewFilter === 'tc' ? 'solo tarjeta' : viewFilter === 'cc' ? 'solo cuenta corriente' : 'cuenta seleccionada'} />
+                <Metric label={`Gasto ${metricLabel}`} value={CLP(avgGasto)} color="var(--danger)"
+                    note={viewFilter === 'cc' ? 'CC + fijos' : viewFilter === 'tc' ? 'TC + fijos' : 'TC + CC + fijos'} />
+                <Metric label={`Ahorro ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor}
+                    note="ingreso − gasto" />
+                <Metric label="Tasa ahorro" value={avgRate + '%'} color={rateColor}
+                    note={savingsGoal > 0 ? `meta ${pct(savingsGoal, avgIncome)}%` : 'meta mín. 15%'} />
             </div>
 
             <HealthSemaphore series={series} budget={budget} isAverage={!isLastOnly} />
@@ -148,6 +198,11 @@ export function DashboardInner({ months, fixedByMonth, incomeByMonth, extraByMon
                 {worstMonth && (
                     <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--danger-light)', color: 'var(--danger)', fontWeight: 500 }}>
                         ↓ Menor ahorro: {worstMonth.label} · {CLP(worstMonth.ahorro)}
+                    </span>
+                )}
+                {totalSavings > 0 && (
+                    <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
+                        💰 Ahorro efectivo: {CLP(totalSavings)}
                     </span>
                 )}
             </div>

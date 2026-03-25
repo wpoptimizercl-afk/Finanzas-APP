@@ -281,6 +281,11 @@ export function useFinanceData() {
         setCatRules(prev => ({ ...prev, [key]: cat }));
     }, [uid]);
 
+    const deleteCatRule = useCallback(async (key) => {
+        await supabase.from('category_rules').delete().eq('user_id', uid).eq('description_key', key);
+        setCatRules(prev => { const n = { ...prev }; delete n[key]; return n; });
+    }, [uid]);
+
     const saveCustomCat = useCallback(async (id, data) => {
         await supabase.from('custom_categories')
             .upsert({ user_id: uid, cat_id: id, ...data }, { onConflict: 'user_id,cat_id' });
@@ -303,10 +308,16 @@ export function useFinanceData() {
 
         const newMonths = months.map(mon => {
             const txs = mon.transacciones || [];
-            const hasMatch = txs.some(t => (t.descripcion || '').toLowerCase().trim() === ruleKey && t.categoria !== newCat);
+            // Solo aplica la regla a cargos: los abonos no son gastos y no deben recategorizarse
+            const hasMatch = txs.some(t =>
+                (t.descripcion || '').toLowerCase().trim() === ruleKey &&
+                t.tipo === 'cargo' &&
+                t.categoria !== newCat
+            );
             if (!hasMatch) return mon;
             const updatedTxs = txs.map(t =>
-                (t.descripcion || '').toLowerCase().trim() === ruleKey ? { ...t, categoria: newCat } : t
+                (t.descripcion || '').toLowerCase().trim() === ruleKey && t.tipo === 'cargo'
+                    ? { ...t, categoria: newCat } : t
             );
             const cats = {}; let total = 0;
             updatedTxs.forEach(t => {
@@ -318,24 +329,33 @@ export function useFinanceData() {
         });
         setMonths(newMonths);
 
-        // Persist categorias update for ALL affected months in Supabase
+        // Persist categorias update solo en meses que realmente cambiaron
         await Promise.all(newMonths.map(mon => {
             const txs = mon.transacciones || [];
-            const hasMatch = txs.some(t => (t.descripcion || '').toLowerCase().trim() === ruleKey);
+            const hasMatch = txs.some(t =>
+                (t.descripcion || '').toLowerCase().trim() === ruleKey && t.tipo === 'cargo'
+            );
             if (!hasMatch) return Promise.resolve();
-            
             return supabase.from('months')
                 .update({ categorias: JSON.stringify(mon.categorias), total_cargos: mon.total_cargos })
                 .eq('id', mon.id);
         }));
 
-        // Update all related transactions across all months
-        const allTransactionsToUpdate = newMonths.flatMap(m => m.transacciones)
-            .filter(t => (t.descripcion || '').toLowerCase().trim() === ruleKey);
-            
-        await Promise.all(allTransactionsToUpdate.map(t =>
-            supabase.from('transactions').update({ categoria: newCat }).eq('id', t.id)
-        ));
+        // Batch update de transacciones: una sola llamada en vez de N
+        const txIdsToUpdate = newMonths
+            .flatMap(m => m.transacciones)
+            .filter(t =>
+                (t.descripcion || '').toLowerCase().trim() === ruleKey &&
+                t.tipo === 'cargo' &&
+                t.id
+            )
+            .map(t => t.id);
+
+        if (txIdsToUpdate.length) {
+            await supabase.from('transactions')
+                .update({ categoria: newCat })
+                .in('id', txIdsToUpdate);
+        }
     }, [months, saveCatRule, uid]);
 
     return {
@@ -346,6 +366,6 @@ export function useFinanceData() {
         saveMonth, deleteMonth, saveAccount, updateAccount,
         saveFixedItems, saveIncome, saveExtraItems,
         saveIncomeCategory, deleteIncomeCategory, saveIncomeItems,
-        saveBudget, saveCatRule, saveCustomCat, deleteCustomCat, recategorizeMonth,
+        saveBudget, saveCatRule, deleteCatRule, saveCustomCat, deleteCustomCat, recategorizeMonth,
     };
 }

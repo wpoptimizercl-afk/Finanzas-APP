@@ -4,8 +4,8 @@ import Metric from '../components/ui/Metric';
 import Section from '../components/ui/Section';
 import Tag from '../components/ui/Tag';
 import { CLP, pct, shortLabel } from '../utils/formatters';
-import { getMonthFixed, getMonthFixedTotal, getMonthIncome, getCCAbonos, getMonthExtraItems, getMonthExtraTotal } from '../utils/calculations';
-import { SOURCE_OPTS } from '../lib/constants';
+import { getMonthFixed, getMonthFixedTotal, getMonthIncome, getMonthExtraItems, getMonthExtraTotal, getExpenseTotal } from '../utils/calculations';
+import { SOURCE_OPTS, VIEW_MODE } from '../lib/constants';
 
 export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload }) {
     const defaultIdx = useMemo(() => {
@@ -39,12 +39,11 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
     const fixedTotal = getMonthFixedTotal(periodo, fixedByMonth);
     const extraItems = getMonthExtraItems(periodo, extraByMonth);
     const extraTotal = getMonthExtraTotal(periodo, extraByMonth);
-    const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome, allMonths);
-    const incomeIsDefault = incomeByMonth[periodo] == null && extraTotal === 0 && getCCAbonos(periodo, allMonths) === 0;
+    const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome);
+    const incomeIsDefault = incomeByMonth[periodo] == null && extraTotal === 0;
 
-    const tcBankTotal = tcSources.reduce((s, m) => s + (m.total_cargos || 0), 0);
-    const ccBankTotal = ccSources.reduce((s, m) => s + (m.total_cargos || 0), 0);
-    const totalGasto = tcBankTotal + ccBankTotal + fixedTotal;
+    // VIEW_MODE.ALL: excluye traspaso_tc en CC para evitar doble conteo con TC
+    const totalGasto = getExpenseTotal(periodo, allMonths, fixedByMonth, VIEW_MODE.ALL);
     const ahorro = income - totalGasto;
     const aRate = pct(ahorro, income);
     const aColor = ahorro >= income * .15 ? 'var(--success)' : ahorro >= 0 ? 'var(--warning)' : 'var(--danger)';
@@ -89,8 +88,8 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
     const renderCatRow = (c, i, arr) => {
         const over = c.tope > 0 && c.value > c.tope;
         const barPct = c.tope > 0 ? Math.min(pct(c.value, c.tope), 100) : 0;
-        const dColor = c.delta === null ? null : c.delta <= 0 ? '#065F46' : '#fff';
-        const dBg = c.delta === null ? null : c.delta <= 0 ? '#D1FAE5' : c.delta > 20 ? '#B91C1C' : '#B45309';
+        const dColor = c.delta === null ? null : c.delta <= 0 ? 'var(--success-text)' : '#fff';
+        const dBg = c.delta === null ? null : c.delta <= 0 ? 'var(--success-light)' : c.delta > 20 ? '#B91C1C' : '#B45309';
         return (
             <div key={c.key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none', background: over ? 'var(--danger-light)' : 'transparent' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: c.tope > 0 ? 8 : 0 }}>
@@ -211,16 +210,20 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                                         return (
                                             <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 16px', borderBottom: i < currentCuotas.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                                                 <div>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                                                        <span style={{ fontSize: 13, fontWeight: 500 }}>{c.descripcion}</span>
-                                                        {isLast && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--success)', background: 'var(--success-light)', border: '1px solid var(--success-border, var(--success))', padding: '1px 6px', borderRadius: 20 }}>✓ Última cuota</span>}
-                                                    </div>
+                                                    <div style={{ fontSize: 13, fontWeight: 500 }}>{c.descripcion}</div>
                                                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
                                                         Cuota {c.cuota_actual} de {c.total_cuotas}{isLast ? ' · ¡se termina este mes!' : ` · ${restantes} restante${restantes !== 1 ? 's' : ''}`}
                                                     </div>
                                                 </div>
-                                                <div style={{ fontSize: 13, fontWeight: 600 }}>
-                                                    {CLP(c.monto_cuota)}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)' }}>/mes</span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                                    {isLast && (
+                                                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--success)', background: 'var(--success-light)', border: '1px solid var(--success-border)', padding: '1px 6px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                                                            ✓ Última cuota
+                                                        </span>
+                                                    )}
+                                                    <div style={{ fontSize: 13, fontWeight: 600 }}>
+                                                        {CLP(c.monto_cuota)}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)' }}>/mes</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );

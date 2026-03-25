@@ -30,12 +30,16 @@ function ColorPicker({ value, onChange }) {
     );
 }
 
-export default function ConfigPage({ customCats, catRules, accounts, incomeCategories, onSaveCat, onDeleteCat, onSaveAccount, onUpdateAccount, onSaveIncomeCategory, onDeleteIncomeCategory }) {
+export default function ConfigPage({ customCats, catRules, accounts, incomeCategories, onSaveCat, onDeleteCat, onSaveAccount, onUpdateAccount, onSaveIncomeCategory, onDeleteIncomeCategory, onDeleteCatRule }) {
     const [mode, setMode] = useState('list'); // 'list' | 'create' | 'edit'
     const [editId, setEditId] = useState(null);
     const [label, setLabel] = useState('');
     const [color, setColor] = useState(CAT_PALETTE[0]);
     const [delId, setDelId] = useState(null);
+    // Rules
+    const [ruleSearch, setRuleSearch] = useState('');
+    const [delRuleKey, setDelRuleKey] = useState(null);
+    const [rulesCollapsed, setRulesCollapsed] = useState(true);
     // Income categories form
     const [showNewIncomeCat, setShowNewIncomeCat] = useState(false);
     const [newIncCatName, setNewIncCatName] = useState('');
@@ -129,7 +133,10 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
     };
 
     const customEntries = Object.entries(customCats);
-    const ruleEntries = Object.entries(catRules).slice(0, 20);
+    const allRuleEntries = Object.entries(catRules);
+    const ruleEntries = ruleSearch.trim()
+        ? allRuleEntries.filter(([k]) => k.includes(ruleSearch.toLowerCase().trim()))
+        : allRuleEntries;
 
     if (mode === 'create' || mode === 'edit') {
         return (
@@ -228,7 +235,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                             >
                                 <Pencil size={13} />
                             </button>
-                            <span style={{ fontSize: 10, fontWeight: 600, background: a.type === 'cc' ? '#ECFEFF' : '#FFF1F2', color: a.type === 'cc' ? '#0891B2' : '#E11D48', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, background: a.type === 'cc' ? 'rgba(8,145,178,.15)' : 'rgba(225,29,72,.12)', color: a.type === 'cc' ? '#0891B2' : '#E11D48', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>
                                 {ACCOUNT_TYPE_LABEL[a.type] || a.type}
                             </span>
                         </div>
@@ -361,23 +368,52 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             )}
 
             {/* Rules */}
-            {ruleEntries.length > 0 && (
+            {allRuleEntries.length > 0 && (
                 <>
-                    <Section mt="0">Reglas aprendidas</Section>
-                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
-                        Cuando recategorizas una transacción en Historial, la regla se guarda aquí.
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div className="section-label" style={{ marginTop: 0 }}>
+                            Reglas aprendidas
+                            <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
+                                {allRuleEntries.length}
+                            </span>
+                        </div>
+                        <button onClick={() => setRulesCollapsed(v => !v)} className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}>
+                            {rulesCollapsed ? 'Expandir' : 'Colapsar'}
+                        </button>
                     </div>
-                    <div className="card" style={{ padding: '4px 0', marginBottom: '2rem' }}>
-                        {ruleEntries.map(([desc, cat], i) => {
-                            const catObj = { label: cat, color: '#888', bg: '#F3F4F6', ...(CAT[cat] || {}) };
-                            return (
-                                <div key={desc} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderBottom: i < ruleEntries.length - 1 ? '1px solid var(--border-light)' : 'none', flexWrap: 'wrap' }}>
-                                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</span>
-                                    <span className="tag" style={{ background: catObj.bg, color: catObj.color }}>→ {catObj.label}</span>
-                                </div>
-                            );
-                        })}
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8, marginTop: -2 }}>
+                        Reglas guardadas al recategorizar en Historial.
                     </div>
+                    {!rulesCollapsed && (
+                        <>
+                            <div style={{ marginBottom: 8 }}>
+                                <input
+                                    value={ruleSearch}
+                                    onChange={e => setRuleSearch(e.target.value)}
+                                    placeholder="Buscar regla…"
+                                    className="input"
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+                            <div className="card" style={{ padding: '4px 0', marginBottom: '2rem' }}>
+                                {ruleEntries.length === 0 ? (
+                                    <div style={{ padding: '16px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                                        Sin resultados para "{ruleSearch}"
+                                    </div>
+                                ) : ruleEntries.map(([desc, cat], i) => {
+                                    const catObj = { label: cat, color: '#888', bg: '#F3F4F6', ...(CAT[cat] || {}) };
+                                    return (
+                                        <div key={desc} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: i < ruleEntries.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
+                                            <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</span>
+                                            <span className="tag" style={{ background: catObj.bg, color: catObj.color, flexShrink: 0 }}>→ {catObj.label}</span>
+                                            <button onClick={() => setDelRuleKey(desc)} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)', flexShrink: 0 }} title="Eliminar regla"><Trash2 size={12} /></button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
+                    {rulesCollapsed && <div style={{ marginBottom: '2rem' }} />}
                 </>
             )}
 
@@ -388,6 +424,15 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                     confirmLabel="Eliminar"
                     onConfirm={async () => { await onDeleteCat(delId); setDelId(null); }}
                     onCancel={() => setDelId(null)}
+                />
+            )}
+            {delRuleKey && (
+                <Modal
+                    title="Eliminar regla"
+                    desc={`¿Eliminar la regla para "${delRuleKey}"? Las transacciones existentes no cambiarán.`}
+                    confirmLabel="Eliminar"
+                    onConfirm={async () => { await onDeleteCatRule?.(delRuleKey); setDelRuleKey(null); }}
+                    onCancel={() => setDelRuleKey(null)}
                 />
             )}
 

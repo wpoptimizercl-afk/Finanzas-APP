@@ -42,6 +42,11 @@
   --border-medium:  #E2E8F0;
   --border-strong:  #CBD5E1;
 
+  /* Semantic text (accessible on light semantic backgrounds) */
+  --success-text:   #065F46;
+  --warning-text:   #78350F;
+  --danger-text:    #7F1D1D;
+
   /* Shadows */
   --shadow-sm:  0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
   --shadow-md:  0 4px 16px rgba(15,23,42,.08), 0 2px 4px rgba(15,23,42,.04);
@@ -93,4 +98,9 @@
   --shadow-sm:  0 1px 3px rgba(0,0,0,.3), 0 1px 2px rgba(0,0,0,.2);
   --shadow-md:  0 4px 16px rgba(0,0,0,.4), 0 2px 4px rgba(0,0,0,.2);
   --shadow-lg:  0 20px 40px rgba(0,0,0,.5), 0 8px 16px rgba(0,0,0,.3);
+
+  /* Semantic text (accessible on dark semantic backgrounds) */
+  --success-text:   #6EE7B7;
+  --warning-text:   #FCD34D;
+  --danger-text:    #FCA5A5;
 }

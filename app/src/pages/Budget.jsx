@@ -17,9 +17,16 @@ export default function BudgetPage({ budget, allCats, months, fixedByMonth, inco
         setEditing(false);
     };
 
-    // Latest month stats
-    const latest = months[months.length - 1];
-    const catActual = latest?.categorias || {};
+    // Agregar categorías de TODOS los months del período más reciente (TC + CC)
+    const latestPeriodo = months.length > 0 ? months[months.length - 1].periodo : null;
+    const catActual = latestPeriodo
+        ? months
+            .filter(m => m.periodo === latestPeriodo)
+            .reduce((acc, m) => {
+                Object.entries(m.categorias || {}).forEach(([k, v]) => { acc[k] = (acc[k] || 0) + v; });
+                return acc;
+            }, {})
+        : {};
 
     const allCatKeys = Object.keys(form.categories);
     const budgetTotal = allCatKeys.reduce((s, k) => s + (form.categories[k] || 0), 0);

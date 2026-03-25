@@ -24,9 +24,9 @@ export default function HealthSemaphore({ series, budget, isAverage }) {
 
     const status = score >= 4 ? 'green' : score >= 2 ? 'yellow' : 'red';
     const cfgMap = {
-        green: { emoji: '🟢', label: 'Salud financiera buena', desc: 'Estás ahorrando bien y dentro del presupuesto.', bg: 'var(--success-light)', border: 'var(--success-border)', color: '#065F46' },
-        yellow: { emoji: '🟡', label: 'Salud financiera moderada', desc: 'Hay aspectos a mejorar. Revisa tus categorías y ahorro.', bg: 'var(--warning-light)', border: '#FCD34D', color: '#78350F' },
-        red: { emoji: '🔴', label: 'Salud financiera en riesgo', desc: 'Tu gasto supera lo ideal. Revisa el presupuesto.', bg: 'var(--danger-light)', border: 'var(--danger-border)', color: '#7F1D1D' },
+        green: { emoji: '🟢', label: 'Salud financiera buena', desc: 'Estás ahorrando bien y dentro del presupuesto.', bg: 'var(--success-light)', border: 'var(--success-border)', color: 'var(--success-text)' },
+        yellow: { emoji: '🟡', label: 'Salud financiera moderada', desc: 'Hay aspectos a mejorar. Revisa tus categorías y ahorro.', bg: 'var(--warning-light)', border: 'var(--warning-border)', color: 'var(--warning-text)' },
+        red: { emoji: '🔴', label: 'Salud financiera en riesgo', desc: 'Tu gasto supera lo ideal. Revisa el presupuesto.', bg: 'var(--danger-light)', border: 'var(--danger-border)', color: 'var(--danger-text)' },
     };
     const cfg = cfgMap[status];
     const avgLabel = isAverage ? ' (prom.)' : '';
