@@ -59,9 +59,13 @@ textarea {
 
 /* Recharts: remove focus outline on mouse click */
 svg:focus,
+svg *:focus,
 .recharts-wrapper:focus,
-.recharts-surface:focus {
-    outline: none;
+.recharts-wrapper *:focus,
+.recharts-surface:focus,
+.recharts-layer:focus,
+[tabindex]:focus:not(:focus-visible) {
+    outline: none !important;
 }
 
 /* Hide number spinners */
