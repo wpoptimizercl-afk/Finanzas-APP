@@ -298,7 +298,7 @@ export function useFinanceData() {
     }, [uid]);
 
     const recategorizeMonth = useCallback(async (periodo, txId, newCat) => {
-        const m = months.find(x => x.periodo === periodo);
+        const m = months.find(x => (x.transacciones || []).some(t => t.id === txId));
         if (!m) return;
         const tx = (m.transacciones || []).find(t => t.id === txId);
         if (!tx) return;
