@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import Metric from '../components/ui/Metric';
 import Section from '../components/ui/Section';
 import Tag from '../components/ui/Tag';
-import { CLP, pct, shortLabel } from '../utils/formatters';
+import { CLP, pct, shortLabel, isCurrentMonth } from '../utils/formatters';
 import { getMonthFixed, getMonthFixedTotal, getMonthIncome, getMonthExtraItems, getMonthExtraTotal, getExpenseTotal } from '../utils/calculations';
 import { SOURCE_OPTS, VIEW_MODE } from '../lib/constants';
 
@@ -147,7 +147,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     note={tcSources.length > 0 && ccSources.length > 0 ? 'TC + CC + fijos' : tcSources.length > 0 ? 'TC + fijos' : 'CC + fijos'} />
                 <Metric label="Saldo TC" value={CLP(tcSaldoTotal)} color="var(--text-secondary)"
                     note="total facturado en tarjeta" />
-                <Metric label="Ahorro" value={CLP(ahorro)} color={aColor}
+                <Metric label="Excedente" value={CLP(ahorro)} color={aColor}
                     note={`ingreso − gasto · ${aRate}%`} />
             </div>
 
@@ -216,7 +216,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                                                 <div>
                                                     <div style={{ fontSize: 13, fontWeight: 500 }}>{c.descripcion}</div>
                                                     <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
-                                                        Cuota {c.cuota_actual} de {c.total_cuotas}{isLast ? ' · ¡se termina este mes!' : ` · ${restantes} restante${restantes !== 1 ? 's' : ''}`}
+                                                        Cuota {c.cuota_actual} de {c.total_cuotas}{isLast ? (isCurrentMonth(periodo) ? ' · ¡se termina este mes!' : ' · última cuota') : ` · ${restantes} restante${restantes !== 1 ? 's' : ''}`}
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>

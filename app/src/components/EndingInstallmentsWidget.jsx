@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CLP } from '../utils/formatters';
+import { CLP, isCurrentMonth } from '../utils/formatters';
 
 /**
  * Widget que muestra cuántas cuotas TC terminan en el último período cargado
@@ -23,15 +23,16 @@ export default function EndingInstallmentsWidget({ months }) {
         );
 
         const liberado = ending.reduce((s, c) => s + (c.monto_cuota || 0), 0);
-        return { endingCuotas: ending, liberado };
+        return { endingCuotas: ending, liberado, latestPeriod };
     }, [months]);
 
     if (!endingCuotas.length) return null;
 
+    const isCurrent = isCurrentMonth(latestPeriod);
     const count = endingCuotas.length;
     const headline = count === 1
-        ? '1 cuota termina este mes'
-        : `${count} cuotas terminan este mes`;
+        ? (isCurrent ? '1 cuota termina este mes' : '1 cuota terminó este mes')
+        : (isCurrent ? `${count} cuotas terminan este mes` : `${count} cuotas terminaron este mes`);
 
     return (
         <div style={{
@@ -47,7 +48,9 @@ export default function EndingInstallmentsWidget({ months }) {
                         {headline}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
-                        Liberás <strong>{CLP(liberado)}/mes</strong> a partir del próximo mes
+                        {isCurrent
+                            ? <>Liberás <strong>{CLP(liberado)}/mes</strong> a partir del próximo mes</>
+                            : <>Se liberaron <strong>{CLP(liberado)}/mes</strong> a partir del mes siguiente</>}
                     </div>
                 </div>
                 <div style={{

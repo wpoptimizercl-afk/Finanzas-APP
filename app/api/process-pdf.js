@@ -658,6 +658,10 @@ export default async function handler(req, res) {
             console.log(`[process-pdf] Texto extraído (${pdfText?.length || 0} caracteres)`);
         } catch (error) {
             console.error('[process-pdf] Error en pdf-parse:', error);
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('encrypt') || msg.includes('password') || msg.includes('protected')) {
+                return res.status(422).json({ error: 'PDF_ENCRYPTED' });
+            }
             throw new Error(`Error al leer el PDF: ${error.message}`);
         }
 

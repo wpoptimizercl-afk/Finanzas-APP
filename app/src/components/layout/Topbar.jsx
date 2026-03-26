@@ -3,7 +3,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 
 const LABELS = {
-    dashboard: 'Dashboard', home: 'Resumen', fixed: 'Registro',
+    dashboard: 'Dashboard', home: 'Resumen', fixed: 'Registros',
     budget: 'Presupuesto', history: 'Historial', config: 'Configuración',
 };
 

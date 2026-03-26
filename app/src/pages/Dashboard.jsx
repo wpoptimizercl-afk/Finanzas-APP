@@ -98,7 +98,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
     const rateLine = series.map(r => ({ label: r.label, tasa: pct(r.ahorro, r.income) }));
     const latest = series[series.length - 1];
     const donutData = topCats.slice(0, 6)
-        .map(c => ({ name: c.label, value: latest?.categorias[c.key] || 0, color: c.color }))
+        .map(c => ({ name: c.label, value: isLastOnly ? (latest?.categorias[c.key] || 0) : c.avg, color: c.color }))
         .filter(d => d.value > 0);
 
     const savingsGoal = budget.savingsGoal || 0;
@@ -126,9 +126,9 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             </div>
 
             <div className="dashboard-grid">
-                <Metric label={`Ahorro ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor}
+                <Metric label={`Excedente ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor}
                     note="ingreso − gasto" />
-                <Metric label="Tasa ahorro" value={avgRate + '%'} color={rateColor}
+                <Metric label="Tasa excedente" value={avgRate + '%'} color={rateColor}
                     note={savingsGoal > 0 ? `meta ${pct(savingsGoal, avgIncome)}%` : 'meta mín. 15%'} />
                 <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
                     note="sueldo + extras + abonos CC" />
@@ -148,9 +148,9 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                         {momDelta <= 0 ? '↓' : '↑'} Gasto {momDelta <= 0 ? 'bajó' : 'subió'} {CLP(Math.abs(momDelta))}
                     </span>
                 )}
-                {bestMonth && (
+                {bestMonth && !isLastOnly && (
                     <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
-                        Mayor ahorro: {bestMonth.label} · {CLP(bestMonth.ahorro)}
+                        Mayor excedente: {bestMonth.label} · {CLP(bestMonth.ahorro)}
                     </span>
                 )}
                 {worstMonth && (
@@ -158,16 +158,16 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                         Menor: {worstMonth.label} · {CLP(worstMonth.ahorro)}
                     </span>
                 )}
-                {totalSavings > 0 && (
+                {totalSavings > 0 && !isLastOnly && (
                     <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
-                        Ahorro efectivo: {CLP(totalSavings)}
+                        Excedente efectivo: {CLP(totalSavings)}
                     </span>
                 )}
             </div>
 
-            <EndingInstallmentsWidget months={months} />
+            {isLastOnly && <EndingInstallmentsWidget months={months} />}
 
-            {series.length === 1 && (
+            {allSeries.length <= 1 && (
                 <div style={{ background: "var(--primary-light)", border: "1px solid var(--primary-border)", borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                     <div>
                         <div style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)" }}>Sube más meses para ver tendencias</div>
@@ -184,13 +184,12 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                         <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                         <YAxis tickFormatter={CLPk} tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} width={40} />
                         <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--border-light)', opacity: .6 }} />
-                        <Bar dataKey="income" name="Ingreso" fill="var(--primary-border)" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="tc" name="Tarjeta" stackId="g" fill="#FCA5A5" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="fixedTotal" name="Fijos" stackId="g" fill="var(--warning-border)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="income" name="Ingreso" fill="var(--success)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="gasto" name="Egreso" fill="var(--danger)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
                 <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                    {[['var(--primary-border)', 'Ingreso'], ['#FCA5A5', 'Tarjeta'], ['var(--warning-border)', 'Fijos']].map(([c, l]) => (
+                    {[['var(--success)', 'Ingreso'], ['var(--danger)', 'Egreso']].map(([c, l]) => (
                         <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-secondary)' }}>
                             <span style={{ width: 8, height: 8, borderRadius: 3, background: c, display: 'inline-block' }} />{l}
                         </div>
@@ -198,7 +197,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                 </div>
             </div>
 
-            <Section mt="0">Tasa de ahorro mensual</Section>
+            <Section mt="0">Tasa de excedente mensual</Section>
             <div className="card" style={{ marginBottom: 12 }}>
                 <ResponsiveContainer width="100%" height={130}>
                     <AreaChart data={rateLine}>
@@ -246,7 +245,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
 
             {donutData.length > 0 && (
                 <>
-                    <Section mt="0">Distribución — {latest?.periodo}</Section>
+                    <Section mt="0">{isLastOnly ? `Distribución — ${latest?.periodo}` : `Distribución promedio — ${n} meses`}</Section>
                     <div className="card" style={{ marginBottom: 12 }}>
                         <ResponsiveContainer width="100%" height={150}>
                             <PieChart>
@@ -269,14 +268,14 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                 </>
             )}
 
-            {n >= 2 && (
+            {n >= 1 && (
                 <>
                     <Section mt="0">Resumen por mes</Section>
                     <div className="card" style={{ padding: 0, overflowX: 'auto', marginBottom: '1.5rem' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-medium)' }}>
-                                    {['Mes', 'Ingreso', 'Tarjeta', 'Fijos', 'Total', 'Ahorro', 'Tasa'].map(h => (
+                                    {['Mes', 'Ingreso', 'Tarjeta', 'Fijos', 'Total', 'Excedente', 'Tasa'].map(h => (
                                         <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Mes' ? 'left' : 'right', color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
                                     ))}
                                 </tr>

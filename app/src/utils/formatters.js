@@ -15,6 +15,12 @@ export const shortLabel = (p = '') => p
     .replace('Octubre', 'Oct').replace('Noviembre', 'Nov').replace('Diciembre', 'Dic')
     .replace(/^(\w{3})\w*\s(\d{4})$/, '$1 $2');
 
+export const isCurrentMonth = (periodo = '') => {
+    const [mes, año] = (periodo || '').toLowerCase().split(' ');
+    const now = new Date();
+    return MONTH_IDX[mes] === now.getMonth() && parseInt(año) === now.getFullYear();
+};
+
 export const sortMonths = (arr) => [...arr].sort((a, b) => {
     const pa = (a.periodo || '').toLowerCase().split(' ');
     const pb = (b.periodo || '').toLowerCase().split(' ');

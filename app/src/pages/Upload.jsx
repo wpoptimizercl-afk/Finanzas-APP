@@ -152,6 +152,14 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                 if (!res.ok) {
                     if (res.status === 422) {
                         const errBody = await res.json().catch(() => ({}));
+                        if (errBody.error === 'PDF_ENCRYPTED') {
+                            stopProgress(item.id);
+                            setQueue(q => q.map(x => x.id === item.id
+                                ? { ...x, status: 'error', progress: 0, msg: 'PDF protegido con contraseña. Descárgalo sin contraseña desde el banco.' }
+                                : x
+                            ));
+                            continue;
+                        }
                         if (errBody.error === 'ACCOUNT_TYPE_MISMATCH') {
                             stopProgress(item.id);
                             const detectedType = errBody.detected;

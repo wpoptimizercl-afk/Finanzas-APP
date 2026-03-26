@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { sortMonths } from '../utils/formatters';
@@ -11,6 +11,8 @@ export function useFinanceData() {
     const uid = user?.id;
 
     const [months, setMonths] = useState([]);
+    const monthsRef = useRef([]);
+    useEffect(() => { monthsRef.current = months; }, [months]);
     const [fixedByMonth, setFBM] = useState({});
     const [incomeByMonth, setIBM] = useState({});
     const [extraByMonth, setEBM] = useState({});
@@ -308,7 +310,8 @@ export function useFinanceData() {
     }, [uid]);
 
     const recategorizeMonth = useCallback(async (periodo, txId, newCat) => {
-        const m = months.find(x => (x.transacciones || []).some(t => t.id === txId));
+        const current = monthsRef.current;
+        const m = current.find(x => (x.transacciones || []).some(t => t.id === txId));
         if (!m) return;
         const tx = (m.transacciones || []).find(t => t.id === txId);
         if (!tx) return;
@@ -316,7 +319,7 @@ export function useFinanceData() {
 
         await saveCatRule(tx.descripcion, newCat);
 
-        const newMonths = months.map(mon => {
+        const newMonths = current.map(mon => {
             const txs = mon.transacciones || [];
             // Solo aplica la regla a cargos: los abonos no son gastos y no deben recategorizarse
             const hasMatch = txs.some(t =>
@@ -366,7 +369,7 @@ export function useFinanceData() {
                 .update({ categoria: newCat })
                 .in('id', txIdsToUpdate);
         }
-    }, [months, saveCatRule, uid]);
+    }, [saveCatRule, uid]);
 
     return {
         months, sorted, uniqueSortedPeriods, accounts, incomeCategories,

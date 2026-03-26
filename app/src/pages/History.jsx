@@ -6,21 +6,30 @@ import { ClickableTag } from '../components/CategoryPicker';
 import { CLP } from '../utils/formatters';
 
 export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, allCats, deleteMonth, recategorizeMonth }) {
-    const [selIdx, setSelIdx] = useState(0);
+    const [selIdx, setSelIdx] = useState(() => Math.max(0, uniqueSortedPeriods.length - 1));
     const [query, setQuery] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
     const [delModal, setDelModal] = useState(false);
     const [activeSourceId, setActiveSourceId] = useState(null); // null = todas
+    const [collapsedCats, setCollapsedCats] = useState({});
 
     const idx = uniqueSortedPeriods.length > 0 ? Math.min(selIdx, uniqueSortedPeriods.length - 1) : 0;
     const periodo = uniqueSortedPeriods[idx] || null;
     const sources = allMonths.filter(m => m.periodo === periodo);
     const primarySource = sources[0] || null;
 
+    const toggleCat = (cat) => setCollapsedCats(prev => {
+        const next = { ...prev };
+        if (next[cat] === false) delete next[cat];
+        else next[cat] = false;
+        return next;
+    });
+
     // Reset filters when changing period
     useEffect(() => {
         setDateRange({ start: '', end: '' });
         setActiveSourceId(null);
+        setCollapsedCats({});
     }, [selIdx]);
 
     useEffect(() => {
@@ -78,7 +87,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
 
     const byCategory = useMemo(() => {
         const sortEntries = (m) => Object.entries(m).sort(
-            (a, b) => b[1].reduce((s, t) => s + t.monto, 0) - a[1].reduce((s, t) => s + t.monto, 0)
+            (a, b) => (allCats[a[0]]?.label || a[0]).localeCompare(allCats[b[0]]?.label || b[0], 'es')
         );
         const eMap = {}, iMap = {}, tMap = {}, aMap = {};
         filtered.forEach(t => {
@@ -143,7 +152,11 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                         style={{ fontSize: 12, padding: '4px 12px', borderRadius: 'var(--radius-full)', border: `1px solid ${activeSourceId === null ? 'var(--primary)' : 'var(--border-medium)'}`, background: activeSourceId === null ? 'var(--primary-light)' : 'var(--bg-card)', color: activeSourceId === null ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 500, cursor: 'pointer' }}>
                         Todas
                     </button>
-                    {sources.map(s => {
+                    {[...sources].sort((a, b) => {
+                        const nameA = (accounts.find(ac => ac.id === a.account_id)?.name || (a.source_type === 'cc' ? 'CC' : 'TC')).toLowerCase();
+                        const nameB = (accounts.find(ac => ac.id === b.account_id)?.name || (b.source_type === 'cc' ? 'CC' : 'TC')).toLowerCase();
+                        return nameA.localeCompare(nameB, 'es');
+                    }).map(s => {
                         const acc = accounts.find(a => a.id === s.account_id);
                         const name = acc?.name || (s.source_type === 'cc' ? 'CC' : 'TC');
                         const color = acc?.color || (s.source_type === 'cc' ? '#0891B2' : '#E11D48');
@@ -228,16 +241,20 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                 const renderGroup = (entries) => entries.map(([cat, txList]) => {
                     const catObj = allCats[cat] || { label: cat, color: '#888', bg: '#F3F4F6' };
                     const catTotal = txList.reduce((s, t) => s + t.monto, 0);
+                    const isCollapsed = collapsedCats[cat] !== false;
                     return (
                         <div key={cat} style={{ marginBottom: '1.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <div onClick={() => toggleCat(cat)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, cursor: 'pointer', userSelect: 'none' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: catObj.color, display: 'block' }} />
                                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{catObj.label}</span>
                                 </div>
-                                <span style={{ fontSize: 13, fontWeight: 600 }}>{CLP(catTotal)}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 600 }}>{CLP(catTotal)}</span>
+                                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{isCollapsed ? '▶' : '▼'}</span>
+                                </div>
                             </div>
-                            <div className="card" style={{ padding: 0, overflow: 'visible' }}>
+                            {!isCollapsed && <div className="card" style={{ padding: 0, overflow: 'visible' }}>
                                 {txList.sort((a, b) => b.monto - a.monto).map((t) => (
                                     <div key={t.id} className="tx-row">
                                         <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
@@ -265,7 +282,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                         <div className="tx-amount">{CLP(t.monto)}</div>
                                     </div>
                                 ))}
-                            </div>
+                            </div>}
                         </div>
                     );
                 });
