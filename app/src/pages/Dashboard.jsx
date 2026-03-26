@@ -8,6 +8,7 @@ import Metric from '../components/ui/Metric';
 import Section from '../components/ui/Section';
 import ChartTooltip from '../components/charts/ChartTooltip';
 import HealthSemaphore from '../components/HealthSemaphore';
+import EndingInstallmentsWidget from '../components/EndingInstallmentsWidget';
 import { CLP, CLPk, pct, shortLabel } from '../utils/formatters';
 import { getMonthIncome, getMonthFixedTotal, getTCExpenses, getCCExpenses, getSavingsTransfers } from '../utils/calculations';
 
@@ -209,6 +210,8 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                     </span>
                 )}
             </div>
+
+            <EndingInstallmentsWidget months={months} />
 
             {series.length === 1 && (
                 <div style={{ background: "var(--primary-light, #ecfdf5)", border: "1px solid var(--primary-border, #6ee7b7)", borderRadius: "var(--radius-md)", padding: "12px 16px", marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
