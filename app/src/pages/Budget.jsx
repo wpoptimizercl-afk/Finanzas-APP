@@ -74,6 +74,15 @@ export default function BudgetPage({ budget, allCats, months, fixedByMonth, inco
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
                 Las barras muestran el gasto real vs el tope del último mes disponible.
             </div>
+            {!editing && budgetTotal === 0 && (
+                <div style={{ background: 'var(--warning-light)', border: '1px solid var(--warning-border)', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                    <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--warning)' }}>Sin topes definidos</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>Define cuánto quieres gastar por categoría para controlar tu presupuesto.</div>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>Definir →</button>
+                </div>
+            )}
             <div className="card" style={{ padding: '4px 0', marginBottom: '1.5rem' }}>
                 {allCatKeys.map((k, i) => {
                     const catInfo = allCats[k] || { label: k, color: '#888' };
@@ -93,7 +102,7 @@ export default function BudgetPage({ budget, allCats, months, fixedByMonth, inco
                                     <div style={{ textAlign: 'right' }}>
                                         <div className={`budget-amount${over ? ' budget-over' : ''}`}>{CLP(actual)}</div>
                                         {tope > 0 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>tope {CLP(tope)}</div>}
-                                        {tope === 0 && <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>sin tope</div>}
+                                        {tope === 0 && !editing && <button onClick={() => setEditing(true)} style={{ fontSize: 10, color: 'var(--primary)', fontStyle: 'normal', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>+ tope</button>}
                                     </div>
                                 )}
                             </div>

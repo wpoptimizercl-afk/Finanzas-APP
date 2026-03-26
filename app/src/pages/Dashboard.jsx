@@ -171,14 +171,14 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             </div>
 
             <div className="dashboard-grid">
-                <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
-                    note={viewFilter === 'all' ? 'sueldo + extras + abonos CC' : viewFilter === 'tc' ? 'solo tarjeta' : viewFilter === 'cc' ? 'solo cuenta corriente' : 'cuenta seleccionada'} />
-                <Metric label={`Gasto ${metricLabel}`} value={CLP(avgGasto)} color="var(--danger)"
-                    note={viewFilter === 'cc' ? 'CC + fijos' : viewFilter === 'tc' ? 'TC + fijos' : 'TC + CC + fijos'} />
                 <Metric label={`Ahorro ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor}
                     note="ingreso − gasto" />
                 <Metric label="Tasa ahorro" value={avgRate + '%'} color={rateColor}
                     note={savingsGoal > 0 ? `meta ${pct(savingsGoal, avgIncome)}%` : 'meta mín. 15%'} />
+                <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
+                    note={viewFilter === 'all' ? 'sueldo + extras + abonos CC' : viewFilter === 'tc' ? 'solo tarjeta' : viewFilter === 'cc' ? 'solo cuenta corriente' : 'cuenta seleccionada'} />
+                <Metric label={`Gasto ${metricLabel}`} value={CLP(avgGasto)} color="var(--danger)"
+                    note={viewFilter === 'cc' ? 'CC + fijos' : viewFilter === 'tc' ? 'TC + fijos' : 'TC + CC + fijos'} />
             </div>
 
             <HealthSemaphore series={series} budget={budget} isAverage={!isLastOnly} />
@@ -210,6 +210,15 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                 )}
             </div>
 
+            {series.length === 1 && (
+                <div style={{ background: "var(--primary-light, #ecfdf5)", border: "1px solid var(--primary-border, #6ee7b7)", borderRadius: "var(--radius-md)", padding: "12px 16px", marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                    <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--primary)" }}>Sube más meses para ver tendencias</div>
+                        <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>Con 2+ meses podrás ver tu evolución, promedios y comparativas.</div>
+                    </div>
+                    <button className="btn btn-primary btn-sm" onClick={onGoUpload} style={{ whiteSpace: "nowrap" }}>📄 + Subir</button>
+                </div>
+            )}
             <Section mt="0">Ingresos vs gastos por mes</Section>
             <div className="card" style={{ marginBottom: '1.5rem' }}>
                 <ResponsiveContainer width="100%" height={220}>
