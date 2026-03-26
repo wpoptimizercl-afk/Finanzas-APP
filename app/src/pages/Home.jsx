@@ -166,7 +166,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     note={tcSources.length > 0 && ccSources.length > 0 ? 'TC + CC + fijos' : tcSources.length > 0 ? 'TC + fijos' : 'CC + fijos'} />
                 <Metric label="Saldo TC" value={CLP(tcSaldoTotal)} color="var(--text-secondary)"
                     note="total facturado en tarjeta" />
-                <Metric label="Excedente" value={CLP(ahorro)} color={aColor}
+                <Metric label={ahorro >= 0 ? 'Excedente' : 'Déficit'} value={CLP(ahorro)} color={aColor}
                     note={`ingreso − gasto · ${aRate}%`} />
             </div>
 
