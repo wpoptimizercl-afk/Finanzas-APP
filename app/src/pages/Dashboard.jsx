@@ -133,9 +133,9 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                 <Metric label="Tasa ahorro" value={avgRate + '%'} color={rateColor}
                     note={savingsGoal > 0 ? `meta ${pct(savingsGoal, avgIncome)}%` : 'meta mín. 15%'} />
                 <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
-                    note={viewFilter === 'all' ? 'sueldo + extras + abonos CC' : viewFilter === 'tc' ? 'solo tarjeta' : viewFilter === 'cc' ? 'solo cuenta corriente' : 'cuenta seleccionada'} />
+                    note="sueldo + extras + abonos CC" />
                 <Metric label={`Gasto ${metricLabel}`} value={CLP(avgGasto)} color="var(--danger)"
-                    note={viewFilter === 'cc' ? 'CC + fijos' : viewFilter === 'tc' ? 'TC + fijos' : 'TC + CC + fijos'} />
+                    note="TC + CC + fijos" />
             </div>
 
             <HealthSemaphore series={series} budget={budget} isAverage={!isLastOnly} />
