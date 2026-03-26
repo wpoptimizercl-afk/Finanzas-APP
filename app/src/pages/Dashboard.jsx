@@ -107,19 +107,17 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
     return (
         <div className="animate-fadeIn">
             <div className="page-header">
-                <div>
-                    <div className="page-title">Dashboard</div>
-                    <div className="page-subtitle">{isLastOnly ? latest?.label : `${series[0]?.label} → ${series[n - 1]?.label}`}</div>
-                </div>
-                <button className="btn btn-primary btn-sm" onClick={onGoUpload}>📄 + Subir</button>
+                <div className="page-title">Dashboard</div>
+                <button className="btn btn-primary btn-sm" onClick={onGoUpload}>+ Subir</button>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
+            <div className="page-header-meta">
+                <div className="page-subtitle">{isLastOnly ? latest?.label : `${series[0]?.label} → ${series[n - 1]?.label}`}</div>
                 <select
                     value={effectiveWindow}
                     onChange={e => setWindowSize(Number(e.target.value))}
                     className="input"
-                    style={{ width: 'auto', paddingRight: 36 }}
+                    style={{ width: 'auto', fontSize: 12, padding: '4px 28px 4px 10px', height: 28 }}
                 >
                     {windowOptions.map(({ value, label }) => (
                         <option key={value} value={value}>{label}</option>
@@ -140,10 +138,10 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
 
             <HealthSemaphore series={series} budget={budget} isAverage={!isLastOnly} />
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
                 {momDelta !== null && (
                     <span style={{
-                        fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)',
+                        fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)',
                         background: momDelta <= 0 ? 'var(--success-light)' : 'var(--danger-light)',
                         color: momDelta <= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 500
                     }}>
@@ -151,18 +149,18 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                     </span>
                 )}
                 {bestMonth && (
-                    <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
-                        🏆 Mayor ahorro: {bestMonth.label} · {CLP(bestMonth.ahorro)}
+                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
+                        Mayor ahorro: {bestMonth.label} · {CLP(bestMonth.ahorro)}
                     </span>
                 )}
                 {worstMonth && (
-                    <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--danger-light)', color: 'var(--danger)', fontWeight: 500 }}>
-                        ↓ Menor ahorro: {worstMonth.label} · {CLP(worstMonth.ahorro)}
+                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--danger-light)', color: 'var(--danger)', fontWeight: 500 }}>
+                        Menor: {worstMonth.label} · {CLP(worstMonth.ahorro)}
                     </span>
                 )}
                 {totalSavings > 0 && (
-                    <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
-                        💰 Ahorro efectivo: {CLP(totalSavings)}
+                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
+                        Ahorro efectivo: {CLP(totalSavings)}
                     </span>
                 )}
             </div>
@@ -170,17 +168,17 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             <EndingInstallmentsWidget months={months} />
 
             {series.length === 1 && (
-                <div style={{ background: "var(--primary-light, #ecfdf5)", border: "1px solid var(--primary-border, #6ee7b7)", borderRadius: "var(--radius-md)", padding: "12px 16px", marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                <div style={{ background: "var(--primary-light)", border: "1px solid var(--primary-border)", borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
                     <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "var(--primary)" }}>Sube más meses para ver tendencias</div>
-                        <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginTop: 2 }}>Con 2+ meses podrás ver tu evolución, promedios y comparativas.</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)" }}>Sube más meses para ver tendencias</div>
+                        <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>Con 2+ meses verás tu evolución y promedios.</div>
                     </div>
-                    <button className="btn btn-primary btn-sm" onClick={onGoUpload} style={{ whiteSpace: "nowrap" }}>📄 + Subir</button>
+                    <button className="btn btn-primary btn-sm" onClick={onGoUpload} style={{ whiteSpace: "nowrap" }}>+ Subir</button>
                 </div>
             )}
             <Section mt="0">Ingresos vs gastos por mes</Section>
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-                <ResponsiveContainer width="100%" height={220}>
+            <div className="card" style={{ marginBottom: 12 }}>
+                <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={series} barGap={2} barCategoryGap="30%">
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
@@ -191,18 +189,18 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                         <Bar dataKey="fixedTotal" name="Fijos" stackId="g" fill="var(--warning-border)" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                     {[['var(--primary-border)', 'Ingreso'], ['#FCA5A5', 'Tarjeta'], ['var(--warning-border)', 'Fijos']].map(([c, l]) => (
-                        <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-secondary)' }}>
-                            <span style={{ width: 9, height: 9, borderRadius: 3, background: c, display: 'inline-block' }} />{l}
+                        <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-secondary)' }}>
+                            <span style={{ width: 8, height: 8, borderRadius: 3, background: c, display: 'inline-block' }} />{l}
                         </div>
                     ))}
                 </div>
             </div>
 
             <Section mt="0">Tasa de ahorro mensual</Section>
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-                <ResponsiveContainer width="100%" height={160}>
+            <div className="card" style={{ marginBottom: 12 }}>
+                <ResponsiveContainer width="100%" height={130}>
                     <AreaChart data={rateLine}>
                         <defs>
                             <linearGradient id="rateGrad" x1="0" y1="0" x2="0" y2="1">
@@ -216,31 +214,31 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                         <Tooltip formatter={v => [v + '%', 'Tasa']} contentStyle={{ fontSize: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-card)' }} />
                         <ReferenceLine y={15} stroke="var(--success)" strokeDasharray="4 4" strokeWidth={1.5} />
                         {savingsGoal > 0 && <ReferenceLine y={pct(savingsGoal, avgIncome)} stroke="var(--primary)" strokeDasharray="4 4" strokeWidth={1.5} />}
-                        <Area type="monotone" dataKey="tasa" stroke={rateColor} strokeWidth={2.5} fill="url(#rateGrad)" dot={{ r: 3.5, fill: rateColor, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                        <Area type="monotone" dataKey="tasa" stroke={rateColor} strokeWidth={2.5} fill="url(#rateGrad)" dot={{ r: 3, fill: rateColor, strokeWidth: 0 }} activeDot={{ r: 5 }} />
                     </AreaChart>
                 </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 4, flexWrap: 'wrap' }}>
                     <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>— — Meta mín. 15%</div>
                     {savingsGoal > 0 && <div style={{ fontSize: 10, color: 'var(--primary)' }}>— — Tu meta {CLP(savingsGoal)}</div>}
                 </div>
             </div>
 
             <Section mt="0">Categorías — acumulado</Section>
-            <div className="card" style={{ padding: '4px 16px 12px', marginBottom: '1.5rem' }}>
+            <div className="card" style={{ padding: '2px 14px 10px', marginBottom: 12 }}>
                 {topCats.map(c => (
-                    <div key={c.key} style={{ paddingTop: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 5 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                                <span style={{ width: 7, height: 7, borderRadius: '50%', background: c.color, display: 'inline-block' }} />
+                    <div key={c.key} style={{ paddingTop: 9 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, display: 'inline-block', flexShrink: 0 }} />
                                 <span style={{ fontWeight: 500 }}>{c.label}</span>
                             </div>
                             <div>
                                 <span style={{ fontWeight: 600 }}>{CLP(c.total)}</span>
-                                <span style={{ color: 'var(--text-tertiary)', marginLeft: 8 }}>prom {CLP(c.avg)}/mes</span>
+                                <span style={{ color: 'var(--text-tertiary)', marginLeft: 7 }}>prom {CLP(c.avg)}/mes</span>
                             </div>
                         </div>
-                        <div style={{ background: 'var(--bg-hover)', borderRadius: 4, height: 4 }}>
-                            <div style={{ width: pct(c.total, topCats[0].total) + '%', height: 4, borderRadius: 4, background: c.color, transition: 'width .6s ease' }} />
+                        <div style={{ background: 'var(--bg-hover)', borderRadius: 4, height: 3 }}>
+                            <div style={{ width: pct(c.total, topCats[0].total) + '%', height: 3, borderRadius: 4, background: c.color, transition: 'width .6s ease' }} />
                         </div>
                     </div>
                 ))}
@@ -249,19 +247,19 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             {donutData.length > 0 && (
                 <>
                     <Section mt="0">Distribución — {latest?.periodo}</Section>
-                    <div className="card" style={{ marginBottom: '1.5rem' }}>
-                        <ResponsiveContainer width="100%" height={180}>
+                    <div className="card" style={{ marginBottom: 12 }}>
+                        <ResponsiveContainer width="100%" height={150}>
                             <PieChart>
-                                <Pie data={donutData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} dataKey="value" paddingAngle={2}>
+                                <Pie data={donutData} cx="50%" cy="50%" innerRadius={38} outerRadius={60} dataKey="value" paddingAngle={2}>
                                     {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
                                 </Pie>
                                 <Tooltip formatter={(v, nm) => [CLP(v), nm]} contentStyle={{ fontSize: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-card)' }} />
                             </PieChart>
                         </ResponsiveContainer>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             {donutData.map(d => (
-                                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: d.color, flexShrink: 0, display: 'inline-block' }} />
+                                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11 }}>
+                                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, flexShrink: 0, display: 'inline-block' }} />
                                     <span style={{ flex: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
                                     <span style={{ fontWeight: 600 }}>{CLP(d.value)}</span>
                                 </div>
@@ -274,12 +272,12 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             {n >= 2 && (
                 <>
                     <Section mt="0">Resumen por mes</Section>
-                    <div className="card" style={{ padding: 0, overflowX: 'auto', marginBottom: '2rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                    <div className="card" style={{ padding: 0, overflowX: 'auto', marginBottom: '1.5rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-medium)' }}>
                                     {['Mes', 'Ingreso', 'Tarjeta', 'Fijos', 'Total', 'Ahorro', 'Tasa'].map(h => (
-                                        <th key={h} style={{ padding: '10px 14px', textAlign: h === 'Mes' ? 'left' : 'right', color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
+                                        <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Mes' ? 'left' : 'right', color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
                                     ))}
                                 </tr>
                             </thead>
@@ -294,14 +292,14 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                                             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                                             onMouseLeave={e => e.currentTarget.style.background = i % 2 !== 0 ? 'var(--bg-input)' : 'transparent'}
                                         >
-                                            <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>{r.label} <span style={{ fontSize: 10, opacity: .6 }}>›</span></td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--primary)', fontWeight: 500 }}>{CLP(r.income)}</td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right' }}>{CLP(r.tc)}</td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right' }}>{CLP(r.fixedTotal)}</td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right', color: 'var(--danger)', fontWeight: 600 }}>{CLP(r.gasto)}</td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right', color: rc, fontWeight: 600 }}>{CLP(r.ahorro)}</td>
-                                            <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-                                                <span style={{ background: rate >= 15 ? 'var(--success-light)' : rate >= 0 ? 'var(--warning-light)' : 'var(--danger-light)', color: rc, padding: '3px 8px', borderRadius: 'var(--radius-full)', fontWeight: 600, fontSize: 11 }}>{rate}%</span>
+                                            <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>{r.label} <span style={{ fontSize: 9, opacity: .6 }}>›</span></td>
+                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--primary)', fontWeight: 500 }}>{CLP(r.income)}</td>
+                                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>{CLP(r.tc)}</td>
+                                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>{CLP(r.fixedTotal)}</td>
+                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--danger)', fontWeight: 600 }}>{CLP(r.gasto)}</td>
+                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: rc, fontWeight: 600 }}>{CLP(r.ahorro)}</td>
+                                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                                                <span style={{ background: rate >= 15 ? 'var(--success-light)' : rate >= 0 ? 'var(--warning-light)' : 'var(--danger-light)', color: rc, padding: '2px 7px', borderRadius: 'var(--radius-full)', fontWeight: 600, fontSize: 10 }}>{rate}%</span>
                                             </td>
                                         </tr>
                                     );
