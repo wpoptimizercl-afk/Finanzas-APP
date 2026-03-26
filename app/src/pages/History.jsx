@@ -80,18 +80,22 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
         const sortEntries = (m) => Object.entries(m).sort(
             (a, b) => b[1].reduce((s, t) => s + t.monto, 0) - a[1].reduce((s, t) => s + t.monto, 0)
         );
-        const eMap = {}, iMap = {}, tMap = {};
+        const eMap = {}, iMap = {}, tMap = {}, aMap = {};
         filtered.forEach(t => {
             if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') {
                 (tMap['traspaso_tc'] = tMap['traspaso_tc'] || []).push(t);
+                return;
+            }
+            if (t.categoria === 'ahorro') {
+                (aMap['ahorro'] = aMap['ahorro'] || []).push(t);
                 return;
             }
             const k = t.categoria || 'otros';
             if (t.tipo === 'cargo') (eMap[k] = eMap[k] || []).push(t);
             else if (t.tipo === 'abono') (iMap[k] = iMap[k] || []).push(t);
         });
-        if (!hasIngresos) return { egresos: sortEntries(eMap), ingresos: [], traspasos: sortEntries(tMap) };
-        return { egresos: sortEntries(eMap), ingresos: sortEntries(iMap), traspasos: sortEntries(tMap) };
+        if (!hasIngresos) return { egresos: sortEntries(eMap), ingresos: [], traspasos: sortEntries(tMap), ahorros: sortEntries(aMap) };
+        return { egresos: sortEntries(eMap), ingresos: sortEntries(iMap), traspasos: sortEntries(tMap), ahorros: sortEntries(aMap) };
     }, [filtered, hasIngresos]);
 
     const totalEgresos = byCategory.egresos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0);
@@ -201,6 +205,11 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                 ⇄ {byCategory.traspasos.reduce((s, [, l]) => s + l.length, 0)} pago{byCategory.traspasos.reduce((s, [, l]) => s + l.length, 0) !== 1 ? 's' : ''} TC · {CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))}
                             </span>
                         )}
+                        {byCategory.ahorros?.length > 0 && (
+                            <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: '#059669' }}>
+                                ↗ {byCategory.ahorros.reduce((s, [, l]) => s + l.length, 0)} ahorro · {CLP(byCategory.ahorros.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))}
+                            </span>
+                        )}
                     </>
                 ) : (
                     <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-secondary)' }}>
@@ -289,11 +298,19 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                 {renderGroup(byCategory.traspasos)}
                             </>
                         )}
+                        {byCategory.ahorros?.length > 0 && (
+                            <>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: 4 }}>
+                                    ↗ Ahorro / inversión
+                                </div>
+                                {renderGroup(byCategory.ahorros)}
+                            </>
+                        )}
                     </>
                 );
             })()}
 
-            {allTxs.length > 0 && byCategory.egresos.length === 0 && byCategory.ingresos.length === 0 && !byCategory.traspasos?.length && query && (
+            {allTxs.length > 0 && byCategory.egresos.length === 0 && byCategory.ingresos.length === 0 && !byCategory.traspasos?.length && !byCategory.ahorros?.length && query && (
                 <div className="empty-state" style={{ paddingTop: '2rem' }}>
                     <div className="empty-state-title">Sin resultados</div>
                     <div className="empty-state-desc">"{query}" no coincide con ninguna transacción.</div>
