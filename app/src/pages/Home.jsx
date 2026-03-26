@@ -69,6 +69,25 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
         return acc;
     }, {});
     const allCuotas = tcSources.flatMap(m => m.cuotas_vigentes || []);
+
+    // CC expense categories (computed at top level for merging)
+    const ccEgCats = ccSources.length > 0 ? (() => {
+        const cats = {};
+        (ccSources[0].transacciones || []).forEach(t => {
+            if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') return;
+            if (t.tipo === 'cargo') cats[t.categoria || 'otros'] = (cats[t.categoria || 'otros'] || 0) + t.monto;
+        });
+        return cats;
+    })() : {};
+
+    // Merged categories (TC + CC) for unified breakdown
+    const mergedCats = { ...tcCats };
+    Object.entries(ccEgCats).forEach(([k, v]) => { mergedCats[k] = (mergedCats[k] || 0) + v; });
+    const mergedCatRows = Object.entries(mergedCats).map(([k, v]) => {
+        const prevVal = prevCats[k] || 0;
+        const delta = prevVal > 0 ? Math.round(((v - prevVal) / prevVal) * 100) : null;
+        return { key: k, value: v, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', tope: budgetCats[k] || 0, delta };
+    }).sort((a, b) => b.value - a.value);
     const totalDeuda = allCuotas.reduce((s, c) => s + (c.monto_cuota || 0) * Math.max(0, (c.total_cuotas || 0) - (c.cuota_actual || 0)), 0);
     const tcSaldoTotal = tcSources.reduce((s, m) => s + (m.total_facturado || m.total_cargos || 0), 0);
 
@@ -187,12 +206,6 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
 
             {/* ── TC section ───────────────────────────────────────────────── */}
             {tcSources.length > 0 && (() => {
-                const catRows = Object.entries(tcCats).map(([k, v]) => {
-                    const prevVal = prevCats[k] || 0;
-                    const delta = prevVal > 0 ? Math.round(((v - prevVal) / prevVal) * 100) : null;
-                    return { key: k, value: v, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', tope: budgetCats[k] || 0, delta };
-                }).sort((a, b) => b.value - a.value);
-
                 const currentCuotas = allCuotas.filter(c => (c.cuota_actual || 0) > 0);
 
                 return (
@@ -277,20 +290,6 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                             </div>
                         )}
 
-                        {/* TC Category breakdown */}
-                        {catRows.length > 0 && (
-                            <>
-                                <Section mt="0">Tarjeta por categoría</Section>
-                                {prevLabel && (
-                                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
-                                        Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
-                                    </div>
-                                )}
-                                <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                                    {catRows.map((c, i, arr) => renderCatRow(c, i, arr))}
-                                </div>
-                            </>
-                        )}
                     </div>
                 );
             })()}
@@ -298,19 +297,9 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
             {/* ── CC section ───────────────────────────────────────────────── */}
             {ccSources.length > 0 && (() => {
                 const ccSource = ccSources[0];
-                const ccTxs = ccSource.transacciones || [];
-                const ccEgCats = {};
-                const ccIngCats = {};
-                ccTxs.forEach(t => {
-                    if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') return;
-                    const k = t.categoria || 'otros';
-                    if (t.tipo === 'cargo') ccEgCats[k] = (ccEgCats[k] || 0) + t.monto;
-                    else if (t.tipo === 'abono') ccIngCats[k] = (ccIngCats[k] || 0) + t.monto;
-                });
-                const ccEgRows = Object.entries(ccEgCats).map(([k, v]) => ({
-                    key: k, value: v, label: allCats[k]?.label || k, color: allCats[k]?.color || '#888', tope: budgetCats[k] || 0, delta: null,
-                })).sort((a, b) => b.value - a.value);
-                const ccIngTotal = Object.values(ccIngCats).reduce((s, v) => s + v, 0);
+                const ccIngTotal = (ccSource.transacciones || [])
+                    .filter(t => t.tipo === 'abono' && t.tipo !== 'traspaso_tc' && t.categoria !== 'traspaso_tc')
+                    .reduce((s, t) => s + t.monto, 0);
 
                 return (
                     <div>
@@ -323,19 +312,24 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                             <Metric label="Saldo Final" value={CLP(ccSource.saldo_final || 0)} color="var(--text-secondary)" />
                             <Metric label="Ingresos CC" value={CLP(ccIngTotal)} color="var(--success, #059669)" />
                         </div>
-
-                        {/* CC Category breakdown */}
-                        {ccEgRows.length > 0 && (
-                            <>
-                                <Section mt="0">Cuenta corriente por categoría</Section>
-                                <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                                    {ccEgRows.map((c, i, arr) => renderCatRow(c, i, arr))}
-                                </div>
-                            </>
-                        )}
                     </div>
                 );
             })()}
+
+            {/* ── Unified category breakdown ───────────────────────────────── */}
+            {mergedCatRows.length > 0 && (
+                <>
+                    <Section mt="0">Gastos por categoría</Section>
+                    {prevLabel && (
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
+                            Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
+                        </div>
+                    )}
+                    <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                        {mergedCatRows.map((c, i, arr) => renderCatRow(c, i, arr))}
+                    </div>
+                </>
+            )}
 
             {/* Fixed items */}
             {fixedItems.length > 0 && (

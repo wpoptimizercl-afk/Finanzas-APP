@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Section from '../components/ui/Section';
-import ProgressBar from '../components/ui/ProgressBar';
 import { CLP } from '../utils/formatters';
 import { DEF_BUDGET } from '../lib/constants';
 
@@ -71,9 +70,6 @@ export default function BudgetPage({ budget, allCats, months, fixedByMonth, inco
 
             {/* Cat budgets */}
             <Section mt="0">Tope por categoría</Section>
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
-                Las barras muestran el gasto real vs el tope del último mes disponible.
-            </div>
             {!editing && budgetTotal === 0 && (
                 <div style={{ background: 'var(--warning-light)', border: '1px solid var(--warning-border)', borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                     <div>
@@ -90,7 +86,7 @@ export default function BudgetPage({ budget, allCats, months, fixedByMonth, inco
                     const actual = catActual[k] || 0;
                     const over = tope > 0 && actual > tope;
                     return (
-                        <div key={k} className="budget-row" style={{ background: over ? 'var(--danger-light)' : 'transparent' }}>
+                        <div key={k} className="budget-row">
                             <div className="budget-row-header">
                                 <span className="budget-cat-dot" style={{ background: catInfo.color }} />
                                 <span className="budget-cat-label">{catInfo.label}</span>
@@ -106,9 +102,6 @@ export default function BudgetPage({ budget, allCats, months, fixedByMonth, inco
                                     </div>
                                 )}
                             </div>
-                            {!editing && tope > 0 && (
-                                <ProgressBar value={actual} max={tope} color={over ? 'var(--danger)' : actual > tope * .8 ? 'var(--warning)' : catInfo.color} />
-                            )}
                         </div>
                     );
                 })}
