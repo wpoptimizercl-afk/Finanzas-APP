@@ -80,15 +80,18 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
         const sortEntries = (m) => Object.entries(m).sort(
             (a, b) => b[1].reduce((s, t) => s + t.monto, 0) - a[1].reduce((s, t) => s + t.monto, 0)
         );
-        const eMap = {}, iMap = {};
+        const eMap = {}, iMap = {}, tMap = {};
         filtered.forEach(t => {
-            if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') return;
+            if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') {
+                (tMap['traspaso_tc'] = tMap['traspaso_tc'] || []).push(t);
+                return;
+            }
             const k = t.categoria || 'otros';
             if (t.tipo === 'cargo') (eMap[k] = eMap[k] || []).push(t);
             else if (t.tipo === 'abono') (iMap[k] = iMap[k] || []).push(t);
         });
-        if (!hasIngresos) return { egresos: sortEntries(eMap), ingresos: [] };
-        return { egresos: sortEntries(eMap), ingresos: sortEntries(iMap) };
+        if (!hasIngresos) return { egresos: sortEntries(eMap), ingresos: [], traspasos: sortEntries(tMap) };
+        return { egresos: sortEntries(eMap), ingresos: sortEntries(iMap), traspasos: sortEntries(tMap) };
     }, [filtered, hasIngresos]);
 
     const totalEgresos = byCategory.egresos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0);
@@ -193,6 +196,11 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                         <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--success, #059669)' }}>
                             ↑ {byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} ingresos · {CLP(totalIngresos)}
                         </span>
+                        {byCategory.traspasos?.length > 0 && (
+                            <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-tertiary)' }}>
+                                ⇄ {byCategory.traspasos.reduce((s, [, l]) => s + l.length, 0)} pago{byCategory.traspasos.reduce((s, [, l]) => s + l.length, 0) !== 1 ? 's' : ''} TC · {CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))}
+                            </span>
+                        )}
                     </>
                 ) : (
                     <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-secondary)' }}>
@@ -273,11 +281,19 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                 {renderGroup(byCategory.ingresos)}
                             </>
                         )}
+                        {byCategory.traspasos?.length > 0 && (
+                            <>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: 4 }}>
+                                    ⇄ Pagos tarjeta de crédito
+                                </div>
+                                {renderGroup(byCategory.traspasos)}
+                            </>
+                        )}
                     </>
                 );
             })()}
 
-            {allTxs.length > 0 && byCategory.egresos.length === 0 && byCategory.ingresos.length === 0 && query && (
+            {allTxs.length > 0 && byCategory.egresos.length === 0 && byCategory.ingresos.length === 0 && !byCategory.traspasos?.length && query && (
                 <div className="empty-state" style={{ paddingTop: '2rem' }}>
                     <div className="empty-state-title">Sin resultados</div>
                     <div className="empty-state-desc">"{query}" no coincide con ninguna transacción.</div>
