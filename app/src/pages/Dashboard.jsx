@@ -14,7 +14,7 @@ import { getMonthIncome, getMonthFixedTotal, getTCExpenses, getCCExpenses, getSa
 
 export default DashboardInner;
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload, onGoHistory }) {
     const defaultWindow = useMemo(() => {
@@ -33,36 +33,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
         return Math.max(0, lastWithData);
     });
 
-    const [viewFilter, setViewFilter] = useState('all');
-
-    const filterOptions = useMemo(() => {
-        const opts = [{ id: 'all', label: 'Todas' }];
-        const sourceTypes = new Set(months.map(m => m.source_type).filter(Boolean));
-        const uniqueAccountIds = [...new Set(months.map(m => m.account_id).filter(Boolean))];
-        const tcAccounts = uniqueAccountIds.filter(aid => months.some(m => m.account_id === aid && m.source_type === 'tc'));
-        const ccAccounts = uniqueAccountIds.filter(aid => months.some(m => m.account_id === aid && m.source_type === 'cc'));
-        // "Solo TC/CC" solo es útil si hay múltiples cuentas de ese tipo
-        if (sourceTypes.size > 1) {
-            if (sourceTypes.has('tc') && tcAccounts.length > 1) opts.push({ id: 'tc', label: 'Solo TC' });
-            if (sourceTypes.has('cc') && ccAccounts.length > 1) opts.push({ id: 'cc', label: 'Solo CC' });
-        }
-        if (uniqueAccountIds.length > 1) {
-            uniqueAccountIds.forEach(aid => {
-                const acc = accounts.find(a => a.id === aid);
-                opts.push({ id: aid, label: acc?.name || acc?.nombre || acc?.alias || 'Cuenta' });
-            });
-        }
-        return opts;
-    }, [months, accounts]);
-
-    const filteredMonths = useMemo(() => {
-        if (viewFilter === 'all') return months;
-        if (viewFilter === 'tc') return months.filter(m => m.source_type === 'tc');
-        if (viewFilter === 'cc') return months.filter(m => m.source_type === 'cc');
-        return months.filter(m => m.account_id === viewFilter);
-    }, [months, viewFilter]);
-
-    useEffect(() => { setSkipEnd(0); }, [viewFilter]);
+    const filteredMonths = months;
 
     if (!months?.length) return (
         <div className="empty-state animate-fadeIn">
@@ -81,8 +52,8 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             const sources = filteredMonths.filter(m => m.periodo === periodo);
             const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome);
             const fixedTotal = getMonthFixedTotal(periodo, fixedByMonth);
-            const tc = viewFilter === 'cc' ? 0 : getTCExpenses(periodo, sources);
-            const cc = getCCExpenses(periodo, sources, viewFilter === 'cc');
+            const tc = getTCExpenses(periodo, sources);
+            const cc = getCCExpenses(periodo, sources, false);
             const savings = getSavingsTransfers(periodo, sources);
             const gasto = tc + cc + fixedTotal;
             const ahorro = income - gasto;
@@ -92,7 +63,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             }, {});
             return { periodo, label: shortLabel(periodo), income, fixedTotal, tc, cc, savings, gasto, ahorro, categorias };
         });
-    }, [filteredMonths, incomeByMonth, extraByMonth, fixedByMonth, defaultIncome, viewFilter]);
+    }, [filteredMonths, incomeByMonth, extraByMonth, fixedByMonth, defaultIncome]);
 
     const totalMonths = allSeries.length;
     const windowOptions = [
@@ -143,21 +114,6 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                 <button className="btn btn-primary btn-sm" onClick={onGoUpload}>📄 + Subir</button>
             </div>
 
-            {filterOptions.length > 1 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                    {filterOptions.map(opt => (
-                        <button key={opt.id} onClick={() => setViewFilter(opt.id)} style={{
-                            padding: '5px 12px', borderRadius: 'var(--radius-full)',
-                            fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
-                            background: viewFilter === opt.id ? 'var(--primary)' : 'var(--bg-hover)',
-                            color: viewFilter === opt.id ? '#fff' : 'var(--text-secondary)',
-                            transition: 'background .15s, color .15s',
-                        }}>
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-            )}
             <div style={{ marginBottom: 16 }}>
                 <select
                     value={effectiveWindow}
