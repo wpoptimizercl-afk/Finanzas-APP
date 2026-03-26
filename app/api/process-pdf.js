@@ -320,10 +320,19 @@ Usa eso para validar cada monto ANTES de incluirlo:
   abono:  saldo_anterior + monto = saldo_mostrado
 
 Ejemplo con la cartola real (sigue la secuencia de saldos):
-  02/02 Traspaso TC 20.416 → saldo 303.164
+  02/02 Servipag (CARGO 62.143)  → sin saldo en la línea, es intermedio
+  02/02 Traspaso TC 20.416       → saldo visible: 303.164
+    → Reconstrucción hacia atrás: saldo_antes_traspaso = 303.164 + 20.416 = 323.580
+    → saldo_antes_servipag       = 323.580 + 62.143 = 385.723
+    → Si hubieras leído 362.143: 385.723 - 362.143 = 23.580 - 20.416 = 3.164 ≠ 303.164 → INCORRECTO
+    → Conclusión: el monto correcto es 62.143 (el "3" era el último dígito del DCTO 295123)
+
   03/02 Edgar Urbina (CARGO 250.000) → 303.164 - 250.000 = 53.164  (saldo no aparece en la línea, es intermedio)
   03/02 Laura Urbina (CARGO 44.333) → 53.164 - 44.333 = 8.831  ← el PDF muestra 8.831 ✓
     → Si hubieras leído 444.333: 53.164 - 444.333 = -391.169 ≠ 8.831 → INCORRECTO, corrige a 44.333
+
+Cuando varios movimientos consecutivos no muestran saldo intermedio, trabaja hacia atrás
+desde el primer saldo visible para validar cada monto.
 
 Si el saldo resultante no coincide con la aritmética, el monto está MAL LEÍDO.
 Revisa si incluiste dígitos del Nº DCTO adyacente. Usa SOLO los dígitos con punto de miles.
@@ -340,7 +349,9 @@ Usa esos valores para verificar tu extracción:
   • saldo_inicial = valor SALDO INICIAL del resumen
   • saldo_final   = valor SALDO FINAL del resumen
 
-Si hay diferencia: revisa si omitiste algún movimiento o confundiste montos.
+Si hay diferencia en CARGOS: un monto está mal leído (probablemente fusión con dígito del DCTO).
+  Usa la cadena de saldos para encontrar el movimiento erróneo y corregirlo.
+  Una diferencia de exactamente N×10^k (ej: 300.000) indica que N dígitos extra del DCTO se pegaron al monto.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGLAS DE EXTRACCIÓN
@@ -353,8 +364,18 @@ R1. Extraer ABSOLUTAMENTE TODOS los movimientos de "DETALLE DE MOVIMIENTOS".
     Incluye traspasos a TC, comisiones, y montos pequeños como 912.
 R1b. IDENTIFICACIÓN DE MONTO — regla de oro:
     El monto es SIEMPRE un número con este patrón: [dígitos].[3 dígitos] (ej: 44.333, 580.291, 1.449.274).
-    Los Nº DCTO (4-9 dígitos SIN punto de miles) NO forman parte del monto.
-    Si encuentras "442567 44.333": el monto es 44.333, NUNCA 444.333, 4425674.333 ni ninguna fusión.
+    Los Nº DCTO (4-9 dígitos SIN punto de miles) NUNCA forman parte del monto.
+    El Nº DCTO termina donde empieza el espacio antes del monto — sus dígitos finales NO se pegan al monto.
+
+    Ejemplos CRÍTICOS de separación DCTO → monto:
+      "442567 44.333"  → DCTO=442567,  monto=44.333   (NUNCA 444.333)
+      "295123 62.143"  → DCTO=295123,  monto=62.143   (NUNCA 362.143 — el "3" final del DCTO NO es prefijo del monto)
+      "600133 100.000" → DCTO=600133,  monto=100.000  (NUNCA 3100.000)
+      "500017 66.000"  → DCTO=500017,  monto=66.000   (NUNCA 766.000)
+
+    ⚠️ PELIGRO FRECUENTE: si el DCTO termina en dígito Y el monto empieza con dígito parecido,
+       la IA puede fusionarlos. Siempre separa en el ESPACIO — el monto arranca después del espacio.
+
     Verifica usando saldo: saldo_previo - monto_cargo = saldo_siguiente (ver sección VERIFICACIÓN POR SALDO).
 R2. NO duplicar movimientos del "Resumen de Comisiones" — son los mismos del detalle.
 R3. Usar el AÑO del encabezado para completar fechas: DD/MM → DD/MM/YYYY.
