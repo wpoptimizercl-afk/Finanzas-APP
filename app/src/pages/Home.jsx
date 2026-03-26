@@ -154,7 +154,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
             {/* Savings rate bar */}
             <div className="card" style={{ padding: '14px 16px', marginBottom: savingsGoal > 0 ? 10 : '1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Tasa de ahorro</span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Tasa de excedente</span>
                     <span style={{ fontSize: 20, fontWeight: 700, color: aColor, letterSpacing: '-.5px' }}>{aRate}%</span>
                 </div>
                 <div className="progress-track">
@@ -170,7 +170,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
             {savingsGoal > 0 && (
                 <div className="card" style={{ padding: '14px 16px', marginBottom: '1.5rem', border: `1px solid ${goalMet ? 'var(--success-border)' : 'var(--border-medium)'}` }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Meta de ahorro mensual</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Meta de excedente mensual</span>
                         <div style={{ textAlign: 'right' }}>
                             <span style={{ fontSize: 16, fontWeight: 700, color: goalColor, letterSpacing: '-.3px' }}>{CLP(ahorro)}</span>
                             <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 4 }}>/ {CLP(savingsGoal)}</span>

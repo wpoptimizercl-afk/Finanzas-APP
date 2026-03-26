@@ -37,12 +37,12 @@ export default function HealthSemaphore({ series, budget, isAverage }) {
     const dashOffset = CIRCUMFERENCE * (1 - score / 100);
 
     const details = [
-        { ok: savingsRate >= 15, text: `Tasa de ahorro${avgLabel} ${savingsRate}% (meta ≥ 15%)` },
+        { ok: savingsRate >= 15, text: `Tasa de excedente${avgLabel} ${savingsRate}% (meta ≥ 15%)` },
         ...(goal > 0 ? [{
             ok: avgAhorro >= goal,
             text: avgAhorro >= goal
-                ? `Meta de ahorro cumplida (${CLP(avgAhorro)}${avgLabel} / ${CLP(goal)})`
-                : `Meta de ahorro no cumplida (${CLP(avgAhorro)}${avgLabel} / ${CLP(goal)})`,
+                ? `Meta de excedente cumplida (${CLP(avgAhorro)}${avgLabel} / ${CLP(goal)})`
+                : `Meta de excedente no cumplida (${CLP(avgAhorro)}${avgLabel} / ${CLP(goal)})`,
         }] : []),
         {
             ok: overCount === 0,
