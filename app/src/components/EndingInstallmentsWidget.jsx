@@ -7,7 +7,7 @@ import { CLP, isCurrentMonth } from '../utils/formatters';
  * Solo se renderiza si hay al menos una cuota terminando.
  */
 export default function EndingInstallmentsWidget({ months }) {
-    const { endingCuotas, liberado } = useMemo(() => {
+    const { endingCuotas, liberado, latestPeriod } = useMemo(() => {
         const tcMonths = (months || []).filter(m => m.source_type === 'tc');
         if (!tcMonths.length) return { endingCuotas: [], liberado: 0 };
 
