@@ -333,7 +333,7 @@ export function useFinanceData() {
             updatedTxs.forEach(t => {
                 const k = t.categoria || 'otros';
                 cats[k] = (cats[k] || 0) + t.monto;
-                if (t.tipo === 'cargo' && k !== 'traspaso_tc' && k !== 'cargos_banco') total += t.monto;
+                if (t.tipo === 'cargo' && k !== 'traspaso_tc') total += t.monto;
             });
             return { ...mon, transacciones: updatedTxs, categorias: cats, total_cargos: total };
         });

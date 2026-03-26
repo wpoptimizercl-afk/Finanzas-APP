@@ -194,7 +194,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                         if (isCC) {
                             if (t.categoria !== 'traspaso_tc') totalCargos += t.monto;
                         } else {
-                            if (t.categoria !== 'cargos_banco') totalCargos += t.monto;
+                            totalCargos += t.monto;
                         }
                     }
                 });
