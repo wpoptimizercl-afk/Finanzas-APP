@@ -1,5 +1,7 @@
 import { CLP, pct } from '../utils/formatters';
 
+const CIRCUMFERENCE = 2 * Math.PI * 32; // ≈ 201.06
+
 export default function HealthSemaphore({ series, budget, isAverage }) {
     if (!series?.length) return null;
 
@@ -16,19 +18,23 @@ export default function HealthSemaphore({ series, budget, isAverage }) {
     const overCount = Object.entries(catAvg).filter(([k, v]) => budgetCats[k] > 0 && v > budgetCats[k]).length;
     const spendingUp = n >= 2 && series[n - 1].tc > series[n - 2].tc * 1.1;
 
-    let score = 0;
-    if (savingsRate >= 15 || (goal > 0 && avgAhorro >= goal)) { score += 2; } else if (savingsRate >= 5) { score += 1; }
-    if (overCount === 0) { score += 2; } else if (overCount <= 2) { score += 1; }
-    if (!spendingUp) { score += 1; }
+    // Score 0-100: ahorro (40pts) + categorías (30pts) + meta (30pts)
+    const savingsPts = Math.min(40, Math.max(0, (savingsRate / 15) * 40));
+    const catPts = Math.max(0, 30 - overCount * 10);
+    const goalPts = goal > 0 ? Math.min(30, Math.max(0, (avgAhorro / goal) * 30)) : 15;
+    const score = Math.round(savingsPts + catPts + goalPts);
 
-    const status = score >= 4 ? 'green' : score >= 2 ? 'yellow' : 'red';
+    const scoreColor = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444';
+    const status = score >= 70 ? 'green' : score >= 40 ? 'yellow' : 'red';
     const cfgMap = {
-        green: { emoji: '🟢', label: 'Salud financiera buena', desc: 'Estás ahorrando bien y dentro del presupuesto.', bg: 'var(--success-light)', border: 'var(--success-border)', color: 'var(--success-text)' },
-        yellow: { emoji: '🟡', label: 'Salud financiera moderada', desc: 'Hay aspectos a mejorar. Revisa tus categorías y ahorro.', bg: 'var(--warning-light)', border: 'var(--warning-border)', color: 'var(--warning-text)' },
-        red: { emoji: '🔴', label: 'Salud financiera en riesgo', desc: 'Tu gasto supera lo ideal. Revisa el presupuesto.', bg: 'var(--danger-light)', border: 'var(--danger-border)', color: 'var(--danger-text)' },
+        green:  { label: 'Salud financiera buena',     desc: 'Estás ahorrando bien y dentro del presupuesto.',      bg: 'var(--success-light)', border: 'var(--success-border)', color: 'var(--success-text)' },
+        yellow: { label: 'Salud financiera moderada',  desc: 'Hay aspectos a mejorar. Revisa tus categorías y ahorro.', bg: 'var(--warning-light)', border: 'var(--warning-border)', color: 'var(--warning-text)' },
+        red:    { label: 'Salud financiera en riesgo', desc: 'Tu gasto supera lo ideal. Revisa el presupuesto.',     bg: 'var(--danger-light)',   border: 'var(--danger-border)',   color: 'var(--danger-text)'   },
     };
     const cfg = cfgMap[status];
     const avgLabel = isAverage ? ' (prom.)' : '';
+
+    const dashOffset = CIRCUMFERENCE * (1 - score / 100);
 
     const details = [
         { ok: savingsRate >= 15, text: `Tasa de ahorro${avgLabel} ${savingsRate}% (meta ≥ 15%)` },
@@ -50,7 +56,33 @@ export default function HealthSemaphore({ series, budget, isAverage }) {
     return (
         <div className="semaphore" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
             <div className="semaphore-header">
-                <span className="semaphore-emoji">{cfg.emoji}</span>
+                <svg
+                    width="72" height="72" viewBox="0 0 80 80"
+                    style={{ flexShrink: 0 }}
+                    role="img"
+                    aria-label={`Score salud financiera: ${score} de 100`}
+                >
+                    {/* Track */}
+                    <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="6" />
+                    {/* Progress arc */}
+                    <circle
+                        cx="40" cy="40" r="32" fill="none"
+                        stroke={scoreColor} strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray={CIRCUMFERENCE}
+                        strokeDashoffset={dashOffset}
+                        transform="rotate(-90 40 40)"
+                        style={{ transition: 'stroke-dashoffset 0.6s ease-out' }}
+                    />
+                    {/* Score number */}
+                    <text
+                        x="40" y="40"
+                        textAnchor="middle" dominantBaseline="central"
+                        fill={scoreColor} fontSize="22" fontWeight="700" fontFamily="inherit"
+                    >
+                        {score}
+                    </text>
+                </svg>
                 <div>
                     <div className="semaphore-title" style={{ color: cfg.color }}>{cfg.label}</div>
                     <div className="semaphore-desc" style={{ color: cfg.color }}>{cfg.desc}</div>
