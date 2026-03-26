@@ -128,7 +128,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
             <div className="dashboard-grid">
                 <Metric label={`${avgAhorro >= 0 ? 'Excedente' : 'Déficit'} ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor}
                     note="ingreso − gasto" />
-                <Metric label="Tasa excedente" value={avgRate + '%'} color={rateColor}
+                <Metric label={avgAhorro >= 0 ? 'Tasa excedente' : 'Tasa déficit'} value={avgRate + '%'} color={rateColor}
                     note={savingsGoal > 0 ? `meta ${pct(savingsGoal, avgIncome)}%` : 'meta mín. 15%'} />
                 <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
                     note="sueldo + extras + abonos CC" />
