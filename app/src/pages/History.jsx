@@ -267,32 +267,30 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                 </div>
             )}
 
-            {/* Summary bar */}
+            {/* Summary grid */}
             <div style={{ marginBottom: '1.25rem' }}>
-                {hasIngresos ? (
-                    <>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'var(--border-light)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: (byCategory.traspasos?.length > 0 || byCategory.ahorros?.length > 0) ? 6 : 0 }}>
-                            <div style={{ background: 'var(--bg-card)', padding: '8px 12px' }}>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--danger)' }}>{CLP(totalEgresos)}</div>
-                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} egresos</div>
-                            </div>
-                            <div style={{ background: 'var(--bg-card)', padding: '8px 12px' }}>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>{CLP(totalIngresos)}</div>
-                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} ingresos</div>
-                            </div>
+                {hasIngresos ? (() => {
+                    const hasTraspasos = byCategory.traspasos?.length > 0;
+                    const hasAhorros = byCategory.ahorros?.length > 0;
+                    const stats = [
+                        { label: 'Egresos', value: CLP(totalEgresos), sub: `${byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} mov.`, color: 'var(--danger)' },
+                        { label: 'Ingresos', value: CLP(totalIngresos), sub: `${byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} mov.`, color: 'var(--success)' },
+                        ...(hasTraspasos ? [{ label: 'Pagos TC', value: CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0)), sub: `${byCategory.traspasos.reduce((s, [, l]) => s + l.length, 0)} mov.`, color: 'var(--text-secondary)' }] : []),
+                        ...(hasAhorros ? [{ label: 'Ahorro', value: CLP(byCategory.ahorros.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0)), sub: `${byCategory.ahorros.reduce((s, [, l]) => s + l.length, 0)} mov.`, color: 'var(--success)' }] : []),
+                    ];
+                    const cols = stats.length === 4 ? 4 : stats.length === 3 ? 3 : 2;
+                    return (
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '1px', background: 'var(--border-light)', borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
+                            {stats.map(s => (
+                                <div key={s.label} style={{ background: 'var(--bg-card)', padding: '8px 10px' }}>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: s.color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.value}</div>
+                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 2 }}>{s.label}</div>
+                                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)', opacity: .7 }}>{s.sub}</div>
+                                </div>
+                            ))}
                         </div>
-                        {(byCategory.traspasos?.length > 0 || byCategory.ahorros?.length > 0) && (
-                            <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-tertiary)', paddingLeft: 2 }}>
-                                {byCategory.traspasos?.length > 0 && (
-                                    <span>{CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))} <span style={{ opacity: .7 }}>TC</span></span>
-                                )}
-                                {byCategory.ahorros?.length > 0 && (
-                                    <span style={{ color: 'var(--success)' }}>{CLP(byCategory.ahorros.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))} <span style={{ opacity: .7, color: 'var(--text-tertiary)' }}>ahorro</span></span>
-                                )}
-                            </div>
-                        )}
-                    </>
-                ) : (
+                    );
+                })() : (
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                         <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{CLP(totalEgresos)}</span>
                         <span style={{ color: 'var(--text-tertiary)', margin: '0 5px' }}>·</span>
