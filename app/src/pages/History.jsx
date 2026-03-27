@@ -268,44 +268,43 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
             )}
 
             {/* Summary bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '1.25rem', fontSize: 12, color: 'var(--text-secondary)' }}>
+            <div style={{ marginBottom: '1.25rem' }}>
                 {hasIngresos ? (
                     <>
-                        <span style={{ fontWeight: 600, color: 'var(--danger)' }}>{CLP(totalEgresos)}</span>
-                        <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>·</span>
-                        <span style={{ color: 'var(--text-tertiary)' }}>{byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} egresos</span>
-                        <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
-                        <span style={{ fontWeight: 600, color: 'var(--success)' }}>{CLP(totalIngresos)}</span>
-                        <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>·</span>
-                        <span style={{ color: 'var(--text-tertiary)' }}>{byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} ingresos</span>
-                        {byCategory.traspasos?.length > 0 && (
-                            <>
-                                <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
-                                <span style={{ color: 'var(--text-tertiary)' }}>{CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))} TC</span>
-                            </>
-                        )}
-                        {byCategory.ahorros?.length > 0 && (
-                            <>
-                                <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
-                                <span style={{ fontWeight: 600, color: 'var(--success)' }}>{CLP(byCategory.ahorros.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))}</span>
-                                <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>ahorro</span>
-                            </>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'var(--border-light)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: (byCategory.traspasos?.length > 0 || byCategory.ahorros?.length > 0) ? 6 : 0 }}>
+                            <div style={{ background: 'var(--bg-card)', padding: '8px 12px' }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--danger)' }}>{CLP(totalEgresos)}</div>
+                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} egresos</div>
+                            </div>
+                            <div style={{ background: 'var(--bg-card)', padding: '8px 12px' }}>
+                                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--success)' }}>{CLP(totalIngresos)}</div>
+                                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} ingresos</div>
+                            </div>
+                        </div>
+                        {(byCategory.traspasos?.length > 0 || byCategory.ahorros?.length > 0) && (
+                            <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-tertiary)', paddingLeft: 2 }}>
+                                {byCategory.traspasos?.length > 0 && (
+                                    <span>{CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))} <span style={{ opacity: .7 }}>TC</span></span>
+                                )}
+                                {byCategory.ahorros?.length > 0 && (
+                                    <span style={{ color: 'var(--success)' }}>{CLP(byCategory.ahorros.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))} <span style={{ opacity: .7, color: 'var(--text-tertiary)' }}>ahorro</span></span>
+                                )}
+                            </div>
                         )}
                     </>
                 ) : (
-                    <>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{CLP(totalEgresos)}</span>
-                        <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>·</span>
-                        <span style={{ color: 'var(--text-tertiary)' }}>{filtered.filter(t => t.tipo === 'cargo').length} transacciones</span>
-                    </>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{CLP(totalEgresos)}</span>
+                        <span style={{ color: 'var(--text-tertiary)', margin: '0 5px' }}>·</span>
+                        <span>{filtered.filter(t => t.tipo === 'cargo').length} transacciones</span>
+                    </div>
                 )}
                 {query && (
-                    <>
-                        <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
-                        <button onClick={() => setQuery('')} style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500, border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <div style={{ marginTop: 6 }}>
+                        <button onClick={() => setQuery('')} style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500, border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <X size={11} />{query}
                         </button>
-                    </>
+                    </div>
                 )}
             </div>
 
