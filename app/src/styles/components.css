@@ -442,17 +442,17 @@ select.input {
 /* ── Health Semaphore ────────────────────────────────────────────── */
 .semaphore {
     border-radius: var(--radius-lg);
-    padding: 16px;
-    margin-bottom: 1.25rem;
+    padding: 10px 12px;
+    margin-bottom: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .semaphore-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .semaphore-emoji {
@@ -460,27 +460,37 @@ select.input {
 }
 
 .semaphore-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
+    line-height: 1.3;
 }
 
 .semaphore-desc {
-    font-size: 12px;
+    font-size: 11px;
     opacity: .8;
-    margin-top: 2px;
+    margin-top: 1px;
+    line-height: 1.3;
+}
+
+.semaphore-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 6px;
 }
 
 .semaphore-detail {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 11px;
+    line-height: 1.35;
 }
 
 .semaphore-check {
-    font-size: 11px;
-    width: 16px;
+    font-size: 10px;
+    width: 13px;
     flex-shrink: 0;
+    margin-top: 1px;
 }
 
 /* ── Upload Drop Zone ────────────────────────────────────────────── */
