@@ -1,9 +1,55 @@
-import { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Search, Trash2 } from 'lucide-react';
-import Section from '../components/ui/Section';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightSm, Search, Trash2, SlidersHorizontal, X, Tag } from 'lucide-react';
 import Modal from '../components/ui/Modal';
-import { ClickableTag } from '../components/CategoryPicker';
+import { CategoryPicker } from '../components/CategoryPicker';
 import { CLP } from '../utils/formatters';
+
+function RecategorizeButton({ categoria, txId, periodo, onRecategorize, allCats }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', h);
+        return () => document.removeEventListener('mousedown', h);
+    }, [open]);
+
+    return (
+        <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
+            <button
+                aria-label="Recategorizar transacción"
+                onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+                style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 28,
+                    height: 28,
+                    margin: '-6px -4px',
+                    padding: 6,
+                    border: 'none',
+                    background: open ? 'var(--primary-light)' : 'transparent',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                    color: open ? 'var(--primary)' : 'var(--text-tertiary)',
+                    transition: 'background 150ms, color 150ms',
+                    touchAction: 'manipulation',
+                }}
+            >
+                <Tag size={12} strokeWidth={2} />
+            </button>
+            {open && (
+                <CategoryPicker
+                    current={categoria}
+                    allCats={allCats}
+                    onSelect={cat => { onRecategorize(periodo, txId, cat); setOpen(false); }}
+                    onClose={() => setOpen(false)}
+                />
+            )}
+        </div>
+    );
+}
 
 export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, allCats, deleteMonth, recategorizeMonth }) {
     const [selIdx, setSelIdx] = useState(() => Math.max(0, uniqueSortedPeriods.length - 1));
@@ -12,6 +58,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
     const [delModal, setDelModal] = useState(false);
     const [activeSourceId, setActiveSourceId] = useState(null); // null = todas
     const [collapsedCats, setCollapsedCats] = useState({});
+    const [showDateFilter, setShowDateFilter] = useState(false);
 
     const idx = uniqueSortedPeriods.length > 0 ? Math.min(selIdx, uniqueSortedPeriods.length - 1) : 0;
     const periodo = uniqueSortedPeriods[idx] || null;
@@ -173,9 +220,9 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
             )}
 
             {/* Filters bar */}
-            <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr auto', gap: 10, marginBottom: '1.25rem' }}>
-                <div style={{ position: 'relative' }}>
-                    <Search size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
+            <div style={{ display: 'flex', gap: 8, marginBottom: showDateFilter ? '0.5rem' : '1rem' }}>
+                <div style={{ position: 'relative', flex: 1 }}>
+                    <Search size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
                     <input
                         placeholder="Buscar transacciones…"
                         value={query}
@@ -184,55 +231,81 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                         style={{ paddingLeft: 34 }}
                     />
                 </div>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button
+                    onClick={() => setShowDateFilter(v => !v)}
+                    className="btn-icon btn-sm"
+                    style={{
+                        borderColor: (showDateFilter || dateRange.start || dateRange.end) ? 'var(--primary)' : undefined,
+                        color: (showDateFilter || dateRange.start || dateRange.end) ? 'var(--primary)' : undefined,
+                        background: (dateRange.start || dateRange.end) ? 'var(--primary-light)' : undefined,
+                    }}
+                    title="Filtrar por fecha"
+                >
+                    <SlidersHorizontal size={15} />
+                </button>
+            </div>
+
+            {showDateFilter && (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: '1rem', padding: '10px 12px', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginRight: 2, flexShrink: 0 }}>Desde</span>
                     <input type="date" value={dateRange.start}
                         min={formatInputDate(primarySource?.periodo_desde)}
                         max={formatInputDate(primarySource?.periodo_hasta)}
                         onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                        className="input" style={{ width: 'auto', fontSize: 12, padding: '8px 10px' }} />
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>a</span>
+                        className="input" style={{ flex: 1, fontSize: 12, padding: '7px 10px' }} />
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>hasta</span>
                     <input type="date" value={dateRange.end}
                         min={formatInputDate(primarySource?.periodo_desde)}
                         max={formatInputDate(primarySource?.periodo_hasta)}
                         onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                        className="input" style={{ width: 'auto', fontSize: 12, padding: '8px 10px' }} />
+                        className="input" style={{ flex: 1, fontSize: 12, padding: '7px 10px' }} />
                     {(dateRange.start || dateRange.end) && (
-                        <button onClick={() => setDateRange({ start: '', end: '' })} className="btn-icon btn-sm"
-                            style={{ padding: 6, borderRadius: 'var(--radius-sm)' }} title="Limpiar fechas">✕</button>
+                        <button onClick={() => setDateRange({ start: '', end: '' })} className="btn-icon btn-sm" title="Limpiar">
+                            <X size={13} />
+                        </button>
                     )}
                 </div>
-            </div>
+            )}
 
-            {/* Summary chip */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+            {/* Summary bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '1.25rem', fontSize: 12, color: 'var(--text-secondary)' }}>
                 {hasIngresos ? (
                     <>
-                        <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--danger)' }}>
-                            ↓ {byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} egresos · {CLP(totalEgresos)}
-                        </span>
-                        <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--success, #059669)' }}>
-                            ↑ {byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} ingresos · {CLP(totalIngresos)}
-                        </span>
+                        <span style={{ fontWeight: 600, color: 'var(--danger)' }}>{CLP(totalEgresos)}</span>
+                        <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>·</span>
+                        <span style={{ color: 'var(--text-tertiary)' }}>{byCategory.egresos.reduce((s, [, l]) => s + l.length, 0)} egresos</span>
+                        <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
+                        <span style={{ fontWeight: 600, color: 'var(--success)' }}>{CLP(totalIngresos)}</span>
+                        <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>·</span>
+                        <span style={{ color: 'var(--text-tertiary)' }}>{byCategory.ingresos.reduce((s, [, l]) => s + l.length, 0)} ingresos</span>
                         {byCategory.traspasos?.length > 0 && (
-                            <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-tertiary)' }}>
-                                ⇄ {byCategory.traspasos.reduce((s, [, l]) => s + l.length, 0)} pago{byCategory.traspasos.reduce((s, [, l]) => s + l.length, 0) !== 1 ? 's' : ''} TC · {CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))}
-                            </span>
+                            <>
+                                <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
+                                <span style={{ color: 'var(--text-tertiary)' }}>{CLP(byCategory.traspasos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))} TC</span>
+                            </>
                         )}
                         {byCategory.ahorros?.length > 0 && (
-                            <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: '#059669' }}>
-                                ↗ {byCategory.ahorros.reduce((s, [, l]) => s + l.length, 0)} ahorro · {CLP(byCategory.ahorros.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))}
-                            </span>
+                            <>
+                                <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
+                                <span style={{ fontWeight: 600, color: 'var(--success)' }}>{CLP(byCategory.ahorros.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0))}</span>
+                                <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>ahorro</span>
+                            </>
                         )}
                     </>
                 ) : (
-                    <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--bg-hover)', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                        {filtered.filter(t => t.tipo === 'cargo').length} transacciones · {CLP(totalEgresos)}
-                    </span>
+                    <>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{CLP(totalEgresos)}</span>
+                        <span style={{ color: 'var(--text-tertiary)', margin: '0 4px' }}>·</span>
+                        <span style={{ color: 'var(--text-tertiary)' }}>{filtered.filter(t => t.tipo === 'cargo').length} transacciones</span>
+                    </>
                 )}
                 {query && (
-                    <button onClick={() => setQuery('')} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 'var(--radius-full)', background: 'var(--primary-light)', color: 'var(--primary)', fontWeight: 500, border: 'none', cursor: 'pointer' }}>
-                        ✕ {query}
-                    </button>
+                    <>
+                        <span style={{ color: 'var(--border-strong)', margin: '0 10px' }}>|</span>
+                        <button onClick={() => setQuery('')} style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500, border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <X size={11} />{query}
+                        </button>
+                    </>
                 )}
             </div>
 
@@ -242,50 +315,59 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                     const catObj = allCats[cat] || { label: cat, color: '#888', bg: '#F3F4F6' };
                     const catTotal = txList.reduce((s, t) => s + t.monto, 0);
                     const isCollapsed = collapsedCats[cat] !== false;
+                    const label = catObj.label.charAt(0).toUpperCase() + catObj.label.slice(1).toLowerCase();
                     return (
-                        <div key={cat} style={{ marginBottom: '1.25rem' }}>
-                            <div onClick={() => toggleCat(cat)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, cursor: 'pointer', userSelect: 'none' }}>
+                        <div key={cat} style={{ marginBottom: '0.75rem' }}>
+                            <div onClick={() => toggleCat(cat)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px', cursor: 'pointer', userSelect: 'none', borderRadius: 'var(--radius-sm)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: catObj.color, display: 'block' }} />
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '.06em' }}>{catObj.label}</span>
+                                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: catObj.color, display: 'block', flexShrink: 0 }} />
+                                    <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{label}</span>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600 }}>{CLP(catTotal)}</span>
-                                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{isCollapsed ? '▶' : '▼'}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{CLP(catTotal)}</span>
+                                    {isCollapsed
+                                        ? <ChevronRightSm size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                                        : <ChevronDown size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                                    }
                                 </div>
                             </div>
-                            {!isCollapsed && <div className="card" style={{ padding: 0, overflow: 'visible' }}>
-                                {txList.sort((a, b) => b.monto - a.monto).map((t) => (
-                                    <div key={t.id} className="tx-row">
-                                        <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
-                                            <div className="tx-desc">{t.descripcion}</div>
-                                            <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
-                                                <span>{t.fecha}</span>
-                                                {/* Account badge (multi-account) */}
-                                                {sources.length > 1 && (
-                                                    <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: `${t._accountColor}18`, color: t._accountColor, fontWeight: 600, border: `1px solid ${t._accountColor}30` }}>
-                                                        {t._accountName}
-                                                    </span>
-                                                )}
-                                                <ClickableTag
-                                                    label={catObj.label}
-                                                    color={catObj.color}
-                                                    bg={catObj.bg}
-                                                    categoria={t.categoria}
-                                                    txId={t.id}
-                                                    periodo={periodo}
-                                                    onRecategorize={recategorizeMonth}
-                                                    allCats={allCats}
-                                                />
+                            {!isCollapsed && (
+                                <div className="card" style={{ padding: 0, overflow: 'visible', marginTop: 2 }}>
+                                    {txList.sort((a, b) => b.monto - a.monto).map((t) => (
+                                        <div key={t.id} className="tx-row">
+                                            <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
+                                                <div className="tx-desc">{t.descripcion}</div>
+                                                <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                                                    <span>{t.fecha}</span>
+                                                    {sources.length > 1 && (
+                                                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: `${t._accountColor}18`, color: t._accountColor, fontWeight: 600, border: `1px solid ${t._accountColor}30` }}>
+                                                            {t._accountName}
+                                                        </span>
+                                                    )}
+                                                    <RecategorizeButton
+                                                        categoria={t.categoria}
+                                                        txId={t.id}
+                                                        periodo={periodo}
+                                                        onRecategorize={recategorizeMonth}
+                                                        allCats={allCats}
+                                                    />
+                                                </div>
                                             </div>
+                                            <div className="tx-amount">{CLP(t.monto)}</div>
                                         </div>
-                                        <div className="tx-amount">{CLP(t.monto)}</div>
-                                    </div>
-                                ))}
-                            </div>}
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     );
                 });
+
+                const SectionLabel = ({ label, color, mt = 0 }) => (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, marginTop: mt }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color, letterSpacing: '.04em' }}>{label}</span>
+                        <div style={{ flex: 1, height: 1, background: 'var(--border-light)' }} />
+                    </div>
+                );
 
                 if (!hasIngresos) return renderGroup(byCategory.egresos);
 
@@ -293,33 +375,25 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                     <>
                         {byCategory.egresos.length > 0 && (
                             <>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
-                                    ↓ Egresos
-                                </div>
+                                <SectionLabel label="Egresos" color="var(--danger)" />
                                 {renderGroup(byCategory.egresos)}
                             </>
                         )}
                         {byCategory.ingresos.length > 0 && (
                             <>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--success, #059669)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: byCategory.egresos.length > 0 ? 4 : 0 }}>
-                                    ↑ Ingresos del período
-                                </div>
+                                <SectionLabel label="Ingresos del período" color="var(--success)" mt={byCategory.egresos.length > 0 ? 8 : 0} />
                                 {renderGroup(byCategory.ingresos)}
                             </>
                         )}
                         {byCategory.traspasos?.length > 0 && (
                             <>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: 4 }}>
-                                    ⇄ Pagos tarjeta de crédito
-                                </div>
+                                <SectionLabel label="Pagos tarjeta de crédito" color="var(--text-tertiary)" mt={8} />
                                 {renderGroup(byCategory.traspasos)}
                             </>
                         )}
                         {byCategory.ahorros?.length > 0 && (
                             <>
-                                <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: 4 }}>
-                                    ↗ Ahorro / inversión
-                                </div>
+                                <SectionLabel label="Ahorro / inversión" color="var(--success)" mt={8} />
                                 {renderGroup(byCategory.ahorros)}
                             </>
                         )}
