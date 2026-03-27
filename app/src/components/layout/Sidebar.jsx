@@ -5,9 +5,9 @@ import { useTheme } from '../../context/ThemeContext';
 const NAV = [
     { id: 'dashboard', label: 'Dashboard', Icon: BarChart2 },
     { id: 'home', label: 'Resumen', Icon: Home },
+    { id: 'history', label: 'Historial', Icon: Clock },
     { id: 'fixed', label: 'Registros', Icon: FileText },
     { id: 'budget', label: 'Presupuesto', Icon: Target },
-    { id: 'history', label: 'Historial', Icon: Clock },
     { id: 'config', label: 'Configuración', Icon: Settings },
 ];
 

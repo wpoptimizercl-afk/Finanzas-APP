@@ -3,9 +3,9 @@ import { BarChart2, Home, FileText, Target, Clock, Settings } from 'lucide-react
 const NAV = [
     { id: 'dashboard', label: 'Dashboard', Icon: BarChart2 },
     { id: 'home', label: 'Resumen', Icon: Home },
+    { id: 'history', label: 'Historial', Icon: Clock },
     { id: 'fixed', label: 'Registros', Icon: FileText },
     { id: 'budget', label: 'Presupuesto', Icon: Target },
-    { id: 'history', label: 'Historial', Icon: Clock },
     { id: 'config', label: 'Config', Icon: Settings },
 ];
 
