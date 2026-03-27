@@ -92,7 +92,7 @@ export default function ManualAdjustmentsPage({
         <div className="animate-fadeIn">
             <div className="page-header">
                 <div>
-                    <div className="page-title">Ajustes manuales</div>
+                    <div className="page-title">Registros manuales</div>
                     <div className="page-subtitle">Ingresos extra y gastos no bancarios por mes</div>
                 </div>
             </div>
