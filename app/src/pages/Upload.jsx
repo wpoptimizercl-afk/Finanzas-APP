@@ -213,7 +213,9 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
 
                 const monthData = { ...parsed, transacciones: txs, categorias: cats, total_cargos: totalCargos };
                 const totalOps = parsed.total_operaciones || 0;
-                const mismatch = !isCC && totalOps > 0 && Math.abs(totalOps - totalOpsSum) > 100;
+                // Solo avisar si faltan transacciones (diferencia positiva).
+                // Diferencia negativa (extraemos más que total_operaciones) no es accionable.
+                const mismatch = !isCC && totalOps > 0 && (totalOps - totalOpsSum) > 100;
 
                 const existing = months.find(m => m.periodo === parsed.periodo && m.account_id === accountId);
                 const saveKey = overridePeriod || parsed.periodo;
