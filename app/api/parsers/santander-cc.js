@@ -37,19 +37,47 @@ import { categorizeCCTransaction } from './category-rules.js';
  *   "20.41610.730"     → [20416, 10730]    (cargo=20.416, saldo=10.730)
  *   "9000042.460"      → [2460]            (DCTO56=900004, monto=2.460)
  *   "688.690"          → [688690]
+ *   "6001339129.743"   → [912, 9743]       (DCTO56=600133, monto=912, saldo=9.743)
  */
 function parseCCNumSuffix(numStr) {
     if (!numStr) return [];
-    // Strip leading DCTO56: 5-6 digits without dots followed by a Chilean amount start
-    const stripped = numStr.replace(/^\d{5,6}(?=\d{1,3}\.)/, '');
-    // Extract all Chilean amounts (\d{1,3}(?:\.\d{3})+) left to right
+
+    // Strip leading DCTO56: exactamente 5-6 dígitos seguidos de cualquier dígito
+    // (el lookahead anterior era \d{1,3}\. que fallaba cuando el monto < 1000 no tiene puntos)
+    const stripped = numStr.replace(/^\d{5,6}(?=\d)/, '');
+
     const AMT_RE = /\d{1,3}(?:\.\d{3})+/g;
-    const results = [];
+
+    // Caso 1: el string completo es un único monto chileno (sin saldo)
+    // ej: "1.449.274", "100.000", "62.143"
+    if (/^\d{1,3}(?:\.\d{3})+$/.test(stripped)) {
+        return [parseChileanAmount(stripped)];
+    }
+
+    // Caso 2: dos montos chilenos adyacentes (monto + saldo, ambos ≥ 1000)
+    // ej: "44.3338.831" → [44333, 8831], "20.416303.164" → [20416, 303164]
+    const allAmts = [];
     let m;
     while ((m = AMT_RE.exec(stripped)) !== null) {
-        results.push(parseChileanAmount(m[0]));
+        allAmts.push(m);
     }
-    return results;
+    if (allAmts.length >= 2 &&
+        allAmts[0].index + allAmts[0][0].length === allAmts[1].index) {
+        return allAmts.map(a => parseChileanAmount(a[0]));
+    }
+
+    // Caso 3: monto bare (< 1000, sin puntos) seguido de monto chileno (saldo)
+    // ej: "9129.743" → monto=912, saldo=9.743 (la regex es greedy en \d{1,3})
+    const bareAndSaldo = stripped.match(/^(\d{1,3})(\d{1,3}(?:\.\d{3})+)$/);
+    if (bareAndSaldo) {
+        return [
+            parseInt(bareAndSaldo[1], 10),
+            parseChileanAmount(bareAndSaldo[2]),
+        ];
+    }
+
+    // Fallback: retornar los montos chilenos encontrados
+    return allAmts.map(a => parseChileanAmount(a[0]));
 }
 
 // ── Regex ────────────────────────────────────────────────────────────────────
@@ -237,10 +265,13 @@ export function parseSantanderCC(pdfText) {
     }
 
     // ── Derivar periodo ───────────────────────────────────────────────────────
+    // Usar periodo_hasta (fecha de cierre) para nombrar el mes, igual que TC.
+    // ej: cartola 30/01→27/02 = "Febrero 2026", no "Enero 2026".
     const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     let periodo = '';
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(periodo_desde)) {
-        const [, m, y] = periodo_desde.split('/').map(Number);
+    const dateForPeriodo = periodo_hasta || periodo_desde;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateForPeriodo)) {
+        const [, m, y] = dateForPeriodo.split('/').map(Number);
         if (m >= 1 && m <= 12) periodo = `${MONTH_NAMES[m - 1]} ${y}`;
     }
 

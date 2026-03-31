@@ -157,4 +157,30 @@ describe('parseSantanderCC — cartola-73', () => {
     it('saldo_final = 1801', () => {
         expect(result.saldo_final).toBe(1801);
     });
+
+    it('periodo = "Febrero 2026" (usa periodo_hasta 27/02, no periodo_desde 30/01)', () => {
+        expect(result.periodo).toBe('Febrero 2026');
+    });
+
+    it('suma abonos = 1564258 (coincide con resumen banco)', () => {
+        const sum = result.transacciones
+            .filter(t => t.tipo === 'abono')
+            .reduce((s, t) => s + t.monto, 0);
+        expect(sum).toBe(1564258);
+    });
+
+    it('Transf. Comercializadora 09/02 = $912 (monto bare sin puntos)', () => {
+        const tx = result.transacciones.find(
+            t => t.tipo === 'abono' && t.fecha.startsWith('09/02') &&
+                 t.descripcion.toLowerCase().includes('comercializadora')
+        );
+        expect(tx).toBeDefined();
+        expect(tx.monto).toBe(912);
+    });
+
+    it('balance cuadra: saldo_inicial + abonos - cargos = saldo_final', () => {
+        const abonos = result.transacciones.filter(t => t.tipo === 'abono').reduce((s, t) => s + t.monto, 0);
+        const cargos = result.transacciones.filter(t => t.tipo === 'cargo').reduce((s, t) => s + t.monto, 0);
+        expect(result.saldo_inicial + abonos - cargos).toBe(result.saldo_final);
+    });
 });
