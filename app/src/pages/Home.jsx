@@ -204,6 +204,21 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                 </div>
             )}
 
+            {/* ── Unified category breakdown ───────────────────────────────── */}
+            {mergedCatRows.length > 0 && (
+                <>
+                    <Section mt="0">Gastos por categoría</Section>
+                    {prevLabel && (
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
+                            Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
+                        </div>
+                    )}
+                    <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                        {mergedCatRows.map((c, i, arr) => renderCatRow(c, i, arr))}
+                    </div>
+                </>
+            )}
+
             {/* ── TC section ───────────────────────────────────────────────── */}
             {tcSources.length > 0 && (() => {
                 const currentCuotas = allCuotas.filter(c => (c.cuota_actual || 0) > 0);
@@ -315,21 +330,6 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     </div>
                 );
             })()}
-
-            {/* ── Unified category breakdown ───────────────────────────────── */}
-            {mergedCatRows.length > 0 && (
-                <>
-                    <Section mt="0">Gastos por categoría</Section>
-                    {prevLabel && (
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
-                            Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
-                        </div>
-                    )}
-                    <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
-                        {mergedCatRows.map((c, i, arr) => renderCatRow(c, i, arr))}
-                    </div>
-                </>
-            )}
 
             {/* Fixed items */}
             {fixedItems.length > 0 && (
