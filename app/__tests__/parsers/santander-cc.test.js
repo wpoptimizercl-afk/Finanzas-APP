@@ -98,12 +98,18 @@ describe('parseSantanderCC — cartola-71', () => {
         expect(pago.categoria).toBe('pago_servicios');
     });
 
-    it('RECUP COM PLAN es abono', () => {
+    it('RECUP COM PLAN no aparece en transacciones (es ajuste informativo de comisiones)', () => {
         const recup = result.transacciones.find(t =>
             t.descripcion.toLowerCase().includes('recup com')
         );
-        expect(recup).toBeDefined();
-        expect(recup.tipo).toBe('abono');
+        expect(recup).toBeUndefined();
+    });
+
+    it('suma abonos = 1847614 (coincide con otros_abonos del resumen bancario)', () => {
+        const abonos = result.transacciones
+            .filter(t => t.tipo === 'abono')
+            .reduce((s, t) => s + t.monto, 0);
+        expect(abonos).toBe(1847614);
     });
 
     it('DCTO10 (0779537005) no aparece como descripción', () => {

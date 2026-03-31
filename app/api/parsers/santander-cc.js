@@ -109,7 +109,6 @@ function determinarTipo(desc) {
     if (d.includes('com.mantencion'))                 return 'cargo';
     if (d.includes('com. mantencion'))                return 'cargo';
     if (d.includes('transf.') || d.includes('transf de ') || d.includes('transf. ')) return 'abono';
-    if (d.includes('recup com plan'))                 return 'abono';
     return null; // desconocido
 }
 
@@ -234,6 +233,11 @@ export function parseSantanderCC(pdfText) {
         }
 
         if (!descripcion) continue;
+
+        // Excluir entradas de comisiones (RECUP COM PLAN): aparecen en DETALLE y en
+        // "Resumen de Comisiones" pero NO afectan el saldo (no están en otros_abonos
+        // ni en otros_cargos del resumen bancario). Son ajustes informativos.
+        if (descripcion.toLowerCase().includes('recup com plan')) continue;
 
         // Extraer montos del sufijo numérico (maneja DCTO56 concatenado)
         const amounts = parseCCNumSuffix(numSuffix);
