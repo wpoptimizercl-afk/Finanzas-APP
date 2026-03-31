@@ -295,7 +295,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
 
             {/* Summary grid */}
             <div style={{ marginBottom: '1.25rem' }}>
-                {hasIngresos ? (() => {
+                {(() => {
                     const hasTraspasos = byCategory.traspasos?.length > 0;
                     const hasAhorros = byCategory.ahorros?.length > 0;
                     const stats = [
@@ -316,13 +316,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                             ))}
                         </div>
                     );
-                })() : (
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                        <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{CLP(totalEgresos)}</span>
-                        <span style={{ color: 'var(--text-tertiary)', margin: '0 5px' }}>·</span>
-                        <span>{filtered.filter(t => t.tipo === 'cargo').length} transacciones</span>
-                    </div>
-                )}
+                })()}
                 {query && (
                     <div style={{ marginTop: 6 }}>
                         <button onClick={() => setQuery('')} style={{ fontSize: 12, color: 'var(--primary)', fontWeight: 500, border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
