@@ -110,7 +110,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
         const dColor = c.delta === null ? null : c.delta <= 0 ? 'var(--success-text)' : '#fff';
         const dBg = c.delta === null ? null : c.delta <= 0 ? 'var(--success-light)' : c.delta > 20 ? '#B91C1C' : '#B45309';
         return (
-            <div key={c.key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none', background: over ? 'var(--danger-light)' : 'transparent' }}>
+            <div key={c.key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none', background: 'transparent' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: c.tope > 0 ? 8 : 0 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0, display: 'block' }} />
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{c.label}</span>
