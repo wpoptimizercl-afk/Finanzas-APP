@@ -98,6 +98,14 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
         return new Date(y, m - 1, d);
     };
 
+    const formatInputDate = (dStr) => {
+        if (!dStr) return '';
+        const parts = dStr.split('/');
+        if (parts.length !== 3) return '';
+        const [d, m, y] = parts;
+        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    };
+
     // Rango efectivo de todas las fuentes del período (no solo primarySource)
     const effectivePeriodFrom = sources.reduce((min, s) => {
         if (!s.periodo_desde) return min;
@@ -109,14 +117,6 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
         const d = formatInputDate(s.periodo_hasta);
         return (!max || d > max) ? d : max;
     }, '');
-
-    const formatInputDate = (dStr) => {
-        if (!dStr) return '';
-        const parts = dStr.split('/');
-        if (parts.length !== 3) return '';
-        const [d, m, y] = parts;
-        return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-    };
 
     // All transactions from all sources for this period, with account metadata
     const allTxs = useMemo(() => sources.flatMap(s => {
