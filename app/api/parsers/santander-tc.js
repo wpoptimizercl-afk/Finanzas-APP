@@ -237,9 +237,12 @@ export function parseSantanderTC(pdfText) {
     }
 
     // ── Derivar periodo ───────────────────────────────────────────────────────
+    // Usar periodo_hasta (fecha de cierre) porque los bancos nombran el extracto
+    // por el mes en que cierra el período, no por el mes de inicio.
+    // Ej: 29/01/2026–26/02/2026 → "Febrero 2026" (cierra en febrero)
     const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     let periodo = '';
-    const dateForPeriodo = periodo_desde || periodo_hasta;
+    const dateForPeriodo = periodo_hasta || periodo_desde;
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateForPeriodo)) {
         const [, m, y] = dateForPeriodo.split('/').map(Number);
         if (m >= 1 && m <= 12) periodo = `${MONTH_NAMES[m - 1]} ${y}`;

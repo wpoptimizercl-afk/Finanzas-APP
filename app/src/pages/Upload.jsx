@@ -192,6 +192,9 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
 
                 const cats = {};
                 let totalCargos = 0;
+                // totalOpsSum excluye cargos_banco porque total_operaciones del PDF
+                // corresponde solo a Sección 1 (compras), no a Sección 3 (comisiones banco)
+                let totalOpsSum = 0;
                 txs.forEach(t => {
                     if (t.tipo === 'abono' || t.tipo === 'traspaso_tc') {
                         cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
@@ -203,13 +206,14 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                             if (t.categoria !== 'traspaso_tc') totalCargos += t.monto;
                         } else {
                             totalCargos += t.monto;
+                            if (t.categoria !== 'cargos_banco') totalOpsSum += t.monto;
                         }
                     }
                 });
 
                 const monthData = { ...parsed, transacciones: txs, categorias: cats, total_cargos: totalCargos };
                 const totalOps = parsed.total_operaciones || 0;
-                const mismatch = !isCC && totalOps > 0 && Math.abs(totalOps - totalCargos) > 100;
+                const mismatch = !isCC && totalOps > 0 && Math.abs(totalOps - totalOpsSum) > 100;
 
                 const existing = months.find(m => m.periodo === parsed.periodo && m.account_id === accountId);
                 const saveKey = overridePeriod || parsed.periodo;
@@ -241,7 +245,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                 }
 
                 const doneMsg = mismatch
-                    ? `Guardado — faltan ~$${(totalOps - totalCargos).toLocaleString('es-CL')} según PDF`
+                    ? `Guardado — faltan ~$${(totalOps - totalOpsSum).toLocaleString('es-CL')} según PDF`
                     : existing && !overridePeriod ? 'Actualizado ✓' : 'Guardado ✓';
                 setQueue(q => q.map(x => x.id === item.id ? { ...x, status: mismatch ? 'warn' : 'done', progress: 100, msg: doneMsg, result: monthData } : x));
             } catch (e) {

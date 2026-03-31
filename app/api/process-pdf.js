@@ -495,13 +495,16 @@ const DATE_RE = /^\d{2}\/\d{2}\/\d{4}$/;
 
 const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-function derivePeriodo(rawPeriodo, rawDesde) {
+function derivePeriodo(rawPeriodo, rawDesde, rawHasta) {
     // 1. Try the value the AI returned directly
     if (VALID_MONTHS_RE.test((rawPeriodo || '').trim())) return rawPeriodo.trim();
-    // 2. Fallback: derive from periodo_desde (DD/MM/YYYY)
-    if (DATE_RE.test(rawDesde)) {
-        const [, m, y] = rawDesde.split('/').map(Number);
-        if (m >= 1 && m <= 12 && y >= 2020 && y <= 2099) return `${MONTH_NAMES_ES[m - 1]} ${y}`;
+    // 2. Fallback: prefer periodo_hasta (fecha de cierre) — los bancos nombran el
+    //    extracto por el mes en que cierra el período, no por el de inicio.
+    for (const raw of [rawHasta, rawDesde]) {
+        if (DATE_RE.test(raw)) {
+            const [, m, y] = raw.split('/').map(Number);
+            if (m >= 1 && m <= 12 && y >= 2020 && y <= 2099) return `${MONTH_NAMES_ES[m - 1]} ${y}`;
+        }
     }
     return 'Desconocido';
 }
@@ -534,7 +537,7 @@ export function normalizeAIResponse(data) {
     const rawHasta = data.periodo_hasta || '';
     return {
         id: `month_${Date.now()}`,
-        periodo: derivePeriodo(rawPeriodo, rawDesde),
+        periodo: derivePeriodo(rawPeriodo, rawDesde, rawHasta),
         periodo_desde: DATE_RE.test(rawDesde) ? rawDesde : '',
         periodo_hasta: DATE_RE.test(rawHasta) ? rawHasta : '',
         total_operaciones: parseChileanAmount(data.total_operaciones),
