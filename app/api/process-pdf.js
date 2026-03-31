@@ -5,6 +5,8 @@ const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import { parseSantanderTC } from './parsers/santander-tc.js';
+import { parseSantanderCC } from './parsers/santander-cc.js';
 
 console.log('[API] process-pdf initialized with classic pdf-parse');
 
@@ -669,7 +671,23 @@ export default async function handler(req, res) {
             return res.status(422).json({ error: 'No se pudo extraer suficiente texto del PDF. Verifica que no sea una imagen escaneada.' });
         }
 
-        // 2. Call OpenAI — route to correct prompt based on bank type
+        // 2. Parser determinístico (Santander TC/CC) — fallback a IA si falla
+        const USE_DETERMINISTIC = process.env.USE_DETERMINISTIC_PARSER !== 'false';
+        if (USE_DETERMINISTIC && (bank === 'santander_tc' || bank === 'santander_cc')) {
+            try {
+                const parser = bank === 'santander_tc' ? parseSantanderTC : parseSantanderCC;
+                const parsed = parser(pdfText);
+                if (!parsed.transacciones?.length) throw new Error('PARSER_EMPTY_RESULT');
+                const output = normalizeAIResponse(parsed);
+                console.log(`[process-pdf] Parser determinístico OK: ${output.transacciones.length} transacciones`);
+                return res.status(200).json(output);
+            } catch (err) {
+                console.warn('[process-pdf] Parser determinístico falló, usando IA:', err.message);
+                // Fall through to OpenAI
+            }
+        }
+
+        // 3. Call OpenAI — route to correct prompt based on bank type
         const isCC = bank === 'santander_cc';
         const systemPrompt = isCC ? SYSTEM_PROMPT_CC : SYSTEM_PROMPT;
         console.log(`[process-pdf] Llamando a OpenAI (${isCC ? 'cuenta corriente' : 'tarjeta crédito'})...`);
