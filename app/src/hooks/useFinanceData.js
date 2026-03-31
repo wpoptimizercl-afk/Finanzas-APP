@@ -309,15 +309,12 @@ export function useFinanceData() {
         setCustomCats(prev => { const n = { ...prev }; delete n[id]; return n; });
     }, [uid]);
 
-    const recategorizeMonth = useCallback(async (periodo, txId, newCat) => {
+    const recategorizeMonth = useCallback(async (periodo, txId, newCat, txDesc) => {
         const current = monthsRef.current;
-        const m = current.find(x => (x.transacciones || []).some(t => t.id === txId));
-        if (!m) return;
-        const tx = (m.transacciones || []).find(t => t.id === txId);
-        if (!tx) return;
-        const ruleKey = (tx.descripcion || '').toLowerCase().trim();
+        const ruleKey = (txDesc || '').toLowerCase().trim();
+        if (!ruleKey) return;
 
-        await saveCatRule(tx.descripcion, newCat);
+        await saveCatRule(txDesc, newCat);
 
         const newMonths = current.map(mon => {
             const txs = mon.transacciones || [];

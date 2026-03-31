@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightSm, Search, Trash2, SlidersHorizontal, X, Tag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightSm, Search, Trash2, SlidersHorizontal, X, Tag, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import { CategoryPicker } from '../components/CategoryPicker';
 import { CLP } from '../utils/formatters';
 
-function RecategorizeButton({ categoria, txId, periodo, onRecategorize, allCats }) {
+function RecategorizeButton({ categoria, txId, txDesc, periodo, onRecategorize, allCats }) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 
@@ -43,7 +43,7 @@ function RecategorizeButton({ categoria, txId, periodo, onRecategorize, allCats 
                 <CategoryPicker
                     current={categoria}
                     allCats={allCats}
-                    onSelect={cat => { onRecategorize(periodo, txId, cat); setOpen(false); }}
+                    onSelect={cat => { onRecategorize(periodo, txId, cat, txDesc); setOpen(false); }}
                     onClose={() => setOpen(false)}
                 />
             )}
@@ -59,6 +59,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
     const [activeSourceId, setActiveSourceId] = useState(null); // null = todas
     const [collapsedCats, setCollapsedCats] = useState({});
     const [showDateFilter, setShowDateFilter] = useState(false);
+    const [catSort, setCatSort] = useState({ by: 'name', dir: 'asc' });
 
     const idx = uniqueSortedPeriods.length > 0 ? Math.min(selIdx, uniqueSortedPeriods.length - 1) : 0;
     const periodo = uniqueSortedPeriods[idx] || null;
@@ -87,9 +88,27 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
 
     const parseTxDate = (dStr) => {
         if (!dStr) return null;
+        if (dStr.includes('-')) {
+            const [y, m, d] = dStr.split('-').map(Number);
+            if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+            return new Date(y, m - 1, d);
+        }
         const [d, m, y] = dStr.split('/').map(Number);
+        if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
         return new Date(y, m - 1, d);
     };
+
+    // Rango efectivo de todas las fuentes del período (no solo primarySource)
+    const effectivePeriodFrom = sources.reduce((min, s) => {
+        if (!s.periodo_desde) return min;
+        const d = formatInputDate(s.periodo_desde);
+        return (!min || d < min) ? d : min;
+    }, '');
+    const effectivePeriodTo = sources.reduce((max, s) => {
+        if (!s.periodo_hasta) return max;
+        const d = formatInputDate(s.periodo_hasta);
+        return (!max || d > max) ? d : max;
+    }, '');
 
     const formatInputDate = (dStr) => {
         if (!dStr) return '';
@@ -121,11 +140,11 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
         }
         if (dateRange.start) {
             const s = new Date(dateRange.start + 'T00:00:00');
-            res = res.filter(t => parseTxDate(t.fecha) >= s);
+            res = res.filter(t => { const d = parseTxDate(t.fecha); return d === null || d >= s; });
         }
         if (dateRange.end) {
             const e = new Date(dateRange.end + 'T23:59:59');
-            res = res.filter(t => parseTxDate(t.fecha) <= e);
+            res = res.filter(t => { const d = parseTxDate(t.fecha); return d === null || d <= e; });
         }
         return res;
     }, [txsForFilter, query, dateRange]);
@@ -133,9 +152,16 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
     const hasIngresos = useMemo(() => allTxs.some(t => t.tipo === 'abono' && t.tipo !== 'traspaso_tc' && t.categoria !== 'traspaso_tc'), [allTxs]);
 
     const byCategory = useMemo(() => {
-        const sortEntries = (m) => Object.entries(m).sort(
-            (a, b) => (allCats[a[0]]?.label || a[0]).localeCompare(allCats[b[0]]?.label || b[0], 'es')
-        );
+        const sortEntries = (m) => Object.entries(m).sort((a, b) => {
+            if (catSort.by === 'value') {
+                const va = a[1].reduce((s, t) => s + t.monto, 0);
+                const vb = b[1].reduce((s, t) => s + t.monto, 0);
+                return catSort.dir === 'asc' ? va - vb : vb - va;
+            }
+            const la = allCats[a[0]]?.label || a[0];
+            const lb = allCats[b[0]]?.label || b[0];
+            return catSort.dir === 'asc' ? la.localeCompare(lb, 'es') : lb.localeCompare(la, 'es');
+        });
         const eMap = {}, iMap = {}, tMap = {}, aMap = {};
         filtered.forEach(t => {
             if (t.tipo === 'traspaso_tc' || t.categoria === 'traspaso_tc') {
@@ -152,7 +178,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
         });
         if (!hasIngresos) return { egresos: sortEntries(eMap), ingresos: [], traspasos: sortEntries(tMap), ahorros: sortEntries(aMap) };
         return { egresos: sortEntries(eMap), ingresos: sortEntries(iMap), traspasos: sortEntries(tMap), ahorros: sortEntries(aMap) };
-    }, [filtered, hasIngresos]);
+    }, [filtered, hasIngresos, allCats, catSort]);
 
     const totalEgresos = byCategory.egresos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0);
     const totalIngresos = byCategory.ingresos.reduce((s, [, l]) => s + l.reduce((a, t) => a + t.monto, 0), 0);
@@ -249,14 +275,14 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: '1rem', padding: '10px 12px', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
                     <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginRight: 2, flexShrink: 0 }}>Desde</span>
                     <input type="date" value={dateRange.start}
-                        min={formatInputDate(primarySource?.periodo_desde)}
-                        max={formatInputDate(primarySource?.periodo_hasta)}
+                        min={effectivePeriodFrom}
+                        max={effectivePeriodTo}
                         onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))}
                         className="input" style={{ flex: 1, fontSize: 12, padding: '7px 10px' }} />
                     <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>hasta</span>
                     <input type="date" value={dateRange.end}
-                        min={formatInputDate(primarySource?.periodo_desde)}
-                        max={formatInputDate(primarySource?.periodo_hasta)}
+                        min={effectivePeriodFrom}
+                        max={effectivePeriodTo}
                         onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))}
                         className="input" style={{ flex: 1, fontSize: 12, padding: '7px 10px' }} />
                     {(dateRange.start || dateRange.end) && (
@@ -306,6 +332,30 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                 )}
             </div>
 
+            {/* Category sort controls */}
+            {(byCategory.egresos.length > 0 || byCategory.ingresos.length > 0) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>Categorías</span>
+                    {[{ key: 'name', label: 'Nombre' }, { key: 'value', label: 'Valor' }].map(({ key, label }) => {
+                        const isActive = catSort.by === key;
+                        return (
+                            <button
+                                key={key}
+                                onClick={() => setCatSort(prev => prev.by === key ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { by: key, dir: 'asc' })}
+                                aria-label={`Ordenar por ${label}${isActive ? (catSort.dir === 'asc' ? ', ascendente' : ', descendente') : ''}`}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, padding: '3px 8px', borderRadius: 'var(--radius-full)', border: `1px solid ${isActive ? 'var(--primary)' : 'var(--border-medium)'}`, background: isActive ? 'var(--primary-light)' : 'var(--bg-card)', color: isActive ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 500, cursor: 'pointer' }}
+                            >
+                                {label}
+                                {isActive
+                                    ? (catSort.dir === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />)
+                                    : <ArrowUpDown size={10} style={{ opacity: 0.35 }} />
+                                }
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* Transaction groups */}
             {(() => {
                 const renderGroup = (entries) => entries.map(([cat, txList]) => {
@@ -330,7 +380,14 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                             </div>
                             {!isCollapsed && (
                                 <div className="card" style={{ padding: 0, overflow: 'visible', marginTop: 2 }}>
-                                    {txList.sort((a, b) => b.monto - a.monto).map((t) => (
+                                    {txList.slice().sort((a, b) => {
+                                        const da = parseTxDate(a.fecha);
+                                        const db = parseTxDate(b.fecha);
+                                        if (!da && !db) return 0;
+                                        if (!da) return 1;
+                                        if (!db) return -1;
+                                        return da - db;
+                                    }).map((t) => (
                                         <div key={t.id} className="tx-row">
                                             <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
                                                 <div className="tx-desc">{t.descripcion}</div>
@@ -344,6 +401,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                                     <RecategorizeButton
                                                         categoria={t.categoria}
                                                         txId={t.id}
+                                                        txDesc={t.descripcion}
                                                         periodo={periodo}
                                                         onRecategorize={recategorizeMonth}
                                                         allCats={allCats}
