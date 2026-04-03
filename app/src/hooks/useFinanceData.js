@@ -46,12 +46,28 @@ export function useFinanceData() {
                 (txR.data || []).forEach(t => { (txMap[t.month_id] = txMap[t.month_id] || []).push(t); });
 
                 setMonths(
-                    (mR.data || []).map(row => ({
-                        ...row,
-                        categorias: parseJ(row.categorias, {}),
-                        cuotas_vigentes: parseJ(row.cuotas_vigentes, []),
-                        transacciones: txMap[row.id] || [],
-                    }))
+                    (mR.data || []).map(row => {
+                        const transacciones = txMap[row.id] || [];
+                        const tempTxs = transacciones.filter(t => t.is_temporary);
+                        let categorias = parseJ(row.categorias, {});
+                        let total_cargos = row.total_cargos || 0;
+                        // Recalcular desde transacciones temporales si el mes no tiene datos reales
+                        if (total_cargos === 0 && tempTxs.length > 0) {
+                            categorias = { ...categorias };
+                            tempTxs.forEach(t => {
+                                const cat = t.categoria || 'otros';
+                                categorias[cat] = (categorias[cat] || 0) + t.monto;
+                                total_cargos += t.monto;
+                            });
+                        }
+                        return {
+                            ...row,
+                            categorias,
+                            total_cargos,
+                            cuotas_vigentes: parseJ(row.cuotas_vigentes, []),
+                            transacciones,
+                        };
+                    })
                 );
 
                 const fbm = {};
