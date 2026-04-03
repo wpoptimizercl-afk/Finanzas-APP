@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { Plus } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { useFinanceData } from './hooks/useFinanceData';
 import QuickExpenseModal from './components/QuickExpenseModal';
+import FABMenu from './components/FABMenu';
 // Layout
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
@@ -243,11 +243,12 @@ function AppInner() {
       {/* Mobile bottom nav */}
       <BottomNav {...navProps} />
 
-      {/* FAB — gasto rápido */}
+      {/* FAB Menu — speed dial: gasto rápido + subir estado de cuenta */}
       {ready && accounts.length > 0 && (
-        <button className="fab" onClick={() => setShowQuickExpense(true)} title="Registrar gasto rápido">
-          <Plus size={24} />
-        </button>
+        <FABMenu
+          onQuickExpense={() => setShowQuickExpense(true)}
+          onUploadStatement={() => setView('upload')}
+        />
       )}
 
       {/* Modal gasto rápido */}

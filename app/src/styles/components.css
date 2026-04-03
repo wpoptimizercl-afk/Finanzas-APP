@@ -639,13 +639,11 @@ select.input {
     box-shadow: 0 3px 10px rgba(37, 99, 235, .3);
 }
 
-/* ── FAB — Floating Action Button ───────────────────────────────── */
+/* ── FAB — Floating Action Button (botón dentro de FABMenu) ──────── */
 .fab {
-    position: fixed;
-    bottom: calc(var(--bottomnav-height) + 16px);
-    right: 20px;
     width: 56px;
     height: 56px;
+    flex-shrink: 0;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--primary-hover, #047857));
     color: #fff;
@@ -654,14 +652,83 @@ select.input {
     align-items: center;
     justify-content: center;
     box-shadow: 0 6px 20px rgba(5, 150, 105, .4);
-    z-index: 45;
     cursor: pointer;
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .fab:hover { transform: scale(1.08); }
 .fab:active { transform: scale(0.95); }
+.fab:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* ── FAB Menu — Speed Dial ───────────────────────────────────────── */
+.fab-menu {
+    position: fixed;
+    bottom: calc(var(--bottomnav-height) + 16px);
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    z-index: 45;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.fab-menu--hidden {
+    transform: translateY(20px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Capa invisible que captura clicks fuera del menú */
+.fab-menu__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 44;
+    cursor: default;
+}
+
+/* Contenedor de acciones del speed dial */
+.fab-menu__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+    transition: opacity 0.15s ease-in, transform 0.15s ease-in;
+}
+
+.fab-menu__actions--open {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+/* Botón de acción individual (pill) */
+.fab-menu__action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px 0 12px;
+    height: 44px;
+    border-radius: 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-medium);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
+    transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.fab-menu__action:hover { background: var(--bg-hover); }
+.fab-menu__action:active { transform: scale(0.97); }
+.fab-menu__action:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 @media (min-width: 768px) {
-    .fab { bottom: 32px; right: 32px; }
+    .fab-menu { bottom: 32px; right: 32px; }
 }

@@ -108,7 +108,6 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
         <div className="animate-fadeIn">
             <div className="page-header">
                 <div className="page-title">Dashboard</div>
-                <button className="btn btn-primary btn-sm" onClick={onGoUpload}>+ Subir</button>
             </div>
 
             <div className="page-header-meta">
