@@ -41,6 +41,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
     const extraTotal = getMonthExtraTotal(periodo, extraByMonth);
     const income = getMonthIncome(periodo, incomeByMonth, extraByMonth, defaultIncome);
     const incomeIsDefault = incomeByMonth[periodo] == null && extraTotal === 0;
+    const tempCount = sources.reduce((sum, m) => sum + (m.transacciones || []).filter(t => t.is_temporary).length, 0);
 
     // VIEW_MODE.ALL: excluye traspaso_tc en CC para evitar doble conteo con TC
     const totalGasto = getExpenseTotal(periodo, allMonths, fixedByMonth, VIEW_MODE.ALL);
@@ -155,6 +156,14 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     {incomeIsDefault && <Tag label="Ingreso estimado" color="var(--warning)" bg="var(--warning-light)" />}
                     {!isLatest && <Tag label="Mes anterior" color="var(--text-tertiary)" bg="var(--bg-hover)" />}
                     {tcSources.length > 0 && ccSources.length > 0 && <Tag label="TC + CC" color="#0891B2" bg="#ECFEFF" />}
+                    {tempCount > 0 && (
+                        <span style={{
+                            fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-full)',
+                            background: 'var(--warning-light)', color: 'var(--warning)', fontWeight: 600,
+                        }}>
+                            {tempCount} gasto{tempCount > 1 ? 's' : ''} temporal{tempCount > 1 ? 'es' : ''}
+                        </span>
+                    )}
                 </div>
             </div>
 

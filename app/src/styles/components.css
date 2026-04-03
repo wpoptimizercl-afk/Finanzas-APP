@@ -638,3 +638,30 @@ select.input {
     color: #fff;
     box-shadow: 0 3px 10px rgba(37, 99, 235, .3);
 }
+
+/* ── FAB — Floating Action Button ───────────────────────────────── */
+.fab {
+    position: fixed;
+    bottom: calc(var(--bottomnav-height) + 16px);
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover, #047857));
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(5, 150, 105, .4);
+    z-index: 45;
+    cursor: pointer;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.fab:hover { transform: scale(1.08); }
+.fab:active { transform: scale(0.95); }
+
+@media (min-width: 768px) {
+    .fab { bottom: 32px; right: 32px; }
+}

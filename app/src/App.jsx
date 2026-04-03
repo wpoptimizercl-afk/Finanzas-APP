@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { useFinanceData } from './hooks/useFinanceData';
+import QuickExpenseModal from './components/QuickExpenseModal';
 // Layout
 import Sidebar from './components/layout/Sidebar';
 import BottomNav from './components/layout/BottomNav';
@@ -27,6 +29,7 @@ function AppInner() {
   const { user, session, loading } = useAuth();
   const { toast } = useToast();
   const [view, setView] = useState('dashboard');
+  const [showQuickExpense, setShowQuickExpense] = useState(false);
 
   const {
     months, sorted, uniqueSortedPeriods, accounts,
@@ -37,14 +40,19 @@ function AppInner() {
     saveIncomeCategory, deleteIncomeCategory, saveIncomeItems, incomeCategories,
     saveBudget, saveCustomCat, deleteCustomCat, recategorizeMonth,
     saveCatRule, deleteCatRule,
+    saveTemporaryTransaction, deleteTransaction,
   } = useFinanceData();
 
   const defaultIncome = budget.income || 0;
 
   // Wrappers with toast feedback
   const handleSaveMonth = useCallback(async (data) => {
-    await saveMonth(data);
-    toast('Mes guardado correctamente', 'success');
+    const { tempCount } = await saveMonth(data);
+    if (tempCount > 0) {
+      toast(`Mes guardado · ${tempCount} gasto${tempCount > 1 ? 's' : ''} temporal${tempCount > 1 ? 'es' : ''} reemplazado${tempCount > 1 ? 's' : ''}`, 'success', 4000);
+    } else {
+      toast('Mes guardado correctamente', 'success');
+    }
   }, [saveMonth, toast]);
 
   const handleDeleteMonth = useCallback(async (periodo, monthId = null) => {
@@ -103,6 +111,16 @@ function AppInner() {
     await saveIncomeCategory(data);
     toast('Categoría de ingreso creada', 'success');
   }, [saveIncomeCategory, toast]);
+
+  const handleSaveTemporary = useCallback(async (data) => {
+    await saveTemporaryTransaction(data);
+    toast('Gasto registrado', 'success');
+  }, [saveTemporaryTransaction, toast]);
+
+  const handleDeleteTransaction = useCallback(async (txId, monthId) => {
+    await deleteTransaction(txId, monthId);
+    toast('Gasto temporal eliminado', 'default');
+  }, [deleteTransaction, toast]);
 
   // Loading
   if (loading) return (
@@ -171,6 +189,7 @@ function AppInner() {
           allMonths={sorted} uniqueSortedPeriods={uniqueSortedPeriods} accounts={accounts}
           allCats={allCats}
           deleteMonth={handleDeleteMonth} recategorizeMonth={recategorizeMonth}
+          deleteTransaction={handleDeleteTransaction}
         />
       );
       case 'budget': return (
@@ -219,6 +238,23 @@ function AppInner() {
 
       {/* Mobile bottom nav */}
       <BottomNav {...navProps} />
+
+      {/* FAB — gasto rápido */}
+      {ready && accounts.length > 0 && (
+        <button className="fab" onClick={() => setShowQuickExpense(true)} title="Registrar gasto rápido">
+          <Plus size={24} />
+        </button>
+      )}
+
+      {/* Modal gasto rápido */}
+      {showQuickExpense && (
+        <QuickExpenseModal
+          accounts={accounts}
+          allCats={allCats}
+          onSave={handleSaveTemporary}
+          onClose={() => setShowQuickExpense(false)}
+        />
+      )}
     </div>
   );
 }

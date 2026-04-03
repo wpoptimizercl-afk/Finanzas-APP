@@ -51,7 +51,7 @@ function RecategorizeButton({ categoria, txId, txDesc, periodo, onRecategorize, 
     );
 }
 
-export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, allCats, deleteMonth, recategorizeMonth }) {
+export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, allCats, deleteMonth, recategorizeMonth, deleteTransaction }) {
     const [selIdx, setSelIdx] = useState(() => Math.max(0, uniqueSortedPeriods.length - 1));
     const [query, setQuery] = useState('');
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -387,6 +387,14 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                                 <div className="tx-desc">{t.descripcion}</div>
                                                 <div className="tx-date" style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                                                     <span>{t.fecha}</span>
+                                                    {t.is_temporary && (
+                                                        <span style={{
+                                                            fontSize: 9, fontWeight: 700, padding: '1px 6px',
+                                                            borderRadius: 'var(--radius-full)',
+                                                            background: 'var(--warning-light)', color: 'var(--warning)',
+                                                            border: '1px solid var(--warning-border)', whiteSpace: 'nowrap',
+                                                        }}>temporal</span>
+                                                    )}
                                                     {sources.length > 1 && (
                                                         <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: `${t._accountColor}18`, color: t._accountColor, fontWeight: 600, border: `1px solid ${t._accountColor}30` }}>
                                                             {t._accountName}
@@ -402,7 +410,18 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                                     />
                                                 </div>
                                             </div>
-                                            <div className="tx-amount">{CLP(t.monto)}</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                {t.is_temporary && deleteTransaction && (
+                                                    <button
+                                                        onClick={() => deleteTransaction(t.id, t.month_id)}
+                                                        style={{ color: 'var(--text-tertiary)', padding: 4, background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
+                                                        title="Eliminar gasto temporal"
+                                                    >
+                                                        <Trash2 size={13} />
+                                                    </button>
+                                                )}
+                                                <div className="tx-amount">{CLP(t.monto)}</div>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

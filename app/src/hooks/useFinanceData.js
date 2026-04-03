@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { sortMonths } from '../utils/formatters';
-import { DEF_BUDGET, CAT } from '../lib/constants';
+import { DEF_BUDGET, CAT, MONTH_NAMES } from '../lib/constants';
 
 const parseJ = (v, fallback) => { try { return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
 
@@ -122,6 +122,12 @@ export function useFinanceData() {
             throw new Error(error?.message || 'Error guardando en base de datos. Operación abortada.');
         }
 
+        // Contar temporales antes de eliminar
+        const { count: tempCount = 0 } = await supabase.from('transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('month_id', saved.id)
+            .eq('is_temporary', true);
+
         // Upsert transactions
         if (transacciones.length) {
             const { error: delTxErr } = await supabase.from('transactions').delete().eq('month_id', saved.id);
@@ -143,7 +149,73 @@ export function useFinanceData() {
             const next = [full, ...prev.filter(m => !(m.account_id === mData.account_id && m.periodo === mData.periodo))].slice(0, 18);
             return sortMonths(next);
         });
+        return { tempCount: tempCount || 0 };
     }, [uid]);
+
+    const saveTemporaryTransaction = useCallback(async ({ monto, account_id, categoria, descripcion }) => {
+        const now = new Date();
+        const periodo = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
+        const dd = String(now.getDate()).padStart(2, '0');
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const fecha = `${dd}/${mm}/${now.getFullYear()}`;
+
+        let month = monthsRef.current.find(m => m.account_id === account_id && m.periodo === periodo);
+
+        if (!month) {
+            const { data: saved, error } = await supabase.from('months')
+                .upsert({
+                    user_id: uid,
+                    account_id,
+                    periodo,
+                    total_cargos: 0,
+                    categorias: JSON.stringify({}),
+                    cuotas_vigentes: JSON.stringify([]),
+                }, { onConflict: 'account_id,periodo' })
+                .select().single();
+            if (error || !saved) throw new Error(error?.message || 'Error creando mes placeholder');
+            month = { ...saved, categorias: {}, cuotas_vigentes: [], transacciones: [] };
+            setMonths(prev => sortMonths([month, ...prev]));
+        }
+
+        const { data: tx, error: txErr } = await supabase.from('transactions').insert({
+            user_id: uid,
+            month_id: month.id,
+            account_id,
+            fecha,
+            descripcion: descripcion || '',
+            monto,
+            categoria,
+            tipo: 'cargo',
+            is_temporary: true,
+        }).select().single();
+        if (txErr || !tx) throw new Error(txErr?.message || 'Error guardando transacción temporal');
+
+        setMonths(prev => prev.map(m => {
+            if (m.id !== month.id) return m;
+            const transacciones = [...(m.transacciones || []), tx];
+            const cats = { ...m.categorias };
+            cats[categoria] = (cats[categoria] || 0) + monto;
+            return { ...m, transacciones, categorias: cats, total_cargos: (m.total_cargos || 0) + monto };
+        }));
+    }, [uid]);
+
+    const deleteTransaction = useCallback(async (txId, monthId) => {
+        const { error } = await supabase.from('transactions').delete().eq('id', txId);
+        if (error) throw new Error(error.message);
+
+        setMonths(prev => prev.map(m => {
+            if (m.id !== monthId) return m;
+            const tx = (m.transacciones || []).find(t => t.id === txId);
+            if (!tx) return m;
+            const transacciones = m.transacciones.filter(t => t.id !== txId);
+            const cats = { ...m.categorias };
+            const cat = tx.categoria || 'otros';
+            cats[cat] = Math.max(0, (cats[cat] || 0) - tx.monto);
+            if (cats[cat] === 0) delete cats[cat];
+            const total_cargos = Math.max(0, (m.total_cargos || 0) - tx.monto);
+            return { ...m, transacciones, categorias: cats, total_cargos };
+        }));
+    }, []);
 
     const deleteMonth = useCallback(async (periodo, monthId = null) => {
         const toDelete = monthId
@@ -377,5 +449,6 @@ export function useFinanceData() {
         saveFixedItems, saveIncome, saveExtraItems,
         saveIncomeCategory, deleteIncomeCategory, saveIncomeItems,
         saveBudget, saveCatRule, deleteCatRule, saveCustomCat, deleteCustomCat, recategorizeMonth,
+        saveTemporaryTransaction, deleteTransaction,
     };
 }
