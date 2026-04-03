@@ -113,8 +113,12 @@ function AppInner() {
   }, [saveIncomeCategory, toast]);
 
   const handleSaveTemporary = useCallback(async (data) => {
-    await saveTemporaryTransaction(data);
-    toast('Gasto registrado', 'success');
+    try {
+      await saveTemporaryTransaction(data);
+      toast('Gasto registrado', 'success');
+    } catch (err) {
+      toast(err.message || 'Error al registrar gasto', 'error');
+    }
   }, [saveTemporaryTransaction, toast]);
 
   const handleDeleteTransaction = useCallback(async (txId, monthId) => {

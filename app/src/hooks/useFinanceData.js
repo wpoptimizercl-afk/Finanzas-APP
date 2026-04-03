@@ -160,6 +160,7 @@ export function useFinanceData() {
         const fecha = `${dd}/${mm}/${now.getFullYear()}`;
 
         let month = monthsRef.current.find(m => m.account_id === account_id && m.periodo === periodo);
+        const monthWasNew = !month;
 
         if (!month) {
             const { data: saved, error } = await supabase.from('months')
@@ -188,7 +189,13 @@ export function useFinanceData() {
             tipo: 'cargo',
             is_temporary: true,
         }).select().single();
-        if (txErr || !tx) throw new Error(txErr?.message || 'Error guardando transacción temporal');
+        if (txErr || !tx) {
+            if (monthWasNew) {
+                await supabase.from('months').delete().eq('id', month.id);
+                setMonths(prev => prev.filter(m => m.id !== month.id));
+            }
+            throw new Error(txErr?.message || 'Error guardando transacción temporal');
+        }
 
         setMonths(prev => prev.map(m => {
             if (m.id !== month.id) return m;

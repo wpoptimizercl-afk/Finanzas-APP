@@ -27,11 +27,11 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
     }, [months]);
 
     const [windowSize, setWindowSize] = useState(1);
-    const [skipEnd, setSkipEnd] = useState(() => {
+    const skipEnd = useMemo(() => {
         if (!months?.length) return 0;
         const lastWithData = [...months].reverse().findIndex(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0);
         return Math.max(0, lastWithData);
-    });
+    }, [months]);
 
     const filteredMonths = months;
 
