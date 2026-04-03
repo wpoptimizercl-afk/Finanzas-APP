@@ -181,7 +181,6 @@ export function useFinanceData() {
         const { data: tx, error: txErr } = await supabase.from('transactions').insert({
             user_id: uid,
             month_id: month.id,
-            account_id,
             fecha,
             descripcion: descripcion || '',
             monto,
