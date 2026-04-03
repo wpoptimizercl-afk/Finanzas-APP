@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
     BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ReferenceLine,
@@ -9,24 +9,15 @@ import Section from '../components/ui/Section';
 import ChartTooltip from '../components/charts/ChartTooltip';
 import HealthSemaphore from '../components/HealthSemaphore';
 import EndingInstallmentsWidget from '../components/EndingInstallmentsWidget';
+import MonthSelector from '../components/MonthSelector';
 import { CLP, CLPk, pct, shortLabel } from '../utils/formatters';
 import { getMonthIncome, getMonthFixedTotal, getTCExpenses, getCCExpenses, getSavingsTransfers } from '../utils/calculations';
 
 export default DashboardInner;
 
-import { useState } from 'react';
-
 export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMonth, extraByMonth, defaultIncome, budget, allCats, onGoUpload, onGoHistory }) {
-    const defaultWindow = useMemo(() => {
-        if (!months?.length) return 1;
-        // Find last month with data
-        const lastWithData = [...months].reverse().findIndex(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0);
-        if (lastWithData === -1) return 1;
-        // We want to skip the empty months at the end
-        return lastWithData + 1;
-    }, [months]);
+    const [selectorValue, setSelectorValue] = useState('last');
 
-    const [windowSize, setWindowSize] = useState(1);
     const skipEnd = useMemo(() => {
         if (!months?.length) return 0;
         const lastWithData = [...months].reverse().findIndex(m => (m.total_cargos || 0) > 0 || Object.keys(m.categorias || {}).length > 0);
@@ -66,16 +57,34 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
     }, [filteredMonths, incomeByMonth, extraByMonth, fixedByMonth, defaultIncome]);
 
     const totalMonths = allSeries.length;
+    const endIdx = allSeries.length - skipEnd;
+    const latestPeriod = allSeries[endIdx - 1]?.periodo ?? null;
+
     const windowOptions = [
         { value: 1, label: 'Último mes' },
         ...Array.from({ length: 11 }, (_, i) => i + 2)
-            .filter(n => n <= totalMonths)
+            .filter(n => n <= totalMonths - skipEnd)
             .map(n => ({ value: n, label: `Prom. ${n} meses` })),
     ];
 
-    const effectiveWindow = Math.min(windowSize, totalMonths - skipEnd);
-    const endIdx = allSeries.length - skipEnd;
-    const series = allSeries.slice(Math.max(0, endIdx - effectiveWindow), endIdx);
+    const allPeriods = useMemo(
+        () => allSeries.map(s => s.periodo),
+        [allSeries]
+    );
+
+    const series = useMemo(() => {
+        if (selectorValue === 'last') {
+            const w = Math.min(1, endIdx);
+            return allSeries.slice(Math.max(0, endIdx - w), endIdx);
+        }
+        if (selectorValue.startsWith('avg-')) {
+            const w = Math.min(parseInt(selectorValue.replace('avg-', ''), 10), endIdx);
+            return allSeries.slice(Math.max(0, endIdx - w), endIdx);
+        }
+        // Specific period
+        return allSeries.filter(s => s.periodo === selectorValue);
+    }, [selectorValue, allSeries, endIdx]);
+
     const n = series.length;
     const isLastOnly = n === 1;
 
@@ -106,22 +115,17 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
 
     return (
         <div className="animate-fadeIn">
-            <div className="page-header">
-                <div className="page-title">Dashboard</div>
-            </div>
-
             <div className="page-header-meta">
-                <div className="page-subtitle">{isLastOnly ? latest?.label : `${series[0]?.label} → ${series[n - 1]?.label}`}</div>
-                <select
-                    value={effectiveWindow}
-                    onChange={e => setWindowSize(Number(e.target.value))}
-                    className="input"
-                    style={{ width: 'auto', fontSize: 12, padding: '4px 28px 4px 10px', height: 28 }}
-                >
-                    {windowOptions.map(({ value, label }) => (
-                        <option key={value} value={value}>{label}</option>
-                    ))}
-                </select>
+                <div className="page-subtitle">
+                    {isLastOnly ? latest?.label : `${series[0]?.label} → ${series[n - 1]?.label}`}
+                </div>
+                <MonthSelector
+                    value={selectorValue}
+                    onChange={setSelectorValue}
+                    windowOptions={windowOptions}
+                    periods={allPeriods}
+                    latestPeriod={latestPeriod}
+                />
             </div>
 
             <div className="dashboard-grid">
