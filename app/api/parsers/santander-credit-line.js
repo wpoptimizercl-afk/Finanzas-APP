@@ -2,101 +2,73 @@
  * Parser determinístico para "Cartola de Línea de Crédito" (CTA CTE CREDITO)
  * de Santander Chile.
  *
- * Formato casi idéntico al de CTA CTE LIFE, con diferencias:
- *   - Header: "CTA CTE CREDITO" en vez de "CTA CTE LIFE"
- *   - Sección extra: "INFORMACION DE LINEA DE" con cupo, utilizado, disponible
- *   - Todos los saldos son negativos (representan deuda utilizada)
+ * Formato PDF concatenado por pdf-parse (sin información de columnas):
+ *   CARGO:  DD/MM SUCURSAL DESCRIPCION [N° DOCNUM] CARGO_AMOUNT-SALDO_DIARIO
+ *   ABONO:  DD/MM SUCURSAL DESCRIPCION [N° DOCNUM] ABONO_AMOUNT
  *
- * Reutiliza parseCCNumSuffix (duplicada) y chilean-amount.js
+ * La distinción CARGO vs ABONO se basa en el signo: dos montos chilenos
+ * separados por `-` al final = CARGO (primer monto); un único monto = ABONO.
  */
 
 import { parseChileanAmount, toTitleCase } from './chilean-amount.js';
 import { categorizeCCTransaction } from './category-rules.js';
 
-// ── parseCCNumSuffix (duplicada de santander-cc.js) ──────────────────────────
-function parseCCNumSuffix(numStr) {
-    if (!numStr) return [];
-    const stripped = numStr.replace(/^\d{5,6}(?=\d)/, '');
-    const AMT_RE = /\d{1,3}(?:\.\d{3})+/g;
-    if (/^\d{1,3}(?:\.\d{3})+$/.test(stripped)) {
-        return [parseChileanAmount(stripped)];
-    }
-    const allAmts = [];
-    let m;
-    while ((m = AMT_RE.exec(stripped)) !== null) allAmts.push(m);
-    if (allAmts.length >= 2 &&
-        allAmts[0].index + allAmts[0][0].length === allAmts[1].index) {
-        return allAmts.map(a => parseChileanAmount(a[0]));
-    }
-    const bareAndSaldo = stripped.match(/^(\d{1,3})(\d{1,3}(?:\.\d{3})+)$/);
-    if (bareAndSaldo) {
-        return [parseInt(bareAndSaldo[1], 10), parseChileanAmount(bareAndSaldo[2])];
-    }
-    return allAmts.map(a => parseChileanAmount(a[0]));
-}
-
 // ── Regex ────────────────────────────────────────────────────────────────────
 
 const TX_LINE_RE = /^(\d{2}\/\d{2})(Agustinas|O\.Gerencia|OPER\.|Sucursal\s+\w+)(.+)$/;
-const DCTO10_RE = /^(\d{10})\s*/;
+const DCTO10_RE  = /^(\d{10})\s*/;
 const RESUMEN_LABEL_RE = /SALDO INICIALDEPOSITOSOTROS ABONOSCHEQUESOTROS CARGOSIMPUESTOSSALDO FINAL/;
-const RESUMEN_NUM_RE = /^[\d.]+$/;
-const HEADER_RE = /\d+(\d{2}\/\d{2}\/\d{4})(\d{2}\/\d{2}\/\d{4})\d+/;
+const RESUMEN_NUM_RE   = /^[\d.]+$/;
+const HEADER_RE  = /\d+(\d{2}\/\d{2}\/\d{4})(\d{2}\/\d{2}\/\d{4})\d+/;
+const CL_SECTION_RE    = /INFORMACION DE LINEA DE/i;
+const CL_LABELS_RE     = /CUPO APROBADOFECHA VENCIMIENTOMONTO UTILIZADOSALDO DISPONIBLE/i;
+const CHILEAN_AMT_RE   = /\d{1,3}(?:\.\d{3})+/g;
 
-// Sección de información de línea de crédito
-const CL_SECTION_RE = /INFORMACION DE LINEA DE/i;
-const CL_CUPO_RE = /CUPO APROBADO[:\s]*([\d.]+)/i;
-const CL_UTILIZADO_RE = /MONTO UTILIZADO[:\s]*([\d.]+)/i;
-const CL_DISPONIBLE_RE = /SALDO DISPONIBLE[:\s]*([\d.]+)/i;
-const CL_VENCIMIENTO_RE = /FECHA VENCIMIENTO[:\s]*(\d{2}\/\d{2}\/\d{4})/i;
+// ── Extraer monto y tipo desde el cuerpo de la línea ─────────────────────────
+//
+// El PDF concatena todas las columnas. El patrón al final de cada línea es:
+//   CARGO: ...CARGO_AMOUNT-SALDO_DIARIO   (dos montos chilenos separados por -)
+//   ABONO: ...ABONO_AMOUNT               (un único monto chileno al final)
 
-// ── Discriminar tipo desde descripción ───────────────────────────────────────
-
-function determinarTipoCL(desc) {
-    const d = desc.toLowerCase();
-    // Pagos a la línea (abonos que reducen deuda)
-    if (d.includes('traspaso fondo internet'))       return 'payment';
-    if (d.includes('amortizacion periodica lca'))    return 'payment';
-    if (d.includes('amortización periódica lca'))    return 'payment';
-    if (d.includes('pago en linea servipag'))        return 'payment';
-    // Retiros / uso de la línea (aumentan deuda)
-    if (d.includes('traspaso con la cuenta n°') || d.includes('traspaso con la cuenta n'))
-        return null; // se determina por el signo (cargo/abono)
-    if (d.includes('transf a '))   return 'withdrawal';
-    if (d.includes('transf.') || d.includes('transf de ')) return 'payment';
+function extractCLAmount(body) {
+    const cargoMatch = body.match(/(\d{1,3}(?:\.\d{3})+)-(\d{1,3}(?:\.\d{3})+)$/);
+    if (cargoMatch) {
+        return { monto: parseChileanAmount(cargoMatch[1]), tipo: 'cargo' };
+    }
+    const abonoMatch = body.match(/(\d{1,3}(?:\.\d{3})+)$/);
+    if (abonoMatch) {
+        return { monto: parseChileanAmount(abonoMatch[1]), tipo: 'abono' };
+    }
     return null;
 }
 
-function determinarTipoCC(desc, tipo_cl) {
-    // Mapear tipo_cl a tipo CC compatible con la app
-    if (tipo_cl === 'payment') return 'abono';
-    if (tipo_cl === 'withdrawal') return 'cargo';
-    // Fallback basado en descripción
-    const d = desc.toLowerCase();
-    if (d.includes('transf a '))                            return 'cargo';
-    if (d.includes('traspaso internet a t. crédito') ||
-        d.includes('traspaso internet a t. credito'))       return 'cargo';
-    if (d.includes('pago en linea servipag'))               return 'cargo';
-    if (d.includes('com.mantencion') ||
-        d.includes('com. mantencion'))                      return 'cargo';
-    if (d.includes('transf.') || d.includes('transf de ')) return 'abono';
-    return 'cargo'; // conservador: deuda de línea de crédito = cargo
+// ── Extraer descripción limpia ────────────────────────────────────────────────
+
+function extractDescripcionCL(body) {
+    // Si hay "N°" en el texto, la descripción termina antes del número de cuenta
+    const nIdx = body.indexOf('N°');
+    if (nIdx > 0) return body.slice(0, nIdx).trim();
+    // Sin "N°": quitar los montos al final
+    const stripped = body
+        .replace(/\s*\d{1,3}(?:\.\d{3})+-\d{1,3}(?:\.\d{3})+$/, '')
+        .replace(/\s*\d{1,3}(?:\.\d{3})+$/, '');
+    return stripped.trim();
 }
 
 // ── Categorías para línea de crédito ─────────────────────────────────────────
 
 function categorizarCL(desc, tipo) {
     const d = desc.toLowerCase();
-    if (tipo === 'abono') return 'transferencia_recibida';
-    if (d.includes('traspaso fondo internet'))    return 'transferencia_recibida';
-    if (d.includes('amortizacion') || d.includes('amortización')) return 'transferencia_recibida';
-    if (d.includes('pago en linea'))              return 'pago_servicios';
-    if (d.includes('com.mantencion') ||
-        d.includes('com. mantencion'))            return 'cargos_banco';
+    if (d.includes('traspaso fondo internet'))                        return 'pago_credito';
+    if (d.includes('amortizacion') || d.includes('amortización'))    return 'pago_credito';
+    if (d.includes('pago en linea'))                                  return 'pago_servicios';
+    if (d.includes('com.mantencion') || d.includes('com. mantencion')) return 'cargos_banco';
     if (d.includes('interes') || d.includes('interés') ||
-        d.includes('cargo interes'))              return 'cargos_banco';
-    if (d.includes('transf a '))                  return 'transferencia_enviada';
-    if (d.includes('traspaso con la cuenta'))     return 'transferencia_enviada';
+        d.includes('cargo interes'))                                  return 'cargos_banco';
+    if (d.includes('transf a '))                                      return 'transferencia_enviada';
+    if (d.includes('traspaso con la cuenta')) {
+        return tipo === 'abono' ? 'transferencia_recibida' : 'transferencia_enviada';
+    }
     return categorizeCCTransaction(desc, tipo);
 }
 
@@ -104,9 +76,9 @@ function categorizarCL(desc, tipo) {
 
 function parseResumenCC(numLine) {
     const tokens = [];
-    const AMT_RE = /\d{1,3}(?:\.\d{3})+/g;
+    const re = /\d{1,3}(?:\.\d{3})+/g;
     let m;
-    while ((m = AMT_RE.exec(numLine)) !== null) tokens.push(parseChileanAmount(m[0]));
+    while ((m = re.exec(numLine)) !== null) tokens.push(parseChileanAmount(m[0]));
     return {
         saldo_inicial: tokens[0] ?? 0,
         otros_abonos:  tokens[1] ?? 0,
@@ -133,8 +105,9 @@ export function parseSantanderCreditLine(pdfText) {
     let periodo_hasta = '';
     let saldo_inicial = 0;
     let saldo_final   = 0;
+    let resumen_abonos = 0;
+    let resumen_cargos = 0;
 
-    // Extraer fechas desde el header
     for (const line of lines) {
         const m = line.match(HEADER_RE);
         if (m && !periodo_desde) {
@@ -144,40 +117,50 @@ export function parseSantanderCreditLine(pdfText) {
         }
     }
 
-    // ── Sección de información de línea de crédito ────────────────────────────
-    let approved_limit    = 0;
-    let used_amount       = 0;
-    let available_amount  = 0;
-    let expiry_date       = '';
+    // ── Estado del loop ───────────────────────────────────────────────────────
+    let inTransactions    = false;
+    let inResumen         = false;
+    let nextIsCLValues    = false;
+    const txLines         = [];
 
-    const fullText = pdfText;
-    const cupoMatch = fullText.match(CL_CUPO_RE);
-    const utilizadoMatch = fullText.match(CL_UTILIZADO_RE);
-    const disponibleMatch = fullText.match(CL_DISPONIBLE_RE);
-    const vencimientoMatch = fullText.match(CL_VENCIMIENTO_RE);
-
-    if (cupoMatch)       approved_limit   = parseChileanAmount(cupoMatch[1]);
-    if (utilizadoMatch)  used_amount      = parseChileanAmount(utilizadoMatch[1]);
-    if (disponibleMatch) available_amount = parseChileanAmount(disponibleMatch[1]);
-    if (vencimientoMatch) expiry_date     = vencimientoMatch[1];
-
-    // ── Parsear secciones ─────────────────────────────────────────────────────
-    let inTransactions = false;
-    let inResumen = false;
-    const txLines = [];
+    // Campos de línea de crédito
+    let approved_limit   = 0;
+    let used_amount      = 0;
+    let available_amount = 0;
+    let expiry_date      = '';
 
     for (const line of lines) {
-        if (/DETALLE DE MOVIMIENTOS/.test(line)) { inTransactions = true; continue; }
-        if (/Resumen de Comisiones/.test(line))  { inTransactions = false; continue; }
-        if (CL_SECTION_RE.test(line))            { inTransactions = false; continue; }
+        // ── Sección de línea de crédito (Bug 2 fix: parseo posicional) ────────
+        if (nextIsCLValues) {
+            nextIsCLValues = false;
+            const amounts = [];
+            const re = /\d{1,3}(?:\.\d{3})+/g;
+            let m;
+            while ((m = re.exec(line)) !== null) amounts.push(parseChileanAmount(m[0]));
+            const dateMatch = line.match(/\d{2}\/\d{2}\/\d{4}/);
+            approved_limit   = amounts[0] ?? 0;
+            used_amount      = amounts[1] ?? 0;
+            available_amount = amounts[2] ?? 0;
+            expiry_date      = dateMatch ? dateMatch[0] : '';
+            continue;
+        }
+
+        if (CL_LABELS_RE.test(line))             { nextIsCLValues = true; continue; }
+        if (/DETALLE DE MOVIMIENTOS/.test(line))  { inTransactions = true; continue; }
+        if (/Resumen de Comisiones/.test(line))   { inTransactions = false; continue; }
+        if (CL_SECTION_RE.test(line))             { inTransactions = false; continue; }
         if (RESUMEN_LABEL_RE.test(line))          { inResumen = true; continue; }
+
         if (inResumen && RESUMEN_NUM_RE.test(line)) {
             const r = parseResumenCC(line);
-            saldo_inicial = r.saldo_inicial;
-            saldo_final   = r.saldo_final;
+            saldo_inicial  = r.saldo_inicial;
+            saldo_final    = r.saldo_final;
+            resumen_abonos = r.otros_abonos;
+            resumen_cargos = r.otros_cargos;
             inResumen = false;
             continue;
         }
+
         if (inTransactions) txLines.push(line);
     }
 
@@ -192,33 +175,27 @@ export function parseSantanderCreditLine(pdfText) {
         const year = periodo_hasta
             ? periodo_hasta.slice(6)
             : new Date().getFullYear().toString();
-        const fecha = `${fecha_raw}/${year}`;
 
         let body = rest;
         const dMatch = body.match(DCTO10_RE);
         if (dMatch) body = body.slice(dMatch[0].length);
 
-        const numSuffixMatch = body.match(/^(.*?\D)([\d.]+(?:[\d.]+)*)$/);
-        if (!numSuffixMatch) continue;
+        // Bug 1 fix: extraer monto correcto (CARGO_AMOUNT, no SALDO_DIARIO)
+        const extracted = extractCLAmount(body);
+        if (!extracted) continue;
 
-        let descripcion = numSuffixMatch[1].trim();
-        const numSuffix = numSuffixMatch[2];
+        const { monto, tipo } = extracted;
+        if (!monto) continue;
 
+        const descripcion = extractDescripcionCL(body);
         if (!descripcion) continue;
         if (descripcion.toLowerCase().includes('recup com plan')) continue;
 
-        const amounts = parseCCNumSuffix(numSuffix);
-        if (amounts.length === 0) continue;
-
-        const monto = amounts[0];
-        if (!monto) continue;
-
-        const tipo_cl = determinarTipoCL(descripcion);
-        const tipo = determinarTipoCC(descripcion, tipo_cl);
+        // Bug 4 fix: categorías correctas para pagos de LC
         const categoria = categorizarCL(descripcion, tipo);
 
         transacciones.push({
-            fecha: fecha.length === 10 ? fecha : `${fecha_raw}/${year}`,
+            fecha: `${fecha_raw}/${year}`,
             descripcion: toTitleCase(descripcion),
             monto,
             tipo,
@@ -227,6 +204,22 @@ export function parseSantanderCreditLine(pdfText) {
             cuota_actual: null,
             total_cuotas: null,
         });
+    }
+
+    // ── Validación contra resumen (Bug 5: advertir si hay diferencia) ─────────
+    if (resumen_cargos > 0 || resumen_abonos > 0) {
+        const computedCargos = transacciones
+            .filter(t => t.tipo === 'cargo')
+            .reduce((s, t) => s + t.monto, 0);
+        const computedAbonos = transacciones
+            .filter(t => t.tipo === 'abono')
+            .reduce((s, t) => s + t.monto, 0);
+        if (Math.abs(computedCargos - resumen_cargos) > 1) {
+            console.warn(`[CL parser] cargos calculados ${computedCargos} ≠ resumen ${resumen_cargos}`);
+        }
+        if (Math.abs(computedAbonos - resumen_abonos) > 1) {
+            console.warn(`[CL parser] abonos calculados ${computedAbonos} ≠ resumen ${resumen_abonos}`);
+        }
     }
 
     // ── Derivar periodo ───────────────────────────────────────────────────────
@@ -238,7 +231,9 @@ export function parseSantanderCreditLine(pdfText) {
     }
 
     // ── Totales ───────────────────────────────────────────────────────────────
-    const sumCargos = transacciones.filter(t => t.tipo === 'cargo').reduce((s, t) => s + t.monto, 0);
+    const sumCargos = transacciones
+        .filter(t => t.tipo === 'cargo')
+        .reduce((s, t) => s + t.monto, 0);
 
     return {
         source_type: 'credit_line',
@@ -246,7 +241,7 @@ export function parseSantanderCreditLine(pdfText) {
         periodo_desde,
         periodo_hasta,
         total_operaciones: sumCargos,
-        total_facturado: sumCargos,
+        total_facturado:   sumCargos,
         // Saldos negativos representan deuda
         saldo_inicial: saldo_inicial > 0 ? -saldo_inicial : saldo_inicial,
         saldo_final:   saldo_final   > 0 ? -saldo_final   : saldo_final,
