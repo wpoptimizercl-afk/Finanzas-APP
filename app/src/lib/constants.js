@@ -17,6 +17,7 @@ export const CAT = {
     transferencia_enviada: { label: 'Transferencia enviada', color: '#7C3AED', bg: '#F5F3FF' },
     pago_servicios: { label: 'Pago de servicios', color: '#0891B2', bg: '#ECFEFF' },
     traspaso_tc: { label: 'Pago tarjeta de crédito', color: '#6B7280', bg: '#F3F4F6' },
+    uso_lc:       { label: 'Uso línea de crédito',  color: '#DC2626', bg: '#FEF2F2' },
     pago_credito: { label: 'Pago línea de crédito', color: '#7C3AED', bg: '#F5F3FF' },
     ahorro: { label: 'Ahorro / inversión', color: '#059669', bg: '#ECFDF5' },
     otros: { label: 'Otros', color: '#4B5563', bg: '#F9FAFB' },
@@ -96,6 +97,7 @@ export const DEF_BUDGET = {
         // CC categories
         transferencia_recibida: 0, transferencia_enviada: 0,
         pago_servicios: 0, traspaso_tc: 0,
+        uso_lc: 0,
         pago_credito: 0,
         otros: 0,
     },

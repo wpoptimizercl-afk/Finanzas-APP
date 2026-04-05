@@ -59,16 +59,16 @@ function extractDescripcionCL(body) {
 
 function categorizarCL(desc, tipo) {
     const d = desc.toLowerCase();
+    // Pagos que reducen deuda de la LC (ABONO)
     if (d.includes('traspaso fondo internet'))                        return 'pago_credito';
     if (d.includes('amortizacion') || d.includes('amortización'))    return 'pago_credito';
+    // Uso de la LC para pagar algo (CARGO — genera deuda)
+    if (d.includes('traspaso con la cuenta'))                        return 'uso_lc';
     if (d.includes('pago en linea'))                                  return 'pago_servicios';
     if (d.includes('com.mantencion') || d.includes('com. mantencion')) return 'cargos_banco';
     if (d.includes('interes') || d.includes('interés') ||
-        d.includes('cargo interes'))                                  return 'cargos_banco';
+        d.includes('cargo interes'))                                  return 'interes_credito';
     if (d.includes('transf a '))                                      return 'transferencia_enviada';
-    if (d.includes('traspaso con la cuenta')) {
-        return tipo === 'abono' ? 'transferencia_recibida' : 'transferencia_enviada';
-    }
     return categorizeCCTransaction(desc, tipo);
 }
 
@@ -180,18 +180,32 @@ export function parseSantanderCreditLine(pdfText) {
         const dMatch = body.match(DCTO10_RE);
         if (dMatch) body = body.slice(dMatch[0].length);
 
-        // Bug 1 fix: extraer monto correcto (CARGO_AMOUNT, no SALDO_DIARIO)
+        // Extraer monto del patrón en el texto concatenado
         const extracted = extractCLAmount(body);
         if (!extracted) continue;
-
-        const { monto, tipo } = extracted;
-        if (!monto) continue;
 
         const descripcion = extractDescripcionCL(body);
         if (!descripcion) continue;
         if (descripcion.toLowerCase().includes('recup com plan')) continue;
 
-        // Bug 4 fix: categorías correctas para pagos de LC
+        const monto = extracted.monto;
+        if (!monto) continue;
+
+        // Determinar tipo por descripción (más fiable que el patrón de montos).
+        // El PDF no siempre muestra el saldo diario en transacciones de LC,
+        // por lo que el patrón single/double-amount no es determinístico.
+        // Ground truth (resumen del PDF):
+        //   otros_cargos = suma exacta de "Traspaso con la Cuenta"
+        //   otros_abonos = suma exacta de "Traspaso Fondo Internet" + "Amortización"
+        const d_lower = descripcion.toLowerCase();
+        let tipo = extracted.tipo; // fallback al patrón
+        if (d_lower.includes('traspaso fondo internet') ||
+            d_lower.includes('amortizacion') || d_lower.includes('amortización')) {
+            tipo = 'abono';
+        } else if (d_lower.includes('traspaso con la cuenta')) {
+            tipo = 'cargo';
+        }
+
         const categoria = categorizarCL(descripcion, tipo);
 
         transacciones.push({
