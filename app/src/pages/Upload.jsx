@@ -5,8 +5,9 @@ import IncomeCategorizationPanel from '../components/IncomeCategorizationPanel';
 
 const STATUS = { idle: 'idle', drag: 'drag', queue: 'queue', done: 'done' };
 const ACCOUNT_TYPE_COLORS = {
-    tc: { bg: 'rgba(225,29,72,.12)', color: '#E11D48', label: 'TC' },
-    cc: { bg: 'rgba(8,145,178,.15)', color: '#0891B2', label: 'CC' },
+    tc:          { bg: 'rgba(225,29,72,.12)',   color: '#E11D48', label: 'TC' },
+    cc:          { bg: 'rgba(8,145,178,.15)',   color: '#0891B2', label: 'CC' },
+    credit_line: { bg: 'rgba(220,38,38,.12)',   color: '#B91C1C', label: 'LC' },
 };
 
 function StepIndicator({ step }) {
@@ -97,12 +98,14 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
         if (!newAccName.trim()) return;
         setSavingAcc(true);
         try {
+            const typeColors = { cc: '#0891B2', credit_line: '#B91C1C' };
+            const typeIcons  = { cc: 'bank', credit_line: 'bank' };
             const saved = await onSaveAccount({
                 name: newAccName.trim(),
                 bank: newAccBank,
                 type: newAccType,
-                color: newAccType === 'cc' ? '#0891B2' : '#E11D48',
-                icon: newAccType === 'cc' ? 'bank' : 'card',
+                color: typeColors[newAccType] || '#E11D48',
+                icon:  typeIcons[newAccType]  || 'card',
             });
             setAccountId(saved.id);
             setShowNewAcc(false);
@@ -119,7 +122,10 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
         const items = Array.from(files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
         if (!items.length) return;
 
-        const bankForAPI = selectedAccount ? `${selectedAccount.bank}_${selectedAccount.type}` : 'santander_tc';
+        const bankTypeMap = { credit_line: 'cl' };
+        const bankForAPI = selectedAccount
+            ? `${selectedAccount.bank}_${bankTypeMap[selectedAccount.type] || selectedAccount.type}`
+            : 'santander_tc';
 
         let initial;
         if (retryItemId) {
@@ -165,6 +171,8 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                             const detectedType = errBody.detected;
                             const msg = detectedType === 'cc'
                                 ? 'Este PDF es de Cuenta Corriente'
+                                : detectedType === 'credit_line'
+                                ? 'Este PDF es de Línea de Crédito'
                                 : 'Este PDF es de Tarjeta de Crédito';
                             setMismatchInfo(prev => ({ ...prev, [item.id]: { bank: selectedAccount?.bank, detectedType } }));
                             setQueue(q => q.map(x => x.id === item.id
@@ -387,6 +395,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                             <select value={newAccType} onChange={e => setNewAccType(e.target.value)} className="input" style={{ flex: 1 }}>
                                 <option value="tc">Tarjeta crédito</option>
                                 <option value="cc">Cuenta corriente</option>
+                                <option value="credit_line">Línea de crédito</option>
                             </select>
                         </div>
                         <div style={{ display: 'flex', gap: 8 }}>

@@ -7,6 +7,7 @@ import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import { parseSantanderTC } from './parsers/santander-tc.js';
 import { parseSantanderCC } from './parsers/santander-cc.js';
+import { parseSantanderCreditLine } from './parsers/santander-credit-line.js';
 
 console.log('[API] process-pdf initialized with classic pdf-parse');
 
@@ -484,6 +485,7 @@ const VALID_CATS_CC = [
 const BANK_HINTS = {
     santander_tc: 'Santander Chile tarjeta de crédito. Fecha en formato DD-MM-YYYY. Los cargos aparecen en la columna "Cargos".',
     santander_cc: 'Santander Chile cuenta corriente (cartola). Columnas: FECHA, SUCURSAL, DESCRIPCIÓN, Nº DCTO, CHEQUES Y OTROS CARGOS, DEPÓSITOS Y OTROS ABONOS, SALDO.',
+    santander_cl: 'Santander Chile línea de crédito (CTA CTE CREDITO). Mismo formato que cuenta corriente con sección adicional "INFORMACION DE LINEA DE" con cupo aprobado, monto utilizado y saldo disponible.',
     bci_tc: 'BCI tarjeta de crédito. Los montos en la columna "Monto" con signo positivo son cargos.',
     chile_tc: 'Banco de Chile tarjeta de crédito. Columna "Cargo" contiene los gastos.',
     bci_cc: 'BCI cuenta corriente. Los cargos son los débitos de la cuenta.',
@@ -530,8 +532,9 @@ function parseChileanAmount(value) {
 
 // ── Normalización (exportada para tests) ─────────────────────────────────────
 export function normalizeAIResponse(data) {
+    const isCL = data.source_type === 'credit_line';
     const isCC = data.source_type === 'cc';
-    const validCats = isCC ? VALID_CATS_CC : VALID_CATS;
+    const validCats = (isCC || isCL) ? VALID_CATS_CC : VALID_CATS;
     const rawPeriodo = data.periodo || '';
     const rawDesde = data.periodo_desde || '';
     const rawHasta = data.periodo_hasta || '';
@@ -562,7 +565,14 @@ export function normalizeAIResponse(data) {
             cuota_actual: Number(c.cuota_actual),
             total_cuotas: Number(c.total_cuotas),
             monto_cuota: parseChileanAmount(c.monto_cuota)
-        }))
+        })),
+        // Campos específicos de línea de crédito (null para TC/CC)
+        ...(isCL && data.credit_line_info ? {
+            approved_limit: data.credit_line_info.approved_limit || 0,
+            used_amount:    data.credit_line_info.used_amount    || 0,
+            available_amount: data.credit_line_info.available_amount || 0,
+            expiry_date:    data.credit_line_info.expiry_date    || '',
+        } : {}),
     };
 }
 
@@ -674,11 +684,23 @@ export default async function handler(req, res) {
             return res.status(422).json({ error: 'No se pudo extraer suficiente texto del PDF. Verifica que no sea una imagen escaneada.' });
         }
 
-        // 2. Parser determinístico (Santander TC/CC) — fallback a IA si falla
+        // 2. Parser determinístico (Santander TC/CC/CL) — fallback a IA si falla
         const USE_DETERMINISTIC = process.env.USE_DETERMINISTIC_PARSER !== 'false';
-        if (USE_DETERMINISTIC && (bank === 'santander_tc' || bank === 'santander_cc')) {
+        if (USE_DETERMINISTIC && (bank === 'santander_tc' || bank === 'santander_cc' || bank === 'santander_cl')) {
+            // Auto-detección: si el PDF contiene "CTA CTE CREDITO" y el banco seleccionado es CC, advertir
+            if (bank === 'santander_cc' && pdfText.includes('CTA CTE CREDITO')) {
+                console.warn('[process-pdf] MISMATCH: PDF es Línea de Crédito pero cuenta seleccionada es CC');
+                return res.status(422).json({
+                    error: 'ACCOUNT_TYPE_MISMATCH',
+                    detected: 'credit_line',
+                    message: 'Este PDF es una cartola de línea de crédito. Selecciona una cuenta de tipo "Línea de crédito".',
+                });
+            }
             try {
-                const parser = bank === 'santander_tc' ? parseSantanderTC : parseSantanderCC;
+                let parser;
+                if (bank === 'santander_tc') parser = parseSantanderTC;
+                else if (bank === 'santander_cl') parser = parseSantanderCreditLine;
+                else parser = parseSantanderCC;
                 const parsed = parser(pdfText);
                 if (!parsed.transacciones?.length) throw new Error('PARSER_EMPTY_RESULT');
                 const output = normalizeAIResponse(parsed);

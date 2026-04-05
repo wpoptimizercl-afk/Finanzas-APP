@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import Metric from '../components/ui/Metric';
 import Section from '../components/ui/Section';
 import Tag from '../components/ui/Tag';
+import FinancingSummary from '../components/FinancingSummary';
 import { CLP, pct, shortLabel, isCurrentMonth } from '../utils/formatters';
 import { getMonthFixed, getMonthFixedTotal, getMonthIncome, getMonthExtraItems, getMonthExtraTotal, getExpenseTotal } from '../utils/calculations';
 import { SOURCE_OPTS, VIEW_MODE } from '../lib/constants';
@@ -212,6 +213,9 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     </div>
                 </div>
             )}
+
+            {/* ── Total Financiamiento (TC + Línea de crédito) ─────────────── */}
+            <FinancingSummary periodo={periodo} months={allMonths} />
 
             {/* ── Unified category breakdown ───────────────────────────────── */}
             {mergedCatRows.length > 0 && (

@@ -11,6 +11,7 @@ export const CAT = {
     telefonia_internet: { label: 'Telefonía e internet', color: '#2563EB', bg: '#EFF6FF' },
     cuotas: { label: 'Cuotas', color: '#DC2626', bg: '#FEF2F2' },
     cargos_banco: { label: 'Cargos bancarios', color: '#9CA3AF', bg: '#F9FAFB' },
+    interes_credito: { label: 'Intereses línea de crédito', color: '#DC2626', bg: '#FEF2F2' },
     // CC (cuenta corriente) categories
     transferencia_recibida: { label: 'Ingresos', color: '#059669', bg: '#ECFDF5' },
     transferencia_enviada: { label: 'Transferencia enviada', color: '#7C3AED', bg: '#F5F3FF' },
@@ -49,6 +50,7 @@ export const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio
 export const BANKS = [
     { id: 'santander_tc', label: 'Santander — Tarjeta de crédito' },
     { id: 'santander_cc', label: 'Santander — Cuenta corriente' },
+    { id: 'santander_cl', label: 'Santander — Línea de crédito' },
     { id: 'bci_tc', label: 'BCI — Tarjeta de crédito' },
     { id: 'chile_tc', label: 'Banco de Chile — Tarjeta de crédito' },
     { id: 'bci_cc', label: 'BCI — Cuenta corriente' },
@@ -65,6 +67,12 @@ export const CAT_PALETTE = [
 // ALL: CC+TC combinados → traspaso_tc excluido (evita doble conteo)
 // TC:  solo tarjeta de crédito
 // CC:  solo cuenta corriente → traspaso_tc incluido (es egreso real de caja)
+export const ACCOUNT_TYPES = [
+    { id: 'tc',          label: 'Tarjeta de crédito' },
+    { id: 'cc',          label: 'Cuenta corriente' },
+    { id: 'credit_line', label: 'Línea de crédito' },
+];
+
 export const VIEW_MODE = {
     ALL: 'all',
     TC:  'tc',

@@ -880,3 +880,18 @@ select.input {
     .month-sel-dropdown { animation: none; }
     .month-sel-chevron { transition: none; }
 }
+
+/* ── FinancingSummary ─────────────────────────────────────────────── */
+.financing-summary {
+    border-left: 3px solid var(--danger);
+}
+
+.financing-summary .progress-track {
+    height: 6px;
+}
+
+@media (max-width: 375px) {
+    .financing-summary {
+        padding: 14px 12px;
+    }
+}

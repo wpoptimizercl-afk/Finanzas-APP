@@ -68,4 +68,41 @@ export const getExpenseTotal = (p, months, fbm, viewMode = VIEW_MODE.ALL) => {
     return ccExp + tcExp + fixedExp;
 };
 
+// ─── Línea de crédito ─────────────────────────────────────────────────────────
+
+// Datos de línea de crédito para un período dado
+export const getCreditLineData = (p, months) =>
+    months
+        .filter(m => m.periodo === p && m.source_type === 'credit_line')
+        .map(m => ({
+            approved_limit:   m.approved_limit   || 0,
+            used_amount:      m.used_amount      || 0,
+            available_amount: m.available_amount || 0,
+            expiry_date:      m.expiry_date      || '',
+            account_id:       m.account_id,
+        }));
+
+// Total financiamiento = deuda TC facturada + monto utilizado de línea de crédito
+export const getTotalFinancing = (p, months) => {
+    const tcDebt = months
+        .filter(m => m.periodo === p && m.source_type === 'tc')
+        .reduce((s, m) => s + (m.total_facturado || m.total_cargos || 0), 0);
+    const clDebt = months
+        .filter(m => m.periodo === p && m.source_type === 'credit_line')
+        .reduce((s, m) => s + (m.used_amount || 0), 0);
+    return { tcDebt, clDebt, total: tcDebt + clDebt };
+};
+
+// Utilización del cupo de la línea de crédito con indicador de riesgo
+export const getFinancingUtilization = (p, months) => {
+    const clData = getCreditLineData(p, months);
+    const clLimit = clData.reduce((s, d) => s + d.approved_limit, 0);
+    const clUsed  = clData.reduce((s, d) => s + d.used_amount,    0);
+    const utilizationPct = clLimit > 0 ? Math.round((clUsed / clLimit) * 100) : 0;
+    const riskLevel = clLimit > 0
+        ? utilizationPct > 80 ? 'high' : utilizationPct > 50 ? 'medium' : 'low'
+        : 'none';
+    return { clLimit, clUsed, utilizationPct, riskLevel };
+};
+
 // pct consolidado en formatters.js — importar desde allí
