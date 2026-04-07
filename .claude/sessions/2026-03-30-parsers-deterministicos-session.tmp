@@ -1,0 +1,115 @@
+# Session: 2026-03-30
+
+**Started:** ~14:58
+**Last Updated:** 20:17
+**Project:** Finanzas APP (`C:\Users\Edgar\Downloads\antiGravity\Finanzas APP`)
+**Topic:** Construcción de parsers determinísticos para PDFs Santander Chile
+
+---
+
+## What We Are Building
+
+Parsers determinísticos que lean el texto crudo de los PDFs de Santander Chile sin
+depender de OpenAI. El objetivo es tener extracción confiable, sin costo de API y sin
+errores de formato numérico chileno (punto = separador de miles).
+
+Hay dos tipos de PDF a parsear:
+- **TC (Tarjeta de Crédito):** Latampass y Life — formato con PERÍODO ANTERIOR / PERÍODO
+  ACTUAL, TIPO A (cuotas) y TIPO B (compras normales)
+- **CC (Cuenta Corriente):** cartolas 71/72/73 — formato diferente
+
+La arquitectura planificada:
+- `app/api/parsers/chilean-amount.js` — utilidades compartidas ✅ hecho
+- `app/api/parsers/santander-tc.js` — parser TC 🗒️ pendiente
+- `app/api/parsers/santander-cc.js` — parser CC 🗒️ pendiente
+
+Estos parsers se integrarían en `app/api/process-pdf.js` como alternativa/reemplazo
+al flujo de OpenAI actual.
+
+---
+
+## What WORKED (with evidence)
+
+- **Extracción de texto crudo de PDFs** — confirmado: `app/extract-text.js` generó
+  correctamente los 7 fixtures `.txt` en `app/__tests__/fixtures/` (14:58)
+- **`app/api/parsers/chilean-amount.js`** — confirmado: archivo creado y contiene
+  funciones completas con JSDoc: `parseChileanAmount`, `toTitleCase`, `parseDateDDMMYY`,
+  `CHILE_AMT_PATTERN`, `findRightmostChileanAmount`, `extractTrailingAmounts`
+
+---
+
+## What Did NOT Work (and why)
+
+- **Sincronización de plan entre PCs** — fallido porque: Claude Code guarda el historial
+  de sesiones en `~/.claude/projects/` (fuera del proyecto), no en la carpeta del
+  proyecto sincronizada por Drive. Al cambiar de PC, el contexto se perdió.
+
+---
+
+## What Has NOT Been Tried Yet
+
+- Crear `app/api/parsers/santander-tc.js` — parser determinístico para TC
+- Crear `app/api/parsers/santander-cc.js` — parser determinístico para CC
+- Aplicar los bugs de `cambios-process-pdf.md` a `process-pdf.js` (BUG 1, BUG 2, Cambio 3)
+- Integrar los parsers nuevos en `process-pdf.js`
+- Tests unitarios para los parsers con los fixtures de texto crudo
+
+---
+
+## Current State of Files
+
+| File | Status | Notes |
+|------|--------|-------|
+| `app/api/parsers/chilean-amount.js` | ✅ Completo | Utilidades compartidas: parseChileanAmount, toTitleCase, parseDateDDMMYY, findRightmostChileanAmount, extractTrailingAmounts |
+| `app/extract-text.js` | ✅ Completo | Script para regenerar fixtures desde PDFs en `__tests__/fixtures/` |
+| `app/__tests__/fixtures/santander-tc-latam-raw.txt` | ✅ Generado | Texto crudo TC Latampass (estado-de-cuenta.pdf) |
+| `app/__tests__/fixtures/santander-tc-latam-7-raw.txt` | ✅ Generado | Texto crudo TC Latampass (estado-de-cuenta (7).pdf) |
+| `app/__tests__/fixtures/santander-tc-latam-8-raw.txt` | ✅ Generado | Texto crudo TC Latampass (estado-de-cuenta (8).pdf) |
+| `app/__tests__/fixtures/santander-tc-life-raw.txt` | ✅ Generado | Texto crudo TC Life (life 01.pdf) |
+| `app/__tests__/fixtures/santander-cc-raw.txt` | ✅ Generado | Texto crudo CC (cartola-71.pdf) |
+| `app/__tests__/fixtures/santander-cc-72-raw.txt` | ✅ Generado | Texto crudo CC (cartola-72.pdf) |
+| `app/__tests__/fixtures/santander-cc-73-raw.txt` | ✅ Generado | Texto crudo CC (cartola-73.pdf) |
+| `app/api/parsers/santander-tc.js` | 🗒️ No iniciado | Parser determinístico para TC |
+| `app/api/parsers/santander-cc.js` | 🗒️ No iniciado | Parser determinístico para CC |
+| `app/api/process-pdf.js` | 🗒️ Sin tocar hoy | Tiene 3 bugs documentados en `cambios-process-pdf.md` pendientes de aplicar |
+| `cambios-process-pdf.md` | 🗒️ Referencia | Plan detallado de bugs a corregir en process-pdf.js (BUG 1 Number() chileno, BUG 2 validateCCTotals, Cambio 3 prompt) |
+
+---
+
+## Decisions Made
+
+- **Parsers determinísticos sobre OpenAI** — razón: más confiables, sin costo de API,
+  sin errores de formato numérico. OpenAI puede seguir como fallback.
+- **Fixtures de texto crudo como base de tests** — razón: permite testear parsers sin
+  PDFs reales y sin mocks de pdf-parse. Los fixtures ya están generados.
+- **Módulo de utilidades separado** — razón: `chilean-amount.js` es compartido entre
+  ambos parsers (TC y CC) para no duplicar lógica.
+
+---
+
+## Blockers & Open Questions
+
+- No está claro si los parsers determinísticos deben **reemplazar** el flujo OpenAI
+  o usarse como **primera opción con fallback a OpenAI**. Definir esto antes de integrar.
+- El plan detallado de `santander-tc.js` (qué regex usar, cómo separar PERÍODO ANTERIOR
+  de PERÍODO ACTUAL, cómo detectar TIPO A vs TIPO B) no fue documentado antes del cambio
+  de PC — hay que reconstruirlo analizando los fixtures.
+
+---
+
+## Exact Next Step
+
+Abrir `app/__tests__/fixtures/santander-tc-latam-raw.txt` y analizar la estructura del
+texto crudo para diseñar el parser `santander-tc.js`. El plan:
+1. Identificar los delimitadores de sección (PERÍODO ANTERIOR, PERÍODO ACTUAL, TOTAL OPERACIONES)
+2. Identificar el patrón de línea de transacción TIPO A y TIPO B
+3. Escribir el parser con TDD usando el fixture como input y el golden fixture JSON como expected output
+
+---
+
+## Environment & Setup Notes
+
+- Proyecto sincronizado con Google Drive: `C:\Users\Edgar\Downloads\antiGravity\Finanzas APP`
+- Para regenerar fixtures: `node app/extract-text.js` (desde raíz del proyecto)
+- PDFs fuente están en `app/__tests__/fixtures/` (cartola-71/72/73.pdf, estado-de-cuenta*.pdf, life*.pdf)
+- Tests: `cd app && npm test`

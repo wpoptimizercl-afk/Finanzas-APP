@@ -476,10 +476,12 @@ Responde ÚNICAMENTE con este JSON, sin markdown ni texto adicional:
   "cuotas_vigentes": []
 }`;
 
-// Categorías válidas (TC + CC combinadas)
+// Categorías válidas (TC + CC + LC combinadas)
 const VALID_CATS_CC = [
     'transferencia_recibida', 'transferencia_enviada', 'pago_servicios',
-    'traspaso_tc', 'cargos_banco', 'ahorro', 'otros',
+    'traspaso_tc', 'cargos_banco', 'ahorro',
+    'uso_lc', 'pago_credito', 'interes_credito',
+    'otros',
 ];
 
 const BANK_HINTS = {

@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "find /c/Users/Edgar/.claude/sessions -name '*.tmp' -newer '/c/Users/Edgar/Downloads/antiGravity/Finanzas APP/.claude/sessions' -exec cp {} '/c/Users/Edgar/Downloads/antiGravity/Finanzas APP/.claude/sessions/' \\; 2>/dev/null; true"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:37777/api/search?query=*&limit=1\")",
+      "Bash(curl -s \"http://localhost:37777/api/context/inject?project=Finanzas+APP&full=true\")",
+      "Bash(sqlite3 ~/.claude-mem/claude-mem.db \"SELECT SUM\\(discovery_tokens\\) FROM observations WHERE project = ''Finanzas APP'';\")",
+      "Bash(sqlite3 ~/.claude-mem/claude-mem.db \"SELECT COUNT\\(DISTINCT memory_session_id\\) as sessions, COUNT\\(*\\) as obs FROM observations WHERE project = ''Finanzas APP'';\")",
+      "Bash(sqlite3 ~/.claude-mem/claude-mem.db \"SELECT AVG\\(discovery_tokens\\) as avg_discovery, AVG\\(LENGTH\\(title || COALESCE\\(subtitle,''''\\) || COALESCE\\(narrative,''''\\) || COALESCE\\(facts,''''\\)\\) / 4\\) as avg_read FROM observations WHERE project = ''Finanzas APP'' AND discovery_tokens > 0;\")",
+      "Bash(sqlite3 ~/.claude-mem/claude-mem.db \"SELECT id, title, discovery_tokens FROM observations WHERE project = ''Finanzas APP'' ORDER BY discovery_tokens DESC LIMIT 5;\")",
+      "Bash(sqlite3 ~/.claude-mem/claude-mem.db \"SELECT strftime\\(''%Y-%m'', created_at\\) as month, COUNT\\(*\\) as obs, SUM\\(discovery_tokens\\) as total_discovery, COUNT\\(DISTINCT memory_session_id\\) as sessions FROM observations WHERE project = ''Finanzas APP'' GROUP BY month ORDER BY month;\")",
+      "Bash(sqlite3 --version)",
+      "Bash(python3 -c \"import sqlite3; print\\(''sqlite3 via python ok''\\)\")",
+      "Bash(python3 -c \":*)",
+      "Bash(curl -s \"http://localhost:37777/api/search?query=Finanzas+APP&limit=50\")",
+      "Read(//c/Users/Edgar/.claude/plugins/cache/claude-plugins-official/**)",
+      "Read(//c/Users/Edgar/.claude/plugins/**)",
+      "Bash(find ~/.claude/plugins -name *.md -o -name README*)",
+      "Bash(gh pr:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.get\\(''''dependencies'''',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(npm install:*)",
+      "Bash(npm test:*)"
+    ]
+  }
+}

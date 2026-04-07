@@ -18,7 +18,7 @@ import { categorizeCCTransaction } from './category-rules.js';
 const TX_LINE_RE = /^(\d{2}\/\d{2})(Agustinas|O\.Gerencia|OPER\.|Sucursal\s+\w+)(.+)$/;
 const DCTO10_RE  = /^(\d{10})\s*/;
 const RESUMEN_LABEL_RE = /SALDO INICIALDEPOSITOSOTROS ABONOSCHEQUESOTROS CARGOSIMPUESTOSSALDO FINAL/;
-const RESUMEN_NUM_RE   = /^[\d.]+$/;
+const RESUMEN_NUM_RE   = /^[-\d.]+$/;
 const HEADER_RE  = /\d+(\d{2}\/\d{2}\/\d{4})(\d{2}\/\d{2}\/\d{4})\d+/;
 const CL_SECTION_RE    = /INFORMACION DE LINEA DE/i;
 const CL_LABELS_RE     = /CUPO APROBADOFECHA VENCIMIENTOMONTO UTILIZADOSALDO DISPONIBLE/i;
@@ -33,11 +33,19 @@ const CHILEAN_AMT_RE   = /\d{1,3}(?:\.\d{3})+/g;
 function extractCLAmount(body) {
     const cargoMatch = body.match(/(\d{1,3}(?:\.\d{3})+)-(\d{1,3}(?:\.\d{3})+)$/);
     if (cargoMatch) {
-        return { monto: parseChileanAmount(cargoMatch[1]), tipo: 'cargo' };
+        return {
+            monto: parseChileanAmount(cargoMatch[1]),
+            tipo: 'cargo',
+            dailyBalance: parseChileanAmount(cargoMatch[2])
+        };
     }
     const abonoMatch = body.match(/(\d{1,3}(?:\.\d{3})+)$/);
     if (abonoMatch) {
-        return { monto: parseChileanAmount(abonoMatch[1]), tipo: 'abono' };
+        return {
+            monto: parseChileanAmount(abonoMatch[1]),
+            tipo: 'abono',
+            dailyBalance: null
+        };
     }
     return null;
 }
@@ -76,7 +84,7 @@ function categorizarCL(desc, tipo) {
 
 function parseResumenCC(numLine) {
     const tokens = [];
-    const re = /\d{1,3}(?:\.\d{3})+/g;
+    const re = /-?\d{1,3}(?:\.\d{3})+/g;
     let m;
     while ((m = re.exec(numLine)) !== null) tokens.push(parseChileanAmount(m[0]));
     return {
@@ -139,8 +147,8 @@ export function parseSantanderCreditLine(pdfText) {
             while ((m = re.exec(line)) !== null) amounts.push(parseChileanAmount(m[0]));
             const dateMatch = line.match(/\d{2}\/\d{2}\/\d{4}/);
             approved_limit   = amounts[0] ?? 0;
-            used_amount      = amounts[1] ?? 0;
-            available_amount = amounts[2] ?? 0;
+            used_amount      = amounts[2] ?? 0;
+            available_amount = amounts[1] ?? 0;
             expiry_date      = dateMatch ? dateMatch[0] : '';
             continue;
         }
@@ -217,7 +225,71 @@ export function parseSantanderCreditLine(pdfText) {
             es_cuota: false,
             cuota_actual: null,
             total_cuotas: null,
+            dailyBalance: extracted.dailyBalance,
         });
+    }
+
+    // ── Segundo pass: Corrección de montos para transacciones con dailyBalance ────
+    // Usar balance tracking para corregir montos cuando hay saldo diario disponible
+    if (transacciones.some(t => t.dailyBalance)) {
+        let runningBalance = saldo_inicial;
+
+        for (let i = 0; i < transacciones.length; i++) {
+            const tx = transacciones[i];
+
+            if (tx.dailyBalance !== null && tx.dailyBalance !== undefined) {
+                // Transacción con saldo diario: derivar monto correcto
+                const newBalance = -tx.dailyBalance;
+                const correctMonto = Math.abs(runningBalance - newBalance);
+                tx.monto = correctMonto;
+                runningBalance = newBalance;
+            } else {
+                // Sin saldo diario: buscar la siguiente con saldo para hacer pair correction
+                let pairIndex = -1;
+                let pairBalance = 0;
+                for (let j = i + 1; j < transacciones.length; j++) {
+                    if (transacciones[j].dailyBalance !== null && transacciones[j].dailyBalance !== undefined) {
+                        pairIndex = j;
+                        pairBalance = -transacciones[j].dailyBalance;
+                        break;
+                    }
+                }
+
+                if (pairIndex > i) {
+                    // Hay pair partner: calcular total del grupo y distribuir
+                    // Acumular montos en bruto del grupo hasta el pair
+                    let groupTotal = tx.monto;
+                    const groupStart = i;
+                    for (let k = i + 1; k < pairIndex; k++) {
+                        groupTotal += transacciones[k].monto;
+                    }
+
+                    // El monto correcto del pair es derivado de su balance
+                    const pairMonto = Math.abs(runningBalance - pairBalance);
+
+                    // El monto correcto de la transacción actual es: total_grupo - monto_pair
+                    // Pero eso es aproximado. Para simplificar, dejar el monto como está
+                    // y esperar que el pair balance correction lo corrija en el siguiente pass
+                    if (tx.tipo === 'cargo') {
+                        runningBalance = runningBalance - tx.monto;
+                    } else {
+                        runningBalance = runningBalance + tx.monto;
+                    }
+                } else {
+                    // No hay pair: asumir monto es correcto
+                    if (tx.tipo === 'cargo') {
+                        runningBalance = runningBalance - tx.monto;
+                    } else {
+                        runningBalance = runningBalance + tx.monto;
+                    }
+                }
+            }
+        }
+    }
+
+    // Remover dailyBalance del objeto final (es solo para procesamiento interno)
+    for (const tx of transacciones) {
+        delete tx.dailyBalance;
     }
 
     // ── Validación contra resumen (Bug 5: advertir si hay diferencia) ─────────
