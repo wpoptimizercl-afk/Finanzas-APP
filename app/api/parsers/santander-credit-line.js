@@ -10,7 +10,7 @@
  * separados por `-` al final = CARGO (primer monto); un único monto = ABONO.
  */
 
-import { parseChileanAmount, toTitleCase } from './chilean-amount.js';
+import { parseChileanAmount, toTitleCase, findRightmostChileanAmount } from './chilean-amount.js';
 import { categorizeCCTransaction } from './category-rules.js';
 
 // ── Regex ────────────────────────────────────────────────────────────────────
@@ -31,20 +31,37 @@ const CHILEAN_AMT_RE   = /\d{1,3}(?:\.\d{3})+/g;
 //   ABONO: ...ABONO_AMOUNT               (un único monto chileno al final)
 
 function extractCLAmount(body) {
-    const cargoMatch = body.match(/(\d{1,3}(?:\.\d{3})+)-(\d{1,3}(?:\.\d{3})+)$/);
-    if (cargoMatch) {
-        return {
-            monto: parseChileanAmount(cargoMatch[1]),
-            tipo: 'cargo',
-            dailyBalance: parseChileanAmount(cargoMatch[2])
-        };
+    // Limpiar la sección "N° DCTO" que está pegada a los montos
+    // Patrón: "N° " seguido de 10-20 dígitos
+    let cleanBody = body.replace(/N°\s*\d{10,20}/, '').trim();
+
+    // Buscar el patrón CARGO: termina en MONTO-SALDO_DIARIO
+    // El saldo diario siempre es el último monto chileno después del último '-'
+    const lastDashIdx = cleanBody.lastIndexOf('-');
+    if (lastDashIdx > 0) {
+        const afterDash = cleanBody.slice(lastDashIdx + 1);
+        // Verificar que lo que sigue al guion es un monto chileno válido y empieza desde el inicio
+        const saldoMatch = afterDash.match(/^(\d{1,3}(?:\.\d{3})+)$/);
+        if (saldoMatch) {
+            // Es un CARGO: extraer el monto de la parte antes del guion
+            const beforeDash = cleanBody.slice(0, lastDashIdx);
+            const montoResult = findRightmostChileanAmount(beforeDash);
+            if (montoResult) {
+                return {
+                    monto: montoResult.amount,
+                    tipo: 'cargo',
+                    dailyBalance: parseChileanAmount(saldoMatch[1]),
+                };
+            }
+        }
     }
-    const abonoMatch = body.match(/(\d{1,3}(?:\.\d{3})+)$/);
-    if (abonoMatch) {
+    // Es un ABONO: un único monto al final
+    const montoResult = findRightmostChileanAmount(cleanBody);
+    if (montoResult) {
         return {
-            monto: parseChileanAmount(abonoMatch[1]),
+            monto: montoResult.amount,
             tipo: 'abono',
-            dailyBalance: null
+            dailyBalance: null,
         };
     }
     return null;
@@ -225,67 +242,12 @@ export function parseSantanderCreditLine(pdfText) {
             es_cuota: false,
             cuota_actual: null,
             total_cuotas: null,
-            dailyBalance: extracted.dailyBalance,
         });
     }
 
-    // ── Segundo pass: Corrección de montos para transacciones con dailyBalance ────
-    // Usar balance tracking para corregir montos cuando hay saldo diario disponible
-    if (transacciones.some(t => t.dailyBalance)) {
-        let runningBalance = saldo_inicial;
-
-        for (let i = 0; i < transacciones.length; i++) {
-            const tx = transacciones[i];
-
-            if (tx.dailyBalance !== null && tx.dailyBalance !== undefined) {
-                // Transacción con saldo diario: derivar monto correcto
-                const newBalance = -tx.dailyBalance;
-                const correctMonto = Math.abs(runningBalance - newBalance);
-                tx.monto = correctMonto;
-                runningBalance = newBalance;
-            } else {
-                // Sin saldo diario: buscar la siguiente con saldo para hacer pair correction
-                let pairIndex = -1;
-                let pairBalance = 0;
-                for (let j = i + 1; j < transacciones.length; j++) {
-                    if (transacciones[j].dailyBalance !== null && transacciones[j].dailyBalance !== undefined) {
-                        pairIndex = j;
-                        pairBalance = -transacciones[j].dailyBalance;
-                        break;
-                    }
-                }
-
-                if (pairIndex > i) {
-                    // Hay pair partner: calcular total del grupo y distribuir
-                    // Acumular montos en bruto del grupo hasta el pair
-                    let groupTotal = tx.monto;
-                    const groupStart = i;
-                    for (let k = i + 1; k < pairIndex; k++) {
-                        groupTotal += transacciones[k].monto;
-                    }
-
-                    // El monto correcto del pair es derivado de su balance
-                    const pairMonto = Math.abs(runningBalance - pairBalance);
-
-                    // El monto correcto de la transacción actual es: total_grupo - monto_pair
-                    // Pero eso es aproximado. Para simplificar, dejar el monto como está
-                    // y esperar que el pair balance correction lo corrija en el siguiente pass
-                    if (tx.tipo === 'cargo') {
-                        runningBalance = runningBalance - tx.monto;
-                    } else {
-                        runningBalance = runningBalance + tx.monto;
-                    }
-                } else {
-                    // No hay pair: asumir monto es correcto
-                    if (tx.tipo === 'cargo') {
-                        runningBalance = runningBalance - tx.monto;
-                    } else {
-                        runningBalance = runningBalance + tx.monto;
-                    }
-                }
-            }
-        }
-    }
+    // ── Segundo pass: Solo validación (los montos ya son correctos desde extractCLAmount) ────
+    // El balance tracking ya no es necesario como corrección; solo verificar contra resumen
+    // Los montos se extraen correctamente con findRightmostChileanAmount en el primer paso.
 
     // Remover dailyBalance del objeto final (es solo para procesamiento interno)
     for (const tx of transacciones) {
