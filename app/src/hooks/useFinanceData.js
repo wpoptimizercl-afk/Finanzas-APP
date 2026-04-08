@@ -143,38 +143,52 @@ export function useFinanceData() {
                     return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
                 })();
 
-                const { data: insertedTxs, error: projTxErr } = await supabase
-                    .from('transactions')
-                    .insert(faltantes.map(c => ({
-                        user_id: uid,
-                        month_id: m.id,
-                        fecha,
-                        descripcion: c.descripcion,
-                        monto: c.monto_cuota,
-                        categoria: 'cuotas',
-                        tipo: 'cargo',
-                        is_temporary: true,
-                    })))
-                    .select();
+                // Paso 1: actualizar cuotas_vigentes en DB SIEMPRE (independiente del insert de txs)
+                const cuotasCompletas = [...(m.cuotas_vigentes || []), ...faltantes];
+                await supabase.from('months')
+                    .update({ cuotas_vigentes: JSON.stringify(cuotasCompletas) })
+                    .eq('id', m.id);
 
-                if (!projTxErr && insertedTxs?.length) {
-                    // Merge cuotas: las que ya estaban + las que se acaban de agregar
-                    const cuotasCompletas = [...(m.cuotas_vigentes || []), ...faltantes];
-                    await supabase.from('months')
-                        .update({ cuotas_vigentes: JSON.stringify(cuotasCompletas) })
-                        .eq('id', m.id);
+                setMonths(prev => prev.map(mon =>
+                    mon.id !== m.id ? mon : { ...mon, cuotas_vigentes: cuotasCompletas }
+                ));
 
-                    setMonths(prev => prev.map(mon => {
-                        if (mon.id !== m.id) return mon;
-                        const transacciones = [...(mon.transacciones || []), ...insertedTxs];
-                        const cats = { ...mon.categorias };
-                        let total = mon.total_cargos || 0;
-                        insertedTxs.forEach(t => {
-                            cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
-                            total += t.monto;
-                        });
-                        return { ...mon, transacciones, categorias: cats, cuotas_vigentes: cuotasCompletas, total_cargos: total };
-                    }));
+                // Paso 2: insertar transacciones solo para las que no existen ya (evitar duplicados)
+                const existingTxDescs = new Set(
+                    (m.transacciones || [])
+                        .filter(t => t.is_temporary && t.categoria === 'cuotas')
+                        .map(t => t.descripcion)
+                );
+                const txFaltantes = faltantes.filter(c => !existingTxDescs.has(c.descripcion));
+
+                if (txFaltantes.length > 0) {
+                    const { data: insertedTxs, error: projTxErr } = await supabase
+                        .from('transactions')
+                        .insert(txFaltantes.map(c => ({
+                            user_id: uid,
+                            month_id: m.id,
+                            fecha,
+                            descripcion: c.descripcion,
+                            monto: c.monto_cuota,
+                            categoria: 'cuotas',
+                            tipo: 'cargo',
+                            is_temporary: true,
+                        })))
+                        .select();
+
+                    if (!projTxErr && insertedTxs?.length) {
+                        setMonths(prev => prev.map(mon => {
+                            if (mon.id !== m.id) return mon;
+                            const transacciones = [...(mon.transacciones || []), ...insertedTxs];
+                            const cats = { ...mon.categorias };
+                            let total = mon.total_cargos || 0;
+                            insertedTxs.forEach(t => {
+                                cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
+                                total += t.monto;
+                            });
+                            return { ...mon, transacciones, categorias: cats, total_cargos: total };
+                        }));
+                    }
                 }
             }
         })();
