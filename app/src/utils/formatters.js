@@ -28,3 +28,18 @@ export const sortMonths = (arr) => [...arr].sort((a, b) => {
     if (ya !== yb) return ya - yb;
     return (MONTH_IDX[pa[0]] || 0) - (MONTH_IDX[pb[0]] || 0);
 });
+
+const MONTH_NAMES_CAP = [
+    'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'
+];
+
+export const getPreviousPeriodo = (periodo) => {
+    if (!periodo) return null;
+    const [mesStr, añoStr] = periodo.split(' ');
+    const mesIdx = MONTH_IDX[(mesStr || '').toLowerCase()];
+    const año = parseInt(añoStr || '0', 10);
+    if (mesIdx === undefined || isNaN(año)) return null;
+    if (mesIdx === 0) return `Diciembre ${año - 1}`;
+    return `${MONTH_NAMES_CAP[mesIdx - 1]} ${año}`;
+};

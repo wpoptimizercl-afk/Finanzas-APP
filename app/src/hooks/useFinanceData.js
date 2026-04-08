@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { sortMonths } from '../utils/formatters';
+import { sortMonths, getPreviousPeriodo } from '../utils/formatters';
 import { DEF_BUDGET, CAT, MONTH_NAMES } from '../lib/constants';
 
 const parseJ = (v, fallback) => { try { return v ? JSON.parse(v) : fallback; } catch { return fallback; } };
@@ -190,7 +190,61 @@ export function useFinanceData() {
                 }, { onConflict: 'account_id,periodo' })
                 .select().single();
             if (error || !saved) throw new Error(error?.message || 'Error creando mes placeholder');
-            month = { ...saved, categorias: {}, cuotas_vigentes: [], transacciones: [] };
+
+            // ── Proyección de cuotas vigentes del mes anterior ────────────────────
+            const periodoAnterior = getPreviousPeriodo(periodo);
+            const prevMonth = periodoAnterior
+                ? monthsRef.current.find(m => m.account_id === account_id && m.periodo === periodoAnterior)
+                : null;
+
+            let cuotasProyectadas = [];
+            let txsProyectadas = [];
+
+            if (prevMonth && Array.isArray(prevMonth.cuotas_vigentes) && prevMonth.cuotas_vigentes.length > 0) {
+                cuotasProyectadas = prevMonth.cuotas_vigentes
+                    .map(c => ({ ...c, cuota_actual: (c.cuota_actual || 0) + 1 }))
+                    .filter(c => c.cuota_actual <= (c.total_cuotas || 1));
+
+                if (cuotasProyectadas.length > 0) {
+                    const { data: insertedTxs, error: projTxErr } = await supabase
+                        .from('transactions')
+                        .insert(cuotasProyectadas.map(c => ({
+                            user_id: uid,
+                            month_id: saved.id,
+                            fecha,
+                            descripcion: c.descripcion,
+                            monto: c.monto_cuota,
+                            categoria: 'cuotas',
+                            tipo: 'cargo',
+                            is_temporary: true,
+                        })))
+                        .select();
+
+                    if (!projTxErr && insertedTxs?.length) {
+                        txsProyectadas = insertedTxs;
+                        // Actualizar cuotas_vigentes del placeholder en DB (best-effort, no lanzar error)
+                        await supabase.from('months')
+                            .update({ cuotas_vigentes: JSON.stringify(cuotasProyectadas) })
+                            .eq('id', saved.id);
+                    }
+                }
+            }
+            // ── Fin proyección ────────────────────────────────────────────────────
+
+            const catsIniciales = {};
+            let totalInicial = 0;
+            txsProyectadas.forEach(t => {
+                catsIniciales[t.categoria] = (catsIniciales[t.categoria] || 0) + t.monto;
+                totalInicial += t.monto;
+            });
+
+            month = {
+                ...saved,
+                categorias: catsIniciales,
+                cuotas_vigentes: cuotasProyectadas,
+                transacciones: txsProyectadas,
+                total_cargos: totalInicial,
+            };
             setMonths(prev => sortMonths([month, ...prev]));
         }
 
