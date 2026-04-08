@@ -42,6 +42,22 @@ export function parseDateDDMMYY(str) {
     return `${m[1]}/${m[2]}/${year}`;
 }
 
+export const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+/**
+ * Convierte una fecha DD/MM/YYYY en "Mes YYYY".
+ * Usa periodo_hasta si está disponible (convención Santander: el extracto se nombra
+ * por el mes de cierre, no de inicio).
+ * "26/02/2026" → "Febrero 2026", "" → ""
+ */
+export function formatPeriodo(periodoHasta, periodoDesde = '') {
+    const date = periodoHasta || periodoDesde;
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(date)) return '';
+    const [, m, y] = date.split('/').map(Number);
+    return (m >= 1 && m <= 12) ? `${MONTH_NAMES[m - 1]} ${y}` : '';
+}
+
 /**
  * Patrón válido de monto chileno: 1-3 dígitos seguidos de grupos .NNN.
  * Mínimo un grupo (ej: "1.234"), máximo sin límite (ej: "1.234.567.890").
@@ -49,19 +65,21 @@ export function parseDateDDMMYY(str) {
 export const CHILE_AMT_PATTERN = /\d{1,3}(?:\.\d{3})+/;
 
 /**
- * Busca el monto chileno que empieza más a la derecha posible dentro de `s`
- * y termina al final del string. Útil para extraer el saldo de líneas concatenadas.
+ * Busca el monto chileno más largo que termine al final del string `s`.
+ * Útil cuando el monto tiene dígitos previos pegados (ej: de un número de documento).
  *
- * "9129.743" → { amount: 9743, start: 3 }  (saldo 9.743, no 129.743)
- * "283.194"  → { amount: 283194, start: 0 }
+ * "40.500"  → { amount: 40500, start: 0 }
+ * "2.280"   → { amount: 2280, start: 0 }
+ * "283.194" → { amount: 283194, start: 0 }
  * Retorna null si no encuentra ningún monto.
  */
 export function findRightmostChileanAmount(s) {
-    const MIN_LEN = 5; // "1.234"
-    for (let i = s.length - MIN_LEN; i >= 0; i--) {
-        const sub = s.slice(i);
-        if (/^(\d{1,3}(?:\.\d{3})+)$/.test(sub)) {
-            return { amount: parseChileanAmount(sub), start: i };
+    // Greedy regex finds matches left-to-right; the first one ending at s.length is the longest
+    const regex = /\d{1,3}(?:\.\d{3})+/g;
+    let m;
+    while ((m = regex.exec(s)) !== null) {
+        if (m.index + m[0].length === s.length) {
+            return { amount: parseChileanAmount(m[0]), start: m.index };
         }
     }
     return null;

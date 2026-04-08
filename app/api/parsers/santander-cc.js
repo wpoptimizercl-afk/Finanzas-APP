@@ -23,7 +23,7 @@
  *     otros_cargos=1.822.990, impuestos=0, saldo_final=32.265
  */
 
-import { parseChileanAmount, toTitleCase } from './chilean-amount.js';
+import { parseChileanAmount, toTitleCase, formatPeriodo } from './chilean-amount.js';
 import { categorizeCCTransaction } from './category-rules.js';
 
 /**
@@ -271,13 +271,7 @@ export function parseSantanderCC(pdfText) {
     // ── Derivar periodo ───────────────────────────────────────────────────────
     // Usar periodo_hasta (fecha de cierre) para nombrar el mes, igual que TC.
     // ej: cartola 30/01→27/02 = "Febrero 2026", no "Enero 2026".
-    const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    let periodo = '';
-    const dateForPeriodo = periodo_hasta || periodo_desde;
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateForPeriodo)) {
-        const [, m, y] = dateForPeriodo.split('/').map(Number);
-        if (m >= 1 && m <= 12) periodo = `${MONTH_NAMES[m - 1]} ${y}`;
-    }
+    const periodo = formatPeriodo(periodo_hasta, periodo_desde);
 
     // ── Totales para compatibilidad con normalizeAIResponse ──────────────────
     const sumCargos = transacciones.filter(t => t.tipo === 'cargo').reduce((s, t) => s + t.monto, 0);

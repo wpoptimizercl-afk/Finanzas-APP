@@ -10,7 +10,7 @@
  * separados por `-` al final = CARGO (primer monto); un único monto = ABONO.
  */
 
-import { parseChileanAmount, toTitleCase, findRightmostChileanAmount } from './chilean-amount.js';
+import { parseChileanAmount, toTitleCase, findRightmostChileanAmount, formatPeriodo } from './chilean-amount.js';
 import { categorizeCCTransaction } from './category-rules.js';
 
 // ── Regex ────────────────────────────────────────────────────────────────────
@@ -31,21 +31,30 @@ const CHILEAN_AMT_RE   = /\d{1,3}(?:\.\d{3})+/g;
 //   ABONO: ...ABONO_AMOUNT               (un único monto chileno al final)
 
 function extractCLAmount(body) {
-    // Limpiar la sección "N° DCTO" que está pegada a los montos
-    // Patrón: "N° " seguido de 10-20 dígitos
-    let cleanBody = body.replace(/N°\s*\d{10,20}/, '').trim();
+    // Documentos Santander CL tienen 12 o 18 dígitos pegados sin separador al monto.
+    // Encontrar la longitud correcta del doc para dejar 1-3 dígitos del monto.
+    let cleanBody = body;
+    const nIdx = body.indexOf('N°');
+    if (nIdx >= 0) {
+        const afterN = body.slice(nIdx + 2).trim();
+        const firstPointIdx = afterN.indexOf('.');
+        if (firstPointIdx > 0) {
+            const docLen = [12, 18].find(d => {
+                const digits = firstPointIdx - d;
+                return digits >= 1 && digits <= 3;
+            });
+            // Fallback: máximo 3 dígitos antes del punto
+            cleanBody = afterN.slice(docLen ?? Math.max(0, firstPointIdx - 3));
+        }
+    }
 
-    // Buscar el patrón CARGO: termina en MONTO-SALDO_DIARIO
-    // El saldo diario siempre es el último monto chileno después del último '-'
+    // Usar el último '-' como separador: puede haber '-' en la descripción
     const lastDashIdx = cleanBody.lastIndexOf('-');
     if (lastDashIdx > 0) {
         const afterDash = cleanBody.slice(lastDashIdx + 1);
-        // Verificar que lo que sigue al guion es un monto chileno válido y empieza desde el inicio
         const saldoMatch = afterDash.match(/^(\d{1,3}(?:\.\d{3})+)$/);
         if (saldoMatch) {
-            // Es un CARGO: extraer el monto de la parte antes del guion
-            const beforeDash = cleanBody.slice(0, lastDashIdx);
-            const montoResult = findRightmostChileanAmount(beforeDash);
+            const montoResult = findRightmostChileanAmount(cleanBody.slice(0, lastDashIdx));
             if (montoResult) {
                 return {
                     monto: montoResult.amount,
@@ -55,7 +64,7 @@ function extractCLAmount(body) {
             }
         }
     }
-    // Es un ABONO: un único monto al final
+
     const montoResult = findRightmostChileanAmount(cleanBody);
     if (montoResult) {
         return {
@@ -114,8 +123,6 @@ function parseResumenCC(numLine) {
 
 // ── Parser principal ─────────────────────────────────────────────────────────
 
-const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
-    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 /**
  * Parsea el texto plano de una cartola de Línea de Crédito Santander Chile.
@@ -271,12 +278,7 @@ export function parseSantanderCreditLine(pdfText) {
     }
 
     // ── Derivar periodo ───────────────────────────────────────────────────────
-    let periodo = '';
-    const dateForPeriodo = periodo_hasta || periodo_desde;
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateForPeriodo)) {
-        const [, m, y] = dateForPeriodo.split('/').map(Number);
-        if (m >= 1 && m <= 12) periodo = `${MONTH_NAMES[m - 1]} ${y}`;
-    }
+    const periodo = formatPeriodo(periodo_hasta, periodo_desde);
 
     // ── Totales ───────────────────────────────────────────────────────────────
     const sumCargos = transacciones

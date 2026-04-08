@@ -21,7 +21,7 @@
  *   DD/MM/YY$ -AMOUNTMONTO CANCELADO
  */
 
-import { parseChileanAmount, parseDateDDMMYY, toTitleCase } from './chilean-amount.js';
+import { parseChileanAmount, parseDateDDMMYY, toTitleCase, formatPeriodo } from './chilean-amount.js';
 import { categorizeTCTransaction } from './category-rules.js';
 
 // ── Regex ────────────────────────────────────────────────────────────────────
@@ -240,13 +240,7 @@ export function parseSantanderTC(pdfText) {
     // Usar periodo_hasta (fecha de cierre) porque los bancos nombran el extracto
     // por el mes en que cierra el período, no por el mes de inicio.
     // Ej: 29/01/2026–26/02/2026 → "Febrero 2026" (cierra en febrero)
-    const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    let periodo = '';
-    const dateForPeriodo = periodo_hasta || periodo_desde;
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateForPeriodo)) {
-        const [, m, y] = dateForPeriodo.split('/').map(Number);
-        if (m >= 1 && m <= 12) periodo = `${MONTH_NAMES[m - 1]} ${y}`;
-    }
+    const periodo = formatPeriodo(periodo_hasta, periodo_desde);
 
     // ── Validación (no bloquea) ───────────────────────────────────────────────
     const sumTx = transacciones
