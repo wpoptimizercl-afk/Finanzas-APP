@@ -104,14 +104,13 @@ export function useFinanceData() {
         })();
     }, [uid]);
 
-    // ── Backfill: proyectar cuotas en meses placeholder que ya existen con cuotas_vigentes: [] ──
+    // ── Backfill: proyectar cuotas faltantes en meses placeholder ──────────
     useEffect(() => {
         if (!ready || !uid) return;
         const monthsArr = monthsRef.current;
 
+        // Procesar meses placeholder (todas sus transacciones son temporales o no tiene ninguna)
         const candidates = monthsArr.filter(m => {
-            if (!Array.isArray(m.cuotas_vigentes) || m.cuotas_vigentes.length > 0) return false;
-            // Solo meses placeholder (todas las transacciones son temporales, o no hay transacciones)
             const txs = m.transacciones || [];
             if (txs.length > 0 && txs.some(t => !t.is_temporary)) return false;
             const prevPeriodo = getPreviousPeriodo(m.periodo);
@@ -127,11 +126,16 @@ export function useFinanceData() {
                 const prevPeriodo = getPreviousPeriodo(m.periodo);
                 const prev = monthsArr.find(p => p.account_id === m.account_id && p.periodo === prevPeriodo);
 
-                const cuotasProyectadas = prev.cuotas_vigentes
+                // Cuotas que deberían estar proyectadas desde el mes anterior
+                const deberianEstar = prev.cuotas_vigentes
                     .map(c => ({ ...c, cuota_actual: (c.cuota_actual || 0) + 1 }))
                     .filter(c => c.cuota_actual <= (c.total_cuotas || 1));
 
-                if (cuotasProyectadas.length === 0) continue;
+                // Solo insertar las que faltan (comparar por descripcion)
+                const existingDescs = new Set((m.cuotas_vigentes || []).map(c => c.descripcion));
+                const faltantes = deberianEstar.filter(c => !existingDescs.has(c.descripcion));
+
+                if (faltantes.length === 0) continue;
 
                 const firstTx = (m.transacciones || [])[0];
                 const fecha = firstTx?.fecha ?? (() => {
@@ -141,7 +145,7 @@ export function useFinanceData() {
 
                 const { data: insertedTxs, error: projTxErr } = await supabase
                     .from('transactions')
-                    .insert(cuotasProyectadas.map(c => ({
+                    .insert(faltantes.map(c => ({
                         user_id: uid,
                         month_id: m.id,
                         fecha,
@@ -154,8 +158,10 @@ export function useFinanceData() {
                     .select();
 
                 if (!projTxErr && insertedTxs?.length) {
+                    // Merge cuotas: las que ya estaban + las que se acaban de agregar
+                    const cuotasCompletas = [...(m.cuotas_vigentes || []), ...faltantes];
                     await supabase.from('months')
-                        .update({ cuotas_vigentes: JSON.stringify(cuotasProyectadas) })
+                        .update({ cuotas_vigentes: JSON.stringify(cuotasCompletas) })
                         .eq('id', m.id);
 
                     setMonths(prev => prev.map(mon => {
@@ -167,7 +173,7 @@ export function useFinanceData() {
                             cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
                             total += t.monto;
                         });
-                        return { ...mon, transacciones, categorias: cats, cuotas_vigentes: cuotasProyectadas, total_cargos: total };
+                        return { ...mon, transacciones, categorias: cats, cuotas_vigentes: cuotasCompletas, total_cargos: total };
                     }));
                 }
             }
