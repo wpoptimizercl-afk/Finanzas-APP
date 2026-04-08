@@ -104,6 +104,77 @@ export function useFinanceData() {
         })();
     }, [uid]);
 
+    // ── Backfill: proyectar cuotas en meses placeholder que ya existen con cuotas_vigentes: [] ──
+    useEffect(() => {
+        if (!ready || !uid) return;
+        const monthsArr = monthsRef.current;
+
+        const candidates = monthsArr.filter(m => {
+            if (!Array.isArray(m.cuotas_vigentes) || m.cuotas_vigentes.length > 0) return false;
+            // Solo meses placeholder (todas las transacciones son temporales, o no hay transacciones)
+            const txs = m.transacciones || [];
+            if (txs.length > 0 && txs.some(t => !t.is_temporary)) return false;
+            const prevPeriodo = getPreviousPeriodo(m.periodo);
+            if (!prevPeriodo) return false;
+            const prev = monthsArr.find(p => p.account_id === m.account_id && p.periodo === prevPeriodo);
+            return prev && Array.isArray(prev.cuotas_vigentes) && prev.cuotas_vigentes.length > 0;
+        });
+
+        if (candidates.length === 0) return;
+
+        (async () => {
+            for (const m of candidates) {
+                const prevPeriodo = getPreviousPeriodo(m.periodo);
+                const prev = monthsArr.find(p => p.account_id === m.account_id && p.periodo === prevPeriodo);
+
+                const cuotasProyectadas = prev.cuotas_vigentes
+                    .map(c => ({ ...c, cuota_actual: (c.cuota_actual || 0) + 1 }))
+                    .filter(c => c.cuota_actual <= (c.total_cuotas || 1));
+
+                if (cuotasProyectadas.length === 0) continue;
+
+                const firstTx = (m.transacciones || [])[0];
+                const fecha = firstTx?.fecha ?? (() => {
+                    const now = new Date();
+                    return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+                })();
+
+                const { data: insertedTxs, error: projTxErr } = await supabase
+                    .from('transactions')
+                    .insert(cuotasProyectadas.map(c => ({
+                        user_id: uid,
+                        month_id: m.id,
+                        fecha,
+                        descripcion: c.descripcion,
+                        monto: c.monto_cuota,
+                        categoria: 'cuotas',
+                        tipo: 'cargo',
+                        is_temporary: true,
+                    })))
+                    .select();
+
+                if (!projTxErr && insertedTxs?.length) {
+                    await supabase.from('months')
+                        .update({ cuotas_vigentes: JSON.stringify(cuotasProyectadas) })
+                        .eq('id', m.id);
+
+                    setMonths(prev => prev.map(mon => {
+                        if (mon.id !== m.id) return mon;
+                        const transacciones = [...(mon.transacciones || []), ...insertedTxs];
+                        const cats = { ...mon.categorias };
+                        let total = mon.total_cargos || 0;
+                        insertedTxs.forEach(t => {
+                            cats[t.categoria] = (cats[t.categoria] || 0) + t.monto;
+                            total += t.monto;
+                        });
+                        return { ...mon, transacciones, categorias: cats, cuotas_vigentes: cuotasProyectadas, total_cargos: total };
+                    }));
+                }
+            }
+        })();
+    }, [ready, uid]);
+    // ── Fin backfill ──────────────────────────────────────────────────────────
+
     const sorted = useMemo(() => sortMonths(months), [months]);
     const allCats = useMemo(() => ({ ...CAT, ...customCats }), [customCats]);
 
