@@ -6,13 +6,13 @@ import { CLP, isCurrentMonth } from '../utils/formatters';
  * y cuánto dinero se libera a partir del mes siguiente.
  * Solo se renderiza si hay al menos una cuota terminando.
  */
-export default function EndingInstallmentsWidget({ months }) {
+export default function EndingInstallmentsWidget({ months, periodo }) {
     const { endingCuotas, liberado, latestPeriod } = useMemo(() => {
         const tcMonths = (months || []).filter(m => m.source_type === 'tc');
         if (!tcMonths.length) return { endingCuotas: [], liberado: 0 };
 
-        // Período TC más reciente
-        const latestPeriod = tcMonths[tcMonths.length - 1].periodo;
+        // Usar el período recibido del Dashboard; fallback al más reciente
+        const latestPeriod = periodo || tcMonths[tcMonths.length - 1].periodo;
         const allCuotas = tcMonths
             .filter(m => m.periodo === latestPeriod)
             .flatMap(m => m.cuotas_vigentes || []);
@@ -24,7 +24,7 @@ export default function EndingInstallmentsWidget({ months }) {
 
         const liberado = ending.reduce((s, c) => s + (c.monto_cuota || 0), 0);
         return { endingCuotas: ending, liberado, latestPeriod };
-    }, [months]);
+    }, [months, periodo]);
 
     if (!endingCuotas.length) return null;
 

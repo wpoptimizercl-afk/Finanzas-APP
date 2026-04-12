@@ -271,7 +271,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                 {/* ── Columna lateral (derecha) — sticky en desktop ── */}
                 <div className="dashboard-col-side">
                     {/* Cuotas que terminan pronto */}
-                    {isLastOnly && <EndingInstallmentsWidget months={months} />}
+                    {isLastOnly && <EndingInstallmentsWidget months={months} periodo={latest?.periodo} />}
 
                     {/* Banner: sube más meses */}
                     {allSeries.length <= 1 && (
