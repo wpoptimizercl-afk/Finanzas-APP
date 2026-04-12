@@ -115,6 +115,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
 
     return (
         <div className="animate-fadeIn">
+            {/* Header — full width, fuera del grid */}
             <div className="page-header-meta">
                 <div className="page-subtitle">
                     {isLastOnly ? latest?.label : `${series[0]?.label} → ${series[n - 1]?.label}`}
@@ -128,189 +129,211 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                 />
             </div>
 
-            <div className="dashboard-grid">
-                <Metric label={`${avgAhorro >= 0 ? 'Excedente' : 'Déficit'} ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor}
-                    note="ingreso − gasto" />
-                <Metric label={avgAhorro >= 0 ? 'Tasa excedente' : 'Tasa déficit'} value={avgRate + '%'} color={rateColor}
-                    note={savingsGoal > 0 ? `meta ${pct(savingsGoal, avgIncome)}%` : 'meta mín. 15%'} />
-                <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
-                    note="sueldo + extras + abonos CC" />
-                <Metric label={`Gasto ${metricLabel}`} value={CLP(avgGasto)} color="var(--danger)"
-                    note="TC + CC + fijos" />
-            </div>
+            {/* Grid 2 columnas en desktop, 1 columna en mobile */}
+            <div className="dashboard-layout">
 
-            <HealthSemaphore series={series} budget={budget} isAverage={!isLastOnly} />
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-                {momDelta !== null && (
-                    <span style={{
-                        fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)',
-                        background: momDelta <= 0 ? 'var(--success-light)' : 'var(--danger-light)',
-                        color: momDelta <= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 500
-                    }}>
-                        {momDelta <= 0 ? '↓' : '↑'} Gasto {momDelta <= 0 ? 'bajó' : 'subió'} {CLP(Math.abs(momDelta))}
-                    </span>
-                )}
-                {bestMonth && !isLastOnly && (
-                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
-                        Mayor excedente: {bestMonth.label} · {CLP(bestMonth.ahorro)}
-                    </span>
-                )}
-                {worstMonth && (
-                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--danger-light)', color: 'var(--danger)', fontWeight: 500 }}>
-                        Menor: {worstMonth.label} · {CLP(worstMonth.ahorro)}
-                    </span>
-                )}
-                {totalSavings > 0 && !isLastOnly && (
-                    <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
-                        Excedente efectivo: {CLP(totalSavings)}
-                    </span>
-                )}
-            </div>
-
-            {isLastOnly && <EndingInstallmentsWidget months={months} />}
-
-            {allSeries.length <= 1 && (
-                <div style={{ background: "var(--primary-light)", border: "1px solid var(--primary-border)", borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                    <div>
-                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)" }}>Sube más meses para ver tendencias</div>
-                        <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>Con 2+ meses verás tu evolución y promedios.</div>
+                {/* ── Columna principal (izquierda) ── */}
+                <div className="dashboard-col-main">
+                    {/* KPIs — 2 cols mobile, 4 cols desktop */}
+                    <div className="dashboard-grid">
+                        <Metric label={`${avgAhorro >= 0 ? 'Excedente' : 'Déficit'} ${metricLabel}`} value={CLP(avgAhorro)} color={rateColor}
+                            note="ingreso − gasto" />
+                        <Metric label={avgAhorro >= 0 ? 'Tasa excedente' : 'Tasa déficit'} value={avgRate + '%'} color={rateColor}
+                            note={savingsGoal > 0 ? `meta ${pct(savingsGoal, avgIncome)}%` : 'meta mín. 15%'} />
+                        <Metric label={`Ingreso ${metricLabel}`} value={CLP(avgIncome)} color="var(--primary)"
+                            note="sueldo + extras + abonos CC" />
+                        <Metric label={`Gasto ${metricLabel}`} value={CLP(avgGasto)} color="var(--danger)"
+                            note="TC + CC + fijos" />
                     </div>
-                    <button className="btn btn-primary btn-sm" onClick={onGoUpload} style={{ whiteSpace: "nowrap" }}>+ Subir</button>
-                </div>
-            )}
-            <Section mt="0">Ingresos vs gastos por mes</Section>
-            <div className="card" style={{ marginBottom: 12 }}>
-                <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={series} barGap={2} barCategoryGap="30%">
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-                        <YAxis tickFormatter={CLPk} tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} width={40} />
-                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--border-light)', opacity: .6 }} />
-                        <Bar dataKey="income" name="Ingreso" fill="var(--success)" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="gasto" name="Egreso" fill="var(--danger)" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                    {[['var(--success)', 'Ingreso'], ['var(--danger)', 'Egreso']].map(([c, l]) => (
-                        <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-secondary)' }}>
-                            <span style={{ width: 8, height: 8, borderRadius: 3, background: c, display: 'inline-block' }} />{l}
-                        </div>
-                    ))}
-                </div>
-            </div>
 
-            <Section mt="0">Tasa de excedente mensual</Section>
-            <div className="card" style={{ marginBottom: 12 }}>
-                <ResponsiveContainer width="100%" height={130}>
-                    <AreaChart data={rateLine}>
-                        <defs>
-                            <linearGradient id="rateGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={rateColor} stopOpacity={.2} />
-                                <stop offset="95%" stopColor={rateColor} stopOpacity={0} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
-                        <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-                        <YAxis tickFormatter={v => v + '%'} tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} width={34} />
-                        <Tooltip formatter={v => [v + '%', 'Tasa']} contentStyle={{ fontSize: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-card)' }} />
-                        <ReferenceLine y={15} stroke="var(--success)" strokeDasharray="4 4" strokeWidth={1.5} />
-                        {savingsGoal > 0 && <ReferenceLine y={pct(savingsGoal, avgIncome)} stroke="var(--primary)" strokeDasharray="4 4" strokeWidth={1.5} />}
-                        <Area type="monotone" dataKey="tasa" stroke={rateColor} strokeWidth={2.5} fill="url(#rateGrad)" dot={{ r: 3, fill: rateColor, strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                    </AreaChart>
-                </ResponsiveContainer>
-                <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 4, flexWrap: 'wrap' }}>
-                    <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>— — Meta mín. 15%</div>
-                    {savingsGoal > 0 && <div style={{ fontSize: 10, color: 'var(--primary)' }}>— — Tu meta {CLP(savingsGoal)}</div>}
-                </div>
-            </div>
-
-            <Section mt="0">Categorías — acumulado</Section>
-            <div className="card" style={{ padding: '2px 14px 10px', marginBottom: 12 }}>
-                {topCats.map(c => (
-                    <div key={c.key} style={{ paddingTop: 9 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, display: 'inline-block', flexShrink: 0 }} />
-                                <span style={{ fontWeight: 500 }}>{c.label}</span>
-                            </div>
-                            <div>
-                                <span style={{ fontWeight: 600 }}>{CLP(c.total)}</span>
-                                <span style={{ color: 'var(--text-tertiary)', marginLeft: 7 }}>prom {CLP(c.avg)}/mes</span>
-                            </div>
-                        </div>
-                        <div style={{ background: 'var(--bg-hover)', borderRadius: 4, height: 3 }}>
-                            <div style={{ width: pct(c.total, topCats[0].total) + '%', height: 3, borderRadius: 4, background: c.color, transition: 'width .6s ease' }} />
-                        </div>
+                    {/* Pills de contexto */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
+                        {momDelta !== null && (
+                            <span style={{
+                                fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)',
+                                background: momDelta <= 0 ? 'var(--success-light)' : 'var(--danger-light)',
+                                color: momDelta <= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 500
+                            }}>
+                                {momDelta <= 0 ? '↓' : '↑'} Gasto {momDelta <= 0 ? 'bajó' : 'subió'} {CLP(Math.abs(momDelta))}
+                            </span>
+                        )}
+                        {bestMonth && !isLastOnly && (
+                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
+                                Mayor excedente: {bestMonth.label} · {CLP(bestMonth.ahorro)}
+                            </span>
+                        )}
+                        {worstMonth && (
+                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--danger-light)', color: 'var(--danger)', fontWeight: 500 }}>
+                                Menor: {worstMonth.label} · {CLP(worstMonth.ahorro)}
+                            </span>
+                        )}
+                        {totalSavings > 0 && !isLastOnly && (
+                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
+                                Excedente efectivo: {CLP(totalSavings)}
+                            </span>
+                        )}
                     </div>
-                ))}
-            </div>
 
-            {donutData.length > 0 && (
-                <>
-                    <Section mt="0">{isLastOnly ? `Distribución — ${latest?.periodo}` : `Distribución promedio — ${n} meses`}</Section>
+                    {/* Salud financiera — relevante cerca de los KPIs */}
+                    <HealthSemaphore series={series} budget={budget} isAverage={!isLastOnly} />
+
+                    {/* Gráfico barras: ingreso vs gasto */}
+                    <Section mt="0">Ingresos vs gastos por mes</Section>
                     <div className="card" style={{ marginBottom: 12 }}>
-                        <ResponsiveContainer width="100%" height={150}>
-                            <PieChart>
-                                <Pie data={donutData} cx="50%" cy="50%" innerRadius={38} outerRadius={60} dataKey="value" paddingAngle={2}>
-                                    {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                                </Pie>
-                                <Tooltip formatter={(v, nm) => [CLP(v), nm]} contentStyle={{ fontSize: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-card)' }} />
-                            </PieChart>
+                        <ResponsiveContainer width="100%" height={180}>
+                            <BarChart data={series} barGap={2} barCategoryGap="30%">
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
+                                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
+                                <YAxis tickFormatter={CLPk} tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} width={40} />
+                                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--border-light)', opacity: .6 }} />
+                                <Bar dataKey="income" name="Ingreso" fill="var(--success)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="gasto" name="Egreso" fill="var(--danger)" radius={[4, 4, 0, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            {donutData.map(d => (
-                                <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11 }}>
-                                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, flexShrink: 0, display: 'inline-block' }} />
-                                    <span style={{ flex: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
-                                    <span style={{ fontWeight: 600 }}>{CLP(d.value)}</span>
+                        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                            {[['var(--success)', 'Ingreso'], ['var(--danger)', 'Egreso']].map(([c, l]) => (
+                                <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-secondary)' }}>
+                                    <span style={{ width: 8, height: 8, borderRadius: 3, background: c, display: 'inline-block' }} />{l}
                                 </div>
                             ))}
                         </div>
                     </div>
-                </>
-            )}
 
-            {n >= 1 && (
-                <>
-                    <Section mt="0">Resumen por mes</Section>
-                    <div className="card" style={{ padding: 0, overflowX: 'auto', marginBottom: '1.5rem' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                            <thead>
-                                <tr style={{ borderBottom: '1px solid var(--border-medium)' }}>
-                                    {['Mes', 'Ingreso', 'Tarjeta', 'Fijos', 'Total', 'Excedente', 'Tasa'].map(h => (
-                                        <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Mes' ? 'left' : 'right', color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {[...series].reverse().map((r, i) => {
-                                    const rate = pct(r.ahorro, r.income);
-                                    const rc = r.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
-                                    return (
-                                        <tr key={r.periodo}
-                                            onClick={() => onGoHistory && onGoHistory(r.periodo)}
-                                            style={{ borderBottom: '1px solid var(--border-light)', cursor: 'pointer', transition: 'background .12s' }}
-                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                            onMouseLeave={e => e.currentTarget.style.background = i % 2 !== 0 ? 'var(--bg-input)' : 'transparent'}
-                                        >
-                                            <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>{r.label} <span style={{ fontSize: 9, opacity: .6 }}>›</span></td>
-                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--primary)', fontWeight: 500 }}>{CLP(r.income)}</td>
-                                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>{CLP(r.tc)}</td>
-                                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>{CLP(r.fixedTotal)}</td>
-                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--danger)', fontWeight: 600 }}>{CLP(r.gasto)}</td>
-                                            <td style={{ padding: '8px 10px', textAlign: 'right', color: rc, fontWeight: 600 }}>{CLP(r.ahorro)}</td>
-                                            <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                                                <span style={{ background: rate >= 15 ? 'var(--success-light)' : rate >= 0 ? 'var(--warning-light)' : 'var(--danger-light)', color: rc, padding: '2px 7px', borderRadius: 'var(--radius-full)', fontWeight: 600, fontSize: 10 }}>{rate}%</span>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                    {/* Gráfico área: tasa excedente */}
+                    <Section mt="0">Tasa de excedente mensual</Section>
+                    <div className="card" style={{ marginBottom: 12 }}>
+                        <ResponsiveContainer width="100%" height={130}>
+                            <AreaChart data={rateLine}>
+                                <defs>
+                                    <linearGradient id="rateGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={rateColor} stopOpacity={.2} />
+                                        <stop offset="95%" stopColor={rateColor} stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
+                                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
+                                <YAxis tickFormatter={v => v + '%'} tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} width={34} />
+                                <Tooltip formatter={v => [v + '%', 'Tasa']} contentStyle={{ fontSize: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-card)' }} />
+                                <ReferenceLine y={15} stroke="var(--success)" strokeDasharray="4 4" strokeWidth={1.5} />
+                                {savingsGoal > 0 && <ReferenceLine y={pct(savingsGoal, avgIncome)} stroke="var(--primary)" strokeDasharray="4 4" strokeWidth={1.5} />}
+                                <Area type="monotone" dataKey="tasa" stroke={rateColor} strokeWidth={2.5} fill="url(#rateGrad)" dot={{ r: 3, fill: rateColor, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>— — Meta mín. 15%</div>
+                            {savingsGoal > 0 && <div style={{ fontSize: 10, color: 'var(--primary)' }}>— — Tu meta {CLP(savingsGoal)}</div>}
+                        </div>
                     </div>
-                </>
-            )}
+
+                    {/* Tabla resumen por mes */}
+                    {n >= 1 && (
+                        <>
+                            <Section mt="0">Resumen por mes</Section>
+                            <div className="card" style={{ padding: 0, overflowX: 'auto', marginBottom: '1.5rem' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '1px solid var(--border-medium)' }}>
+                                            {['Mes', 'Ingreso', 'Tarjeta', 'Fijos', 'Total', 'Excedente', 'Tasa'].map(h => (
+                                                <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Mes' ? 'left' : 'right', color: 'var(--text-tertiary)', fontWeight: 600, whiteSpace: 'nowrap', fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {[...series].reverse().map((r, i) => {
+                                            const rate = pct(r.ahorro, r.income);
+                                            const rc = r.ahorro >= 0 ? 'var(--success)' : 'var(--danger)';
+                                            return (
+                                                <tr key={r.periodo}
+                                                    onClick={() => onGoHistory && onGoHistory(r.periodo)}
+                                                    style={{ borderBottom: '1px solid var(--border-light)', cursor: 'pointer', transition: 'background .12s' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = i % 2 !== 0 ? 'var(--bg-input)' : 'transparent'}
+                                                >
+                                                    <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--primary)', whiteSpace: 'nowrap' }}>{r.label} <span style={{ fontSize: 9, opacity: .6 }}>›</span></td>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--primary)', fontWeight: 500 }}>{CLP(r.income)}</td>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>{CLP(r.tc)}</td>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>{CLP(r.fixedTotal)}</td>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--danger)', fontWeight: 600 }}>{CLP(r.gasto)}</td>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'right', color: rc, fontWeight: 600 }}>{CLP(r.ahorro)}</td>
+                                                    <td style={{ padding: '8px 10px', textAlign: 'right' }}>
+                                                        <span style={{ background: rate >= 15 ? 'var(--success-light)' : rate >= 0 ? 'var(--warning-light)' : 'var(--danger-light)', color: rc, padding: '2px 7px', borderRadius: 'var(--radius-full)', fontWeight: 600, fontSize: 10 }}>{rate}%</span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {/* ── Columna lateral (derecha) — sticky en desktop ── */}
+                <div className="dashboard-col-side">
+                    {/* Cuotas que terminan pronto */}
+                    {isLastOnly && <EndingInstallmentsWidget months={months} />}
+
+                    {/* Banner: sube más meses */}
+                    {allSeries.length <= 1 && (
+                        <div style={{ background: "var(--primary-light)", border: "1px solid var(--primary-border)", borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+                            <div>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--primary)" }}>Sube más meses para ver tendencias</div>
+                                <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginTop: 2 }}>Con 2+ meses verás tu evolución y promedios.</div>
+                            </div>
+                            <button className="btn btn-primary btn-sm" onClick={onGoUpload} style={{ whiteSpace: "nowrap" }}>+ Subir</button>
+                        </div>
+                    )}
+
+                    {/* Categorías acumuladas */}
+                    <Section mt="0">Categorías — acumulado</Section>
+                    <div className="card" style={{ padding: '2px 14px 10px', marginBottom: 12 }}>
+                        {topCats.map(c => (
+                            <div key={c.key} style={{ paddingTop: 9 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: c.color, display: 'inline-block', flexShrink: 0 }} />
+                                        <span style={{ fontWeight: 500 }}>{c.label}</span>
+                                    </div>
+                                    <div style={{ textAlign: 'right', minWidth: 0 }}>
+                                        <span style={{ fontWeight: 600 }}>{CLP(c.total)}</span>
+                                        <span style={{ color: 'var(--text-tertiary)', marginLeft: 7 }}>prom {CLP(c.avg)}/mes</span>
+                                    </div>
+                                </div>
+                                <div style={{ background: 'var(--bg-hover)', borderRadius: 4, height: 3 }}>
+                                    <div style={{ width: pct(c.total, topCats[0].total) + '%', height: 3, borderRadius: 4, background: c.color, transition: 'width .6s ease' }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Donut distribución */}
+                    {donutData.length > 0 && (
+                        <>
+                            <Section mt="0">{isLastOnly ? `Distribución — ${latest?.periodo}` : `Distribución promedio — ${n} meses`}</Section>
+                            <div className="card" style={{ marginBottom: 12 }}>
+                                <ResponsiveContainer width="100%" height={150}>
+                                    <PieChart>
+                                        <Pie data={donutData} cx="50%" cy="50%" innerRadius={38} outerRadius={60} dataKey="value" paddingAngle={2}>
+                                            {donutData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                                        </Pie>
+                                        <Tooltip formatter={(v, nm) => [CLP(v), nm]} contentStyle={{ fontSize: 12, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-medium)', background: 'var(--bg-card)' }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                                    {donutData.map(d => (
+                                        <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11 }}>
+                                            <span style={{ width: 7, height: 7, borderRadius: '50%', background: d.color, flexShrink: 0, display: 'inline-block' }} />
+                                            <span style={{ flex: 1, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                                            <span style={{ fontWeight: 600 }}>{CLP(d.value)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+            </div>
         </div>
     );
 }

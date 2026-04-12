@@ -180,17 +180,36 @@ input[type=number] {
 
 .page-content {
     flex: 1;
-    padding: 24px 20px;
-    max-width: 720px;
+    padding: 20px 16px;
     width: 100%;
-    margin: 0 auto;
-    padding-bottom: calc(var(--bottomnav-height) + 24px);
+    padding-bottom: calc(var(--bottomnav-height) + 20px);
 }
 
+/* Tablet: single column centrado */
 @media (min-width: 768px) {
     .page-content {
-        padding: 32px 32px;
-        padding-bottom: 32px;
+        padding: 28px 36px;
+        padding-bottom: 28px;
+        max-width: 860px;
+        margin: 0 auto;
+    }
+}
+
+/* Desktop: ancho completo, sin restricción de max-width */
+@media (min-width: 992px) {
+    .page-content {
+        padding: 36px 40px;
+        padding-bottom: 36px;
+        max-width: none;
+        margin: 0;
+    }
+}
+
+/* Desktop XL: más padding horizontal */
+@media (min-width: 1280px) {
+    .page-content {
+        padding: 40px 56px;
+        padding-bottom: 40px;
     }
 }
 

@@ -142,6 +142,52 @@
     margin-bottom: 10px;
 }
 
+/* ── Dashboard 2-col layout (desktop) ───────────────────────────── */
+.dashboard-layout {
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-col-main,
+.dashboard-col-side {
+    min-width: 0;
+}
+
+/* Desktop: grid 2 columnas — main (wide) + side (sticky widget panel) */
+@media (min-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .dashboard-layout {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 20px;
+        align-items: start;
+    }
+
+    .dashboard-col-side {
+        position: sticky;
+        top: 36px;
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+        scrollbar-width: none;
+    }
+
+    .dashboard-col-side::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+@media (min-width: 1280px) {
+    .dashboard-layout {
+        grid-template-columns: 1fr 360px;
+        gap: 24px;
+    }
+}
+
 .page-header {
     display: flex;
     justify-content: space-between;
