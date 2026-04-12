@@ -21,7 +21,7 @@ export default function Sidebar({ view, onNav }) {
         <aside className="sidebar">
             <div className="sidebar-logo">
                 <div className="sidebar-logo-icon">
-                    <DollarSign size={18} color="#fff" />
+                    <DollarSign size={18} color="#163300" />
                 </div>
                 <span className="sidebar-logo-text">Mis Finanzas</span>
             </div>
@@ -52,7 +52,7 @@ export default function Sidebar({ view, onNav }) {
                     <div className="sidebar-avatar">
                         {avatar
                             ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>{name[0]?.toUpperCase()}</span>
+                            : <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary-text)' }}>{name[0]?.toUpperCase()}</span>
                         }
                     </div>
                     <div style={{ minWidth: 0 }}>

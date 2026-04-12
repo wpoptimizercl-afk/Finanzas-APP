@@ -14,7 +14,7 @@ export default function LoginPage() {
         <div className="login-page">
             <div className="login-card animate-fadeIn">
                 <div className="login-logo">
-                    <DollarSign size={30} color="#fff" />
+                    <DollarSign size={30} color="#163300" />
                 </div>
 
                 <h1 className="login-title">Mis Finanzas</h1>

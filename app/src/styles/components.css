@@ -1,10 +1,10 @@
 /* ── Cards ──────────────────────────────────────────────────────── */
 .card {
     background: var(--bg-card);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-xl);
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-medium);
-    padding: 16px;
+    padding: 20px;
     transition: box-shadow var(--transition-fast);
 }
 
@@ -13,42 +13,44 @@
 }
 
 .card-glass {
-    background: rgba(255, 255, 255, .7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, .5);
+    background: rgba(255, 255, 255, .75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, .6);
 }
 
 [data-theme="dark"] .card-glass {
-    background: rgba(17, 24, 39, .7);
-    border-color: rgba(255, 255, 255, .08);
+    background: rgba(26, 28, 24, .75);
+    border-color: rgba(255, 255, 255, .06);
 }
 
 /* ── Metric Card ────────────────────────────────────────────────── */
 .metric-card {
     background: var(--bg-card);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-medium);
     box-shadow: var(--shadow-sm);
-    padding: 11px 13px;
+    padding: 14px 16px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
 }
 
 .metric-label {
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: .07em;
+    letter-spacing: .09em;
+    font-feature-settings: "calt";
 }
 
 .metric-value {
-    font-size: 18px;
-    font-weight: 700;
-    letter-spacing: -.5px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -.6px;
     color: var(--text-primary);
+    font-feature-settings: "calt";
 }
 
 .metric-note {
@@ -56,105 +58,148 @@
     color: var(--text-tertiary);
 }
 
-/* ── Buttons ────────────────────────────────────────────────────── */
+/* ── Buttons — Wise pill style con scale animations ─────────────── */
 .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 10px 20px;
-    border-radius: var(--radius-md);
+    padding: 10px 22px;
+    border-radius: var(--radius-full);
     font-size: 14px;
     font-weight: 600;
     letter-spacing: -.1px;
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
     white-space: nowrap;
     border: none;
+    cursor: pointer;
+    font-feature-settings: "calt";
 }
 
+/* Primary — Wise Green pill */
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
-    color: #fff;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, .35);
+    background: var(--primary);
+    color: var(--primary-text);
+    box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, .45);
+    transform: scale(1.05);
+    background: var(--primary-hover);
 }
 
 .btn-primary:active {
-    transform: translateY(0);
+    transform: scale(0.95);
 }
 
+/* Ghost — Dark Green transparent */
 .btn-ghost {
-    background: transparent;
-    color: var(--text-secondary);
-    border: 1px solid var(--border-medium);
+    background: rgba(22, 51, 0, .08);
+    color: var(--text-primary);
+    border: none;
 }
 
 .btn-ghost:hover {
-    background: var(--bg-hover);
-    border-color: var(--border-strong);
+    transform: scale(1.05);
+    background: rgba(22, 51, 0, .12);
+}
+
+.btn-ghost:active {
+    transform: scale(0.95);
+}
+
+[data-theme="dark"] .btn-ghost {
+    background: rgba(159, 232, 112, .10);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+    background: rgba(159, 232, 112, .16);
 }
 
 .btn-danger {
     background: transparent;
     color: var(--danger);
-    border: 1px solid var(--danger-border);
+    border: 1.5px solid var(--danger-border);
 }
 
 .btn-danger:hover {
+    transform: scale(1.05);
     background: var(--danger-light);
 }
 
+.btn-danger:active {
+    transform: scale(0.95);
+}
+
 .btn-success {
-    background: transparent;
-    color: var(--success);
-    border: 1.5px solid var(--success);
+    background: var(--primary);
+    color: var(--primary-text);
+    border: none;
 }
 
 .btn-success:hover {
-    background: var(--success-light);
+    transform: scale(1.05);
+    background: var(--primary-hover);
+}
+
+.btn-success:active {
+    transform: scale(0.95);
 }
 
 .btn-icon {
     padding: 8px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-full);
     background: transparent;
     color: var(--text-secondary);
     border: 1px solid var(--border-medium);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
 .btn-icon:hover {
     background: var(--bg-hover);
+    transform: scale(1.05);
+}
+
+.btn-icon:active {
+    transform: scale(0.95);
 }
 
 .btn-sm {
-    padding: 6px 14px;
+    padding: 6px 16px;
     font-size: 12px;
-    border-radius: var(--radius-sm);
 }
 
 .btn-lg {
-    padding: 14px 28px;
-    font-size: 15px;
-    border-radius: var(--radius-lg);
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn:hover, .btn:active,
+    .btn-primary:hover, .btn-primary:active,
+    .btn-ghost:hover, .btn-ghost:active,
+    .btn-danger:hover, .btn-danger:active,
+    .btn-icon:hover, .btn-icon:active {
+        transform: none;
+    }
 }
 
 /* ── Form Inputs ────────────────────────────────────────────────── */
 .input {
     width: 100%;
-    padding: 10px 12px;
+    padding: 10px 14px;
     border-radius: var(--radius-sm);
     border: 1.5px solid var(--border-medium);
     background: var(--bg-input);
     color: var(--text-primary);
     font-size: 14px;
     font-family: var(--font-sans);
+    font-feature-settings: "calt";
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
@@ -169,15 +214,15 @@
 }
 
 .input-lg {
-    padding: 12px 14px;
+    padding: 12px 16px;
     font-size: 24px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -.5px;
 }
 
 select.input {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23868685' stroke-width='2.5'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
     padding-right: 36px;
@@ -188,20 +233,23 @@ select.input {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 9px;
+    padding: 3px 10px;
     border-radius: var(--radius-full);
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     white-space: nowrap;
+    font-feature-settings: "calt";
 }
 
 .tag-clickable {
     cursor: pointer;
     border: 1.5px solid transparent;
+    transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 
 .tag-clickable:hover {
-    filter: brightness(.95);
+    transform: scale(1.04);
+    filter: brightness(.96);
 }
 
 /* ── Progress Bar ───────────────────────────────────────────────── */
@@ -242,9 +290,10 @@ select.input {
     font-weight: 700;
     color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: .08em;
+    letter-spacing: .09em;
     margin-bottom: 7px;
     margin-top: 1.25rem;
+    font-feature-settings: "calt";
 }
 
 /* ── Divider ────────────────────────────────────────────────────── */
@@ -268,7 +317,7 @@ select.input {
     font-weight: 700;
     color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: .08em;
+    letter-spacing: .09em;
     white-space: nowrap;
 }
 
@@ -298,12 +347,12 @@ select.input {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 18px;
-    border-radius: var(--radius-md);
+    padding: 12px 20px;
+    border-radius: var(--radius-full);
     background: var(--bg-inverse);
     color: var(--text-inverse);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     box-shadow: var(--shadow-lg);
     animation: slideInRight .25s var(--transition-base) both;
     white-space: nowrap;
@@ -311,13 +360,13 @@ select.input {
 }
 
 .toast-success {
-    background: var(--success);
-    color: #FFFFFF !important;
+    background: var(--primary);
+    color: var(--primary-text) !important;
 }
 
 .toast-error {
     background: var(--danger);
-    color: #FFFFFF !important;
+    color: #ffffff !important;
 }
 
 /* ── Empty State ─────────────────────────────────────────────────── */
@@ -331,21 +380,22 @@ select.input {
 }
 
 .empty-state-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--radius-lg);
-    background: var(--bg-hover);
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-xl);
+    background: var(--primary-light);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-tertiary);
+    color: var(--primary-text);
     margin-bottom: 4px;
 }
 
 .empty-state-title {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 800;
     color: var(--text-primary);
+    letter-spacing: -.3px;
 }
 
 .empty-state-desc {
@@ -359,8 +409,9 @@ select.input {
 .modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, .45);
+    background: rgba(14, 15, 12, .5);
     backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     z-index: 200;
     display: flex;
     align-items: center;
@@ -372,23 +423,26 @@ select.input {
 .modal {
     background: var(--bg-card);
     border-radius: var(--radius-xl);
-    padding: 24px;
-    max-width: 360px;
+    padding: 28px;
+    max-width: 380px;
     width: 100%;
     box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-medium);
 }
 
 .modal-title {
-    font-size: 17px;
-    font-weight: 700;
+    font-size: 18px;
+    font-weight: 800;
     margin-bottom: 8px;
+    letter-spacing: -.4px;
+    font-feature-settings: "calt";
 }
 
 .modal-desc {
     font-size: 13px;
     color: var(--text-secondary);
-    margin-bottom: 20px;
-    line-height: 1.5;
+    margin-bottom: 22px;
+    line-height: 1.55;
 }
 
 .modal-actions {
@@ -404,7 +458,7 @@ select.input {
     right: 0;
     background: var(--bg-card);
     border: 1px solid var(--border-medium);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     padding: 6px;
     min-width: 200px;
@@ -418,8 +472,8 @@ select.input {
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
     background: transparent;
     cursor: pointer;
     transition: background var(--transition-fast);
@@ -436,13 +490,14 @@ select.input {
 
 .dropdown-item.active {
     background: var(--primary-light);
-    color: var(--primary);
+    color: var(--primary-text);
+    font-weight: 600;
 }
 
 /* ── Health Semaphore ────────────────────────────────────────────── */
 .semaphore {
     border-radius: var(--radius-lg);
-    padding: 10px 12px;
+    padding: 12px 14px;
     margin-bottom: 1rem;
     display: flex;
     flex-direction: column;
@@ -463,6 +518,7 @@ select.input {
     font-size: 13px;
     font-weight: 700;
     line-height: 1.3;
+    font-feature-settings: "calt";
 }
 
 .semaphore-desc {
@@ -496,7 +552,7 @@ select.input {
 /* ── Upload Drop Zone ────────────────────────────────────────────── */
 .dropzone {
     border: 2px dashed var(--border-strong);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     padding: 2.5rem 2rem;
     text-align: center;
     cursor: pointer;
@@ -530,13 +586,13 @@ select.input {
 }
 
 .queue-item.active {
-    background: rgba(37, 99, 235, .04);
+    background: var(--primary-light);
 }
 
 .queue-status-dot {
     width: 30px;
     height: 30px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -555,7 +611,7 @@ select.input {
 .queue-progress-bar {
     flex: 1;
     height: 4px;
-    background: var(--primary-border);
+    background: var(--border-medium);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -569,17 +625,21 @@ select.input {
 
 .queue-progress-pct {
     font-size: 11px;
-    font-weight: 600;
-    color: var(--primary);
+    font-weight: 700;
+    color: var(--primary-text);
     min-width: 28px;
     text-align: right;
+}
+
+[data-theme="dark"] .queue-progress-pct {
+    color: var(--primary);
 }
 
 /* ── Chart Tooltip ───────────────────────────────────────────────── */
 .chart-tooltip {
     background: var(--bg-card);
     border: 1px solid var(--border-medium);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     padding: 10px 14px;
     font-size: 12px;
     box-shadow: var(--shadow-md);
@@ -589,6 +649,7 @@ select.input {
     font-weight: 700;
     margin-bottom: 6px;
     color: var(--text-primary);
+    font-feature-settings: "calt";
 }
 
 .chart-tooltip-row {
@@ -607,7 +668,7 @@ select.input {
 }
 
 .chart-tooltip-val {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
     margin-left: auto;
 }
@@ -615,16 +676,21 @@ select.input {
 /* ── Month Grid (FixedView) ──────────────────────────────────────── */
 .month-cell {
     padding: 9px 4px 8px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     border: 1.5px solid transparent;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
     font-size: 12px;
     font-weight: 600;
+}
+
+.month-cell:hover {
+    transform: scale(1.04);
+    background: var(--bg-hover);
 }
 
 .month-cell:disabled {
@@ -633,25 +699,26 @@ select.input {
 }
 
 .month-cell.selected {
-    background: linear-gradient(135deg, #1E40AF 0%, #2563EB 100%);
-    border-color: #1D4ED8;
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(37, 99, 235, .3);
+    background: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-text);
+    box-shadow: var(--shadow-sm);
+    transform: scale(1.04);
 }
 
-/* ── FAB — Floating Action Button (botón dentro de FABMenu) ──────── */
+/* ── FAB — Floating Action Button ────────────────────────────────── */
 .fab {
     width: 56px;
     height: 56px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--primary-hover, #047857));
-    color: #fff;
+    background: var(--primary);
+    color: var(--primary-text);
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 6px 20px rgba(5, 150, 105, .4);
+    box-shadow: var(--shadow-md);
     cursor: pointer;
     transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -679,7 +746,6 @@ select.input {
     pointer-events: none;
 }
 
-/* Capa invisible que captura clicks fuera del menú */
 .fab-menu__backdrop {
     position: fixed;
     inset: 0;
@@ -687,7 +753,6 @@ select.input {
     cursor: default;
 }
 
-/* Contenedor de acciones del speed dial */
 .fab-menu__actions {
     display: flex;
     flex-direction: column;
@@ -711,22 +776,22 @@ select.input {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0 16px 0 12px;
+    padding: 0 18px 0 14px;
     height: 44px;
-    border-radius: 22px;
+    border-radius: var(--radius-full);
     background: var(--bg-card);
     border: 1px solid var(--border-medium);
     color: var(--text-primary);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, .1);
-    transition: background var(--transition-fast), transform var(--transition-fast);
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
-.fab-menu__action:hover { background: var(--bg-hover); }
-.fab-menu__action:active { transform: scale(0.97); }
+.fab-menu__action:hover { transform: scale(1.04); background: var(--bg-hover); }
+.fab-menu__action:active { transform: scale(0.96); }
 .fab-menu__action:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 @media (min-width: 768px) {
@@ -743,16 +808,16 @@ select.input {
     align-items: center;
     gap: 6px;
     min-height: 44px;
-    padding: 0 10px;
+    padding: 0 14px;
     background: var(--bg-card);
     border: 1px solid var(--border-medium);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-full);
     color: var(--text-primary);
     font-size: 12px;
     font-weight: 600;
     font-family: var(--font-sans);
     cursor: pointer;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
     white-space: nowrap;
     touch-action: manipulation;
 }
@@ -760,6 +825,7 @@ select.input {
 .month-sel-btn:hover {
     border-color: var(--primary);
     box-shadow: var(--shadow-glow);
+    transform: scale(1.02);
 }
 
 .month-sel-btn--hist {
@@ -769,7 +835,7 @@ select.input {
 }
 
 .month-sel-btn--hist:hover {
-    box-shadow: 0 0 0 3px rgba(217, 119, 6, .15);
+    box-shadow: 0 0 0 3px rgba(255, 209, 26, .2);
 }
 
 .month-sel-label {
@@ -781,10 +847,10 @@ select.input {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .06em;
-    padding: 2px 6px;
+    padding: 2px 7px;
     border-radius: var(--radius-full);
     background: var(--warning);
-    color: #fff;
+    color: #0e0f0c;
 }
 
 .month-sel-chevron {
@@ -801,11 +867,11 @@ select.input {
     position: absolute;
     top: calc(100% + 6px);
     right: 0;
-    min-width: 172px;
+    min-width: 180px;
     background: var(--bg-card);
     border: 1px solid var(--border-medium);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
     z-index: 200;
     padding: 6px 0;
     animation: monthSelOpen 150ms cubic-bezier(.4, 0, .2, 1);
@@ -817,11 +883,11 @@ select.input {
 }
 
 .month-sel-section {
-    padding: 4px 12px 2px;
+    padding: 4px 14px 2px;
     font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: .08em;
+    letter-spacing: .09em;
     color: var(--text-tertiary);
 }
 
@@ -838,7 +904,7 @@ select.input {
     gap: 8px;
     width: 100%;
     min-height: 36px;
-    padding: 0 12px;
+    padding: 0 14px;
     background: transparent;
     border: none;
     font-size: 12px;
@@ -855,8 +921,8 @@ select.input {
 }
 
 .month-sel-opt--active {
-    color: var(--primary);
-    font-weight: 600;
+    color: var(--primary-text);
+    font-weight: 700;
     background: var(--primary-light);
 }
 
@@ -869,16 +935,17 @@ select.input {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: .06em;
-    padding: 2px 6px;
+    padding: 2px 7px;
     border-radius: var(--radius-full);
-    background: var(--success-light);
-    color: var(--success-text);
+    background: var(--primary);
+    color: var(--primary-text);
     flex-shrink: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
     .month-sel-dropdown { animation: none; }
     .month-sel-chevron { transition: none; }
+    .month-sel-btn:hover { transform: none; }
 }
 
 /* ── FinancingSummary ─────────────────────────────────────────────── */

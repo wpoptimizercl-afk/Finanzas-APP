@@ -15,7 +15,7 @@ export default function Topbar({ view }) {
         <header className="topbar">
             <div className="topbar-logo">
                 <div className="topbar-logo-icon">
-                    <DollarSign size={16} color="#fff" />
+                    <DollarSign size={16} color="#163300" />
                 </div>
                 <span className="topbar-title">{LABELS[view] || 'Mis Finanzas'}</span>
             </div>

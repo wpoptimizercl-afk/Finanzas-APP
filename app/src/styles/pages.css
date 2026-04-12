@@ -1,24 +1,37 @@
-/* ── Login Page ──────────────────────────────────────────────────── */
+/* ── Login Page — Wise-inspired ──────────────────────────────────── */
 .login-page {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 50%, #0F172A 100%);
+    background: #0e0f0c;
     position: relative;
     overflow: hidden;
 }
 
+/* Glow verde Wise en el fondo */
 .login-page::before {
     content: '';
     position: absolute;
-    top: -40%;
-    left: -20%;
-    width: 80vw;
-    height: 80vw;
+    top: -30%;
+    right: -20%;
+    width: 70vw;
+    height: 70vw;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(37, 99, 235, .15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(159,232,112,.12) 0%, transparent 65%);
+    pointer-events: none;
+}
+
+.login-page::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    left: -15%;
+    width: 50vw;
+    height: 50vw;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(159,232,112,.06) 0%, transparent 65%);
     pointer-events: none;
 }
 
@@ -26,68 +39,75 @@
     background: rgba(255, 255, 255, .04);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, .1);
-    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 40px;
     padding: 48px 40px;
     width: 100%;
-    max-width: 400px;
-    box-shadow: 0 32px 64px rgba(0, 0, 0, .4);
+    max-width: 420px;
+    box-shadow: rgba(0,0,0,.6) 0px 0px 0px 1px, rgba(0,0,0,.4) 0px 32px 64px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0;
+    position: relative;
 }
 
 .login-logo {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    width: 68px;
+    height: 68px;
+    border-radius: var(--radius-full);
+    background: #9fe870;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 24px;
-    box-shadow: 0 8px 24px rgba(37, 99, 235, .5);
+    margin-bottom: 28px;
+    box-shadow: 0 8px 32px rgba(159,232,112,.35);
 }
 
 .login-title {
-    font-size: 26px;
-    font-weight: 800;
-    color: #F1F5F9;
-    letter-spacing: -.5px;
+    font-size: 28px;
+    font-weight: 900;
+    color: #f0f2ee;
+    letter-spacing: -.6px;
     margin-bottom: 8px;
     text-align: center;
+    line-height: 1;
+    font-feature-settings: "calt";
 }
 
 .login-subtitle {
     font-size: 14px;
-    color: rgba(241, 245, 249, .5);
+    color: rgba(240, 242, 238, .5);
     text-align: center;
     margin-bottom: 36px;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 .login-btn-google {
     width: 100%;
-    padding: 14px 20px;
-    border-radius: 14px;
-    background: #fff;
-    color: #1F2937;
+    padding: 14px 24px;
+    border-radius: var(--radius-full);
+    background: #9fe870;
+    color: #163300;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
     cursor: pointer;
-    transition: all var(--transition-fast);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+    transition: transform var(--transition-fast), background var(--transition-fast);
+    font-feature-settings: "calt";
 }
 
 .login-btn-google:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+    transform: scale(1.05);
+    background: #cdffad;
+}
+
+.login-btn-google:active {
+    transform: scale(0.95);
 }
 
 .login-features {
@@ -103,14 +123,14 @@
     align-items: center;
     gap: 10px;
     font-size: 13px;
-    color: rgba(241, 245, 249, .6);
+    color: rgba(240, 242, 238, .5);
 }
 
 .login-feature-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #2563EB;
+    background: #9fe870;
     flex-shrink: 0;
 }
 
@@ -118,15 +138,15 @@
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .page-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
 .page-header-meta {
@@ -137,16 +157,19 @@
 }
 
 .page-title {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -.5px;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -.6px;
     color: var(--text-primary);
+    line-height: 1;
+    font-feature-settings: "calt";
 }
 
 .page-subtitle {
     font-size: 12px;
     color: var(--text-secondary);
-    margin-top: 1px;
+    margin-top: 3px;
+    font-weight: 500;
 }
 
 /* ── History detail ──────────────────────────────────────────────── */
@@ -169,7 +192,7 @@
 
 .tx-desc {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -216,7 +239,7 @@
 .budget-cat-label {
     flex: 1;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .budget-amount {
@@ -255,10 +278,10 @@
 }
 
 .sidebar-logo-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: var(--radius-sm);
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-full);
+    background: #9fe870;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -267,8 +290,9 @@
 
 .sidebar-logo-text {
     font-size: 15px;
-    font-weight: 800;
-    letter-spacing: -.3px;
+    font-weight: 900;
+    letter-spacing: -.4px;
+    font-feature-settings: "calt";
 }
 
 .sidebar-nav-item {
@@ -276,12 +300,12 @@
     align-items: center;
     gap: 12px;
     padding: 10px 12px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-full);
     font-size: 14px;
     font-weight: 500;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
     border: none;
     background: transparent;
     width: 100%;
@@ -291,17 +315,23 @@
 .sidebar-nav-item:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
+    transform: scale(1.02);
 }
 
 .sidebar-nav-item.active {
-    background: var(--primary-light);
-    color: var(--primary);
-    font-weight: 600;
+    background: var(--primary);
+    color: var(--primary-text);
+    font-weight: 700;
+}
+
+.sidebar-nav-item.active:hover {
+    background: var(--primary-hover);
+    transform: scale(1.02);
 }
 
 [data-theme="dark"] .sidebar-nav-item.active {
-    background: rgba(37, 99, 235, .2);
-    color: #60A5FA;
+    background: var(--primary);
+    color: var(--primary-text);
 }
 
 .sidebar-section {
@@ -325,12 +355,12 @@
     align-items: center;
     gap: 10px;
     padding: 8px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-xl);
 }
 
 .sidebar-avatar {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: var(--primary-light);
     display: flex;
@@ -338,11 +368,12 @@
     justify-content: center;
     flex-shrink: 0;
     overflow: hidden;
+    border: 2px solid var(--primary);
 }
 
 .sidebar-user-name {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
 }
 
@@ -369,7 +400,7 @@
     z-index: 50;
     padding: 0 8px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, .06);
+    box-shadow: rgba(14,15,12,.08) 0px -1px 0px 0px;
 }
 
 .bottom-nav-item {
@@ -379,27 +410,55 @@
     align-items: center;
     gap: 3px;
     padding: 8px 4px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-full);
     cursor: pointer;
     border: none;
     background: transparent;
     color: var(--text-tertiary);
-    transition: all var(--transition-fast);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+    touch-action: manipulation;
+}
+
+.bottom-nav-item:hover {
+    transform: scale(1.06);
 }
 
 .bottom-nav-item.active {
+    color: var(--primary-text);
+}
+
+[data-theme="dark"] .bottom-nav-item.active {
     color: var(--primary);
 }
 
-.bottom-nav-item.active .bottom-nav-dot {
+.bottom-nav-item.active .bottom-nav-indicator {
     background: var(--primary);
-    transform: scale(1);
+    transform: scaleX(1);
+    opacity: 1;
 }
 
 .bottom-nav-label {
     font-size: 9px;
-    font-weight: 600;
-    letter-spacing: .02em;
+    font-weight: 700;
+    letter-spacing: .03em;
+}
+
+/* Indicador activo — píldora debajo del ícono */
+.bottom-nav-indicator {
+    width: 20px;
+    height: 3px;
+    border-radius: var(--radius-full);
+    background: transparent;
+    transform: scaleX(0);
+    opacity: 0;
+    transition: transform var(--transition-base), opacity var(--transition-base), background var(--transition-base);
+    position: absolute;
+    top: 6px;
+}
+
+/* Wrapper relativo para el indicador */
+.bottom-nav-item {
+    position: relative;
 }
 
 .bottom-nav-dot {
@@ -409,6 +468,11 @@
     background: transparent;
     transform: scale(0);
     transition: all var(--transition-fast);
+}
+
+.bottom-nav-item.active .bottom-nav-dot {
+    background: var(--primary);
+    transform: scale(1);
 }
 
 @media (min-width: 768px) {
@@ -447,7 +511,7 @@
     position: sticky;
     top: 0;
     z-index: 40;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
+    box-shadow: rgba(14,15,12,.06) 0px 1px 0px;
 }
 
 .topbar-logo {
@@ -457,19 +521,20 @@
 }
 
 .topbar-logo-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-sm);
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-full);
+    background: #9fe870;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .topbar-title {
-    font-size: 16px;
-    font-weight: 800;
-    letter-spacing: -.3px;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: -.4px;
+    font-feature-settings: "calt";
 }
 
 .topbar-actions {
