@@ -109,11 +109,12 @@
     margin-bottom: 20px;
 }
 .ph-hero .eyebrow {
-    font-size: 10px;
-    letter-spacing: .2em;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .18em;
     text-transform: uppercase;
-    color: var(--text-tertiary);
-    margin-bottom: 4px;
+    color: var(--ink);
+    margin-bottom: 6px;
 }
 .ph-hero .amt {
     font-size: 48px;

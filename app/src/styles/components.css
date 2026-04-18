@@ -313,18 +313,16 @@ select.input {
 
 /* ── Section Label ──────────────────────────────────────────────── */
 .section-label {
-    font-size: 10px;
+    font-size: 13px;
     font-weight: 600;
-    color: var(--text-tertiary);
+    color: var(--ink);
     text-transform: uppercase;
-    letter-spacing: .1em;
-    margin-bottom: 10px;
+    letter-spacing: .14em;
+    margin-bottom: 12px;
     margin-top: 1.5rem;
-    font-family: var(--font-mono);
-    font-feature-settings: "calt";
-    /* Hairline above each section label */
+    font-family: var(--font-sans);
     border-top: 1px solid var(--rule);
-    padding-top: 14px;
+    padding-top: 16px;
 }
 
 /* ── Divider ────────────────────────────────────────────────────── */
