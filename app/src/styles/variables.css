@@ -59,10 +59,10 @@
   --danger-light:   var(--red-soft);
   --danger-border:  var(--red-soft);
 
-  --bg-app:         var(--bone);
-  --bg-card:        var(--paper);
-  --bg-sidebar:     var(--paper);
-  --bg-input:       var(--bone);
+  --bg-app:         var(--paper);
+  --bg-card:        var(--bone);
+  --bg-sidebar:     var(--bone);
+  --bg-input:       var(--paper);
   --bg-hover:       var(--rule);
   --bg-active:      var(--rule-2);
 
@@ -107,6 +107,11 @@
 
 /* ── Dark Mode Tokens ────────────────────────────────────────────── */
 [data-theme="dark"] {
+  /* Restore correct layering: bg darker, cards slightly lighter */
+  --bg-app:     var(--bone);
+  --bg-card:    var(--paper);
+  --bg-sidebar: var(--bone);
+  --bg-input:   var(--paper);
   /* Inverted core palette */
   --bone:       #14130F;
   --paper:      #1F1D17;
