@@ -150,25 +150,26 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
                         {momDelta !== null && (
                             <span style={{
-                                fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)',
+                                fontSize: 11, padding: '3px 9px', borderRadius: 6,
                                 background: momDelta <= 0 ? 'var(--success-light)' : 'var(--danger-light)',
+                                border: `1px solid ${momDelta <= 0 ? 'var(--olive-soft)' : 'var(--red-soft)'}`,
                                 color: momDelta <= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 500
                             }}>
                                 {momDelta <= 0 ? '↓' : '↑'} Gasto {momDelta <= 0 ? 'bajó' : 'subió'} {CLP(Math.abs(momDelta))}
                             </span>
                         )}
                         {bestMonth && !isLastOnly && (
-                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
+                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, background: 'var(--success-light)', border: '1px solid var(--olive-soft)', color: 'var(--success)', fontWeight: 500 }}>
                                 Mayor excedente: {bestMonth.label} · {CLP(bestMonth.ahorro)}
                             </span>
                         )}
                         {worstMonth && (
-                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--danger-light)', color: 'var(--danger)', fontWeight: 500 }}>
+                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, background: 'var(--danger-light)', border: '1px solid var(--red-soft)', color: 'var(--danger)', fontWeight: 500 }}>
                                 Menor: {worstMonth.label} · {CLP(worstMonth.ahorro)}
                             </span>
                         )}
                         {totalSavings > 0 && !isLastOnly && (
-                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 'var(--radius-full)', background: 'var(--success-light)', color: 'var(--success)', fontWeight: 500 }}>
+                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, background: 'var(--success-light)', border: '1px solid var(--olive-soft)', color: 'var(--success)', fontWeight: 500 }}>
                                 Excedente efectivo: {CLP(totalSavings)}
                             </span>
                         )}

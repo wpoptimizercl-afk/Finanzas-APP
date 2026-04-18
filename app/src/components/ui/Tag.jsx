@@ -6,7 +6,7 @@ export default function Tag({ label, color, bg, onClick, open }) {
             style={{
                 background: bg,
                 color,
-                border: open ? `1.5px solid ${color}` : '1.5px solid transparent',
+                border: open ? `1.5px solid ${color}` : '1px solid var(--rule-2)',
             }}
         >
             {label}
