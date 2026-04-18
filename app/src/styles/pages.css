@@ -485,11 +485,7 @@
 }
 
 .bottom-nav-item.active {
-    color: var(--primary-text);
-}
-
-[data-theme="dark"] .bottom-nav-item.active {
-    color: var(--primary);
+    color: var(--ink);
 }
 
 .bottom-nav-item.active .bottom-nav-indicator {
