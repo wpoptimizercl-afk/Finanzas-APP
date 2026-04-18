@@ -1,26 +1,26 @@
 export const CAT = {
-    supermercado: { label: 'Supermercado', color: '#3B82F6', bg: '#EFF6FF' },
-    minimarket: { label: 'Minimarket', color: '#6B7280', bg: '#F9FAFB' },
-    delivery: { label: 'Delivery', color: '#EF4444', bg: '#FEF2F2' },
-    transporte: { label: 'Transporte', color: '#F59E0B', bg: '#FFFBEB' },
-    mascotas: { label: 'Mascotas', color: '#8B5CF6', bg: '#F5F3FF' },
-    lavanderia: { label: 'Lavandería', color: '#6366F1', bg: '#EEF2FF' },
-    ropa_moda: { label: 'Ropa y moda', color: '#EC4899', bg: '#FDF2F8' },
-    restaurantes: { label: 'Restaurantes', color: '#D97706', bg: '#FFFBEB' },
-    entretenimiento: { label: 'Entretenimiento', color: '#10B981', bg: '#ECFDF5' },
-    telefonia_internet: { label: 'Telefonía e internet', color: '#2563EB', bg: '#EFF6FF' },
-    cuotas: { label: 'Cuotas', color: '#DC2626', bg: '#FEF2F2' },
-    cargos_banco: { label: 'Cargos bancarios', color: '#9CA3AF', bg: '#F9FAFB' },
-    interes_credito: { label: 'Intereses línea de crédito', color: '#DC2626', bg: '#FEF2F2' },
+    supermercado: { label: 'Supermercado', color: 'var(--ink)', bg: 'var(--rule)' },
+    minimarket: { label: 'Minimarket', color: 'var(--ink-2)', bg: 'var(--rule)' },
+    delivery: { label: 'Delivery', color: 'var(--ink-3)', bg: 'var(--rule)' },
+    transporte: { label: 'Transporte', color: 'var(--lime)', bg: 'var(--rule-2)' },
+    mascotas: { label: 'Mascotas', color: 'var(--ink-4)', bg: 'var(--rule)' },
+    lavanderia: { label: 'Lavandería', color: 'var(--sky)', bg: 'var(--rule)' },
+    ropa_moda: { label: 'Ropa y moda', color: 'var(--violet)', bg: 'var(--rule)' },
+    restaurantes: { label: 'Restaurantes', color: '#3D3B34', bg: 'var(--rule)' },
+    entretenimiento: { label: 'Entretenimiento', color: 'var(--mint)', bg: 'var(--rule)' },
+    telefonia_internet: { label: 'Telefonía e internet', color: 'var(--ink-2)', bg: 'var(--rule)' },
+    cuotas: { label: 'Cuotas', color: 'var(--red)', bg: 'var(--red-soft)' },
+    cargos_banco: { label: 'Cargos bancarios', color: 'var(--ink-3)', bg: 'var(--rule)' },
+    interes_credito: { label: 'Intereses línea de crédito', color: 'var(--red)', bg: 'var(--red-soft)' },
     // CC (cuenta corriente) categories
-    transferencia_recibida: { label: 'Ingresos', color: '#059669', bg: '#ECFDF5' },
-    transferencia_enviada: { label: 'Transferencia enviada', color: '#7C3AED', bg: '#F5F3FF' },
-    pago_servicios: { label: 'Pago de servicios', color: '#0891B2', bg: '#ECFEFF' },
-    traspaso_tc: { label: 'Pago tarjeta de crédito', color: '#6B7280', bg: '#F3F4F6' },
-    uso_lc:       { label: 'Uso línea de crédito',  color: '#DC2626', bg: '#FEF2F2' },
-    pago_credito: { label: 'Pago línea de crédito', color: '#7C3AED', bg: '#F5F3FF' },
-    ahorro: { label: 'Ahorro / inversión', color: '#059669', bg: '#ECFDF5' },
-    otros: { label: 'Otros', color: '#4B5563', bg: '#F9FAFB' },
+    transferencia_recibida: { label: 'Ingresos', color: 'var(--olive)', bg: 'var(--olive-soft)' },
+    transferencia_enviada: { label: 'Transferencia enviada', color: 'var(--ink-2)', bg: 'var(--rule)' },
+    pago_servicios: { label: 'Pago de servicios', color: 'var(--ink-3)', bg: 'var(--rule)' },
+    traspaso_tc: { label: 'Pago tarjeta de crédito', color: 'var(--ink-4)', bg: 'var(--rule)' },
+    uso_lc:       { label: 'Uso línea de crédito',  color: 'var(--red)', bg: 'var(--red-soft)' },
+    pago_credito: { label: 'Pago línea de crédito', color: 'var(--ink)', bg: 'var(--rule)' },
+    ahorro: { label: 'Ahorro / inversión', color: 'var(--olive)', bg: 'var(--olive-soft)' },
+    otros: { label: 'Otros', color: 'var(--ink-4)', bg: 'var(--rule)' },
 };
 
 export const FIXED_CATS = [
@@ -33,18 +33,18 @@ export const FIXED_CATS = [
 ];
 
 export const SOURCE_OPTS = [
-    { id: 'fijo', label: 'Recurrente', color: '#2563EB', bg: '#EFF6FF' },
-    { id: 'efectivo', label: 'Efectivo', color: '#059669', bg: '#ECFDF5' },
-    { id: 'debito', label: 'Débito', color: '#D97706', bg: '#FFFBEB' },
+    { id: 'fijo', label: 'Recurrente', color: 'var(--ink-2)', bg: 'var(--rule)' },
+    { id: 'efectivo', label: 'Efectivo', color: 'var(--olive)', bg: 'var(--olive-soft)' },
+    { id: 'debito', label: 'Débito', color: 'var(--ink-4)', bg: 'var(--rule)' },
 ];
 
 export const INCOME_CATS_BUILTIN = [
-    { id: 'sueldo',    nombre: 'Sueldo Mensual', color: '#2563EB' },
-    { id: 'freelance', nombre: 'Freelance',       color: '#7C3AED' },
-    { id: 'otros',     nombre: 'Otros',           color: '#6B7280' },
+    { id: 'sueldo',    nombre: 'Sueldo Mensual', color: 'var(--ink-2)' },
+    { id: 'freelance', nombre: 'Freelance',       color: 'var(--ink-3)' },
+    { id: 'otros',     nombre: 'Otros',           color: 'var(--ink-4)' },
 ];
 
-export const INCOME_CAT_COLORS = ['#2563EB', '#7C3AED', '#059669', '#D97706', '#DC2626', '#0891B2'];
+export const INCOME_CAT_COLORS = ['var(--ink)', 'var(--ink-2)', 'var(--ink-3)', 'var(--ink-4)', 'var(--olive)', 'var(--mint)'];
 
 export const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
@@ -60,9 +60,9 @@ export const BANKS = [
 ];
 
 export const CAT_PALETTE = [
-    '#E11D48', '#BE185D', '#7C3AED', '#4F46E5', '#0891B2',
-    '#0D9488', '#16A34A', '#65A30D', '#CA8A04', '#EA580C',
-    '#B45309', '#78716C', '#1D4ED8', '#0369A1', '#047857', '#15803D'
+    'var(--ink)', 'var(--ink-2)', 'var(--ink-3)', 'var(--ink-4)',
+    'var(--olive)', 'var(--red)', 'var(--amber)', 'var(--mint)',
+    'var(--violet)', 'var(--sky)', 'var(--sand)'
 ];
 
 // ─── Modos de vista para cálculo de egresos ───────────────────────────────────

@@ -23,7 +23,7 @@ export default function HealthSemaphore({ series, budget, isAverage }) {
     const goalPts = goal > 0 ? Math.min(30, Math.max(0, (avgAhorro / goal) * 30)) : 15;
     const score = Math.round(savingsPts + catPts + goalPts);
 
-    const scoreColor = score >= 70 ? '#22c55e' : score >= 40 ? '#eab308' : '#ef4444';
+    const scoreColor = score >= 70 ? 'var(--olive)' : score >= 40 ? 'var(--amber)' : 'var(--red)';
     const status = score >= 70 ? 'green' : score >= 40 ? 'yellow' : 'red';
     const cfgMap = {
         green:  { label: 'Salud financiera buena',     desc: 'Ahorrando bien y dentro del presupuesto.',      bg: 'var(--success-light)', border: 'var(--success-border)', color: 'var(--success-text)' },
@@ -53,7 +53,7 @@ export default function HealthSemaphore({ series, budget, isAverage }) {
     ];
 
     return (
-        <div className="semaphore" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+        <div className="semaphore" style={{ borderLeft: `3px solid ${scoreColor}` }}>
             <div className="semaphore-header">
                 <svg
                     width="52" height="52" viewBox="0 0 52 52"

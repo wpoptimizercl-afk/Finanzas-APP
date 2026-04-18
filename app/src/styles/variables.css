@@ -1,65 +1,97 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/600.css';
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-serif/400-italic.css';
 
 /* ── Light Mode Tokens ───────────────────────────────────────────── */
 :root {
-  --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans:    'Helvetica Neue', Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Helvetica Neue', Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --font-serif:   'Instrument Serif', Georgia, serif;
 
-  /* Brand — Wise-inspired palette */
-  --primary:        #9fe870;          /* Wise Green — CTAs y acentos */
-  --primary-text:   #163300;          /* Dark Green — texto sobre verde */
-  --primary-light:  #e2f6d5;          /* Light Mint — fondos suaves */
-  --primary-border: #9fe870;
-  --primary-hover:  #cdffad;          /* Pastel Green — hover */
+  /* App6tuna Core Palette */
+  --bone:       #EDEBE3;
+  --paper:      #FFFFFF;
+  --ink:        #0F0E0A;
+  --ink-2:      #2A2822;
+  --ink-3:      #54514A;
+  --ink-4:      #86837B;
+  --rule:       rgba(15,14,10,.14);
+  --rule-2:     rgba(15,14,10,.22);
+  
+  --olive:      #8A8B3A;
+  --olive-ink:  #F7F3E3;
+  --olive-deep: #4A4B20;
+  --olive-soft: #DDE0B2;
+  
+  --red:        #C43A2F;
+  --red-soft:   #F6E0DD;
+  --amber:      #D48A1C;
+  --amber-soft: #F7E9C9;
+  
+  --mint:       #C8EED5;
+  --violet:     #D8CEF3;
+  --sky:        #C7DCF2;
+  --sand:       #EEE7D0;
 
-  /* Semantic */
-  --success:        #054d28;
-  --success-light:  rgba(5,77,40,.08);
-  --success-border: #9fe870;
-  --warning:        #ffd11a;
-  --warning-light:  rgba(255,209,26,.12);
-  --warning-border: #ffd11a;
-  --danger:         #d03238;
-  --danger-light:   rgba(208,50,56,.08);
-  --danger-border:  rgba(208,50,56,.3);
+  /* Legacy aliases — keep during migration */
+  --lime:       var(--olive);
+  --lime-ink:   var(--olive-ink);
+  --lime-soft:  var(--olive-soft);
 
-  /* Backgrounds */
-  --bg-app:         #f9faf7;          /* Off-white con tono verde */
-  --bg-card:        #ffffff;
-  --bg-sidebar:     #ffffff;
-  --bg-input:       #f5f7f3;
-  --bg-hover:       rgba(14,15,12,.04);
-  --bg-active:      #e2f6d5;          /* Light Mint */
+  /* Mapping old Wise-inspired variables to new Core Palette to prevent breakage */
+  --primary:        var(--ink);
+  --primary-text:   var(--bone);
+  --primary-light:  var(--rule);
+  --primary-border: var(--ink);
+  --primary-hover:  var(--ink-2);
 
-  /* Text */
-  --text-primary:   #0e0f0c;          /* Near Black */
-  --text-secondary: #454745;          /* Warm Dark */
-  --text-tertiary:  #868685;          /* Gray */
-  --text-inverse:   #ffffff;
-  --bg-inverse:     #0e0f0c;
+  --success:        var(--olive);
+  --success-light:  var(--olive-soft);
+  --success-border: var(--olive);
+  --warning:        var(--amber);
+  --warning-light:  var(--amber-soft);
+  --warning-border: var(--amber);
+  --danger:         var(--red);
+  --danger-light:   var(--red-soft);
+  --danger-border:  var(--red-soft);
 
-  /* Borders — Wise usa ring shadows, bordes muy sutiles */
-  --border-light:   rgba(14,15,12,.06);
-  --border-medium:  rgba(14,15,12,.12);
-  --border-strong:  rgba(14,15,12,.20);
+  --bg-app:         var(--bone);
+  --bg-card:        var(--paper);
+  --bg-sidebar:     var(--paper);
+  --bg-input:       var(--bone);
+  --bg-hover:       var(--rule);
+  --bg-active:      var(--rule-2);
 
-  /* Semantic text */
-  --success-text:   #054d28;
-  --warning-text:   #7a5c00;
-  --danger-text:    #7f1d1d;
+  --text-primary:   var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-tertiary:  var(--ink-3);
+  --text-inverse:   var(--bone);
+  --bg-inverse:     var(--ink);
 
-  /* Shadows — Wise: solo ring shadows, sin drop shadows */
-  --shadow-sm:  rgba(14,15,12,.12) 0px 0px 0px 1px;
-  --shadow-md:  rgba(14,15,12,.12) 0px 0px 0px 1px, rgba(14,15,12,.06) 0px 4px 16px;
-  --shadow-lg:  rgba(14,15,12,.12) 0px 0px 0px 1px, rgba(14,15,12,.10) 0px 12px 40px;
-  --shadow-glow: 0 0 0 3px rgba(159,232,112,.35);
+  --border-light:   var(--rule);
+  --border-medium:  var(--rule-2);
+  --border-strong:  var(--ink-4);
+
+  --success-text:   var(--olive-deep);
+  --warning-text:   var(--amber);
+  --danger-text:    var(--red);
+
+  /* Shadows — Design explicitly removes shadows, so we map them to 1px borders */
+  --shadow-sm:   0 0 0 1px var(--rule);
+  --shadow-md:   0 0 0 1px var(--rule-2);
+  --shadow-lg:   0 0 0 1px var(--rule-2);
+  --shadow-glow: none;
 
   /* Layout */
-  --radius-sm:    10px;
-  --radius-md:    16px;
-  --radius-lg:    24px;
-  --radius-xl:    30px;
-  --radius-2xl:   40px;
+  --radius-sm:    4px;
+  --radius-md:    8px;
+  --radius-lg:    12px;
+  --radius-xl:    12px;
+  --radius-2xl:   16px;
   --radius-full:  9999px;
 
   /* Sidebar */
@@ -67,7 +99,7 @@
   --topbar-height: 60px;
   --bottomnav-height: 68px;
 
-  /* Transitions — Wise: scale-based, 200ms ease */
+  /* Transitions */
   --transition-fast: 150ms cubic-bezier(.4,0,.2,1);
   --transition-base: 200ms cubic-bezier(.4,0,.2,1);
   --transition-slow: 350ms cubic-bezier(.4,0,.2,1);
@@ -75,34 +107,28 @@
 
 /* ── Dark Mode Tokens ────────────────────────────────────────────── */
 [data-theme="dark"] {
-  --bg-app:         #0e0f0c;          /* Near Black */
-  --bg-card:        #1a1c18;
-  --bg-sidebar:     #1a1c18;
-  --bg-input:       #232520;
-  --bg-hover:       rgba(159,232,112,.06);
-  --bg-active:      rgba(159,232,112,.12);
-
-  --text-primary:   #f0f2ee;
-  --text-secondary: #9ca89a;
-  --text-tertiary:  #5a5f58;
-  --text-inverse:   #0e0f0c;
-  --bg-inverse:     #f0f2ee;
-
-  --border-light:   rgba(240,242,238,.06);
-  --border-medium:  rgba(240,242,238,.10);
-  --border-strong:  rgba(240,242,238,.18);
-
-  --primary-light:  rgba(159,232,112,.12);
-  --success-light:  rgba(5,77,40,.20);
-  --warning-light:  rgba(255,209,26,.12);
-  --danger-light:   rgba(208,50,56,.15);
-
-  --shadow-sm:  rgba(0,0,0,.4) 0px 0px 0px 1px;
-  --shadow-md:  rgba(0,0,0,.5) 0px 0px 0px 1px, rgba(0,0,0,.3) 0px 4px 16px;
-  --shadow-lg:  rgba(0,0,0,.6) 0px 0px 0px 1px, rgba(0,0,0,.4) 0px 12px 40px;
-
-  /* Semantic text (accessible on dark) */
-  --success-text:   #9fe870;
-  --warning-text:   #ffd11a;
-  --danger-text:    #f87171;
+  /* Inverted core palette */
+  --bone:       #14130F;
+  --paper:      #1F1D17;
+  --ink:        #F2F0EB;
+  --ink-2:      #C2C0B8;
+  --ink-3:      #939086;
+  --ink-4:      #64625A;
+  --rule:       rgba(242,240,235,.14);
+  --rule-2:     rgba(242,240,235,.22);
+  
+  --olive:      #B2B366;           
+  --olive-ink:  #1A1B0B;
+  --olive-deep: #D1D38A;
+  --olive-soft: #4A4B20;
+  
+  --red:        #E26D64;
+  --red-soft:   #4D1C17;
+  --amber:      #E8A843;
+  --amber-soft: #523100;
+  
+  --mint:       #86C29A;
+  --violet:     #9184B8;
+  --sky:        #82A2C4;
+  --sand:       #B8AF92;
 }

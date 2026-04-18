@@ -5,9 +5,9 @@ import IncomeCategorizationPanel from '../components/IncomeCategorizationPanel';
 
 const STATUS = { idle: 'idle', drag: 'drag', queue: 'queue', done: 'done' };
 const ACCOUNT_TYPE_COLORS = {
-    tc:          { bg: 'rgba(225,29,72,.12)',   color: '#E11D48', label: 'TC' },
-    cc:          { bg: 'rgba(8,145,178,.15)',   color: '#0891B2', label: 'CC' },
-    credit_line: { bg: 'rgba(220,38,38,.12)',   color: '#B91C1C', label: 'LC' },
+    tc:          { bg: 'var(--red-soft)',   color: 'var(--red)', label: 'TC' },
+    cc:          { bg: 'var(--rule)',   color: 'var(--ink-3)', label: 'CC' },
+    credit_line: { bg: 'var(--red-soft)',   color: 'var(--red)', label: 'LC' },
 };
 
 function StepIndicator({ step }) {
@@ -98,13 +98,13 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
         if (!newAccName.trim()) return;
         setSavingAcc(true);
         try {
-            const typeColors = { cc: '#0891B2', credit_line: '#B91C1C' };
+            const typeColors = { cc: 'var(--ink-3)', credit_line: 'var(--red)' };
             const typeIcons  = { cc: 'bank', credit_line: 'bank' };
             const saved = await onSaveAccount({
                 name: newAccName.trim(),
                 bank: newAccBank,
                 type: newAccType,
-                color: typeColors[newAccType] || '#E11D48',
+                color: typeColors[newAccType] || 'var(--red)',
                 icon:  typeIcons[newAccType]  || 'card',
             });
             setAccountId(saved.id);
@@ -323,7 +323,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
             <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
                 Selecciona la cuenta bancaria
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: '1.25rem' }}>
+            <div className="list-section" style={{ minHeight: 300, display: 'flex', flexDirection: 'column' }}>
                 {accounts.map(a => {
                     const tc = ACCOUNT_TYPE_COLORS[a.type] || ACCOUNT_TYPE_COLORS.tc;
                     const isSelected = accountId === a.id;
@@ -605,7 +605,7 @@ export default function UploadPage({ months, catRules, allCats, accounts, income
                 {/* Manual entry shortcut */}
                 <div style={{ textAlign: 'center', marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
                     <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>¿No tienes el PDF o prefieres ingresar manualmente?</div>
-                    <button onClick={onGoManual} className="btn btn-ghost">✏️ Entrada manual</button>
+                    <button onClick={onGoManual} className="btn btn-ghost">Entrada manual</button>
                 </div>
             </div>
         );

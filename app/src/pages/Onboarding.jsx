@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 const BANKS = ['santander', 'bci', 'chile', 'scotiabank', 'otro'];
 const BANK_LABELS = { santander: 'Santander', bci: 'BCI', chile: 'Banco de Chile', scotiabank: 'Scotiabank', otro: 'Otro banco' };
-const ACCOUNT_COLORS = { tc: '#E11D48', cc: '#2563EB', savings: '#059669' };
+const ACCOUNT_COLORS = { tc: 'var(--red)', cc: 'var(--ink-3)', savings: 'var(--olive)' };
 
 const STEPS = ['bienvenida', 'cuenta', 'listo'];
 
@@ -21,7 +21,7 @@ export default function OnboardingPage({ onSaveAccount, onGoUpload }) {
                 name: name.trim(),
                 type,
                 bank,
-                color: ACCOUNT_COLORS[type] || '#6B7280',
+                color: ACCOUNT_COLORS[type] || 'var(--ink-4)',
                 icon: type === 'cc' ? 'bank' : 'card',
                 active: true,
             });
@@ -48,7 +48,7 @@ export default function OnboardingPage({ onSaveAccount, onGoUpload }) {
 
     if (step === 1) return (
         <div className="animate-fadeIn" style={{ maxWidth: 420, margin: '0 auto', padding: '2rem 1rem' }}>
-            <div style={{ fontSize: 28, marginBottom: 12 }}>🏦</div>
+            <div style={{ width: 36, height: 36, background: 'var(--olive)', borderRadius: '50%', marginBottom: 12, boxShadow: 'inset 2px -2px 0 rgba(0,0,0,.18)' }} />
             <div className="page-title" style={{ marginBottom: 4 }}>Crear primera cuenta</div>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 28 }}>
                 Podrás agregar más cuentas después en Configuración.
@@ -75,7 +75,7 @@ export default function OnboardingPage({ onSaveAccount, onGoUpload }) {
                         Tipo de cuenta
                     </label>
                     <div style={{ display: 'flex', gap: 8 }}>
-                        {[['tc', '💳 Tarjeta crédito'], ['cc', '🏦 Cuenta corriente']].map(([v, l]) => (
+                        {[['tc', 'TARJETA CRÉDITO'], ['cc', 'CUENTA CORRIENTE']].map(([v, l]) => (
                             <button key={v} onClick={() => setType(v)} style={{
                                 flex: 1, padding: '10px 8px', borderRadius: 'var(--radius-md)',
                                 border: `2px solid ${type === v ? ACCOUNT_COLORS[v] : 'var(--border-medium)'}`,
@@ -118,7 +118,7 @@ export default function OnboardingPage({ onSaveAccount, onGoUpload }) {
                 Cuenta creada correctamente. Ahora sube tu primer estado de cuenta en PDF para comenzar a analizar tus finanzas.
             </div>
             <button onClick={onGoUpload} className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                📄 Subir estado de cuenta
+                Subir estado de cuenta
             </button>
         </div>
     );

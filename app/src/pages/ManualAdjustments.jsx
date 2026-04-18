@@ -144,9 +144,9 @@ export default function ManualAdjustmentsPage({
                                 <div key={e.id} className="list-row list-row-hover">
                                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <span style={{ fontSize: 13, fontWeight: 500 }}>{e.name}</span>
-                                        {cat && <Tag label={cat.nombre} color={cat.color || '#6366F1'} bg={`${cat.color || '#6366F1'}18`} />}
+                                        {cat && <Tag label={cat.nombre} color={cat.color || 'var(--ink-3)'} bg={`${cat.color || 'var(--ink-3)'}18`} />}
                                         {!cat && e.categoria_ingreso && e.categoria_ingreso !== 'otros' && (
-                                            <Tag label={e.categoria_ingreso} color="#6366F1" bg="#EEF2FF" />
+                                            <Tag label={e.categoria_ingreso} color="var(--ink-3)" bg="var(--rule)" />
                                         )}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -215,7 +215,7 @@ export default function ManualAdjustmentsPage({
                                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <span style={{ fontSize: 13, fontWeight: 500 }}>{f.name}</span>
                                         <Tag label={src.label} color={src.color} bg={src.bg} />
-                                        {f.recurring && <Tag label="Recurrente" color="#6366F1" bg="#EEF2FF" />}
+                                        {f.recurring && <Tag label="Recurrente" color="var(--ink-3)" bg="var(--rule)" />}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                         <span style={{ fontSize: 13, fontWeight: 600 }}>{CLP(f.amount)}</span>

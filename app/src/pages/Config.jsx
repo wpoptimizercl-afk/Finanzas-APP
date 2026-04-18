@@ -146,7 +146,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                     <div className="page-title">{mode === 'create' ? 'Nueva categoría' : 'Editar categoría'}</div>
                 </div>
 
-                <div className="card" style={{ marginBottom: '1.25rem' }}>
+                <div className="list-section" style={{ marginBottom: '1.25rem', padding: '16px' }}>
                     <div style={{ marginBottom: 16 }}>
                         <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 7 }}>Nombre</label>
                         <input autoFocus value={label} onChange={e => setLabel(e.target.value)}
@@ -187,7 +187,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                 <div className="section-label" style={{ marginTop: 0 }}>
                     Mis cuentas
-                    <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
+                    <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
                         {accounts.length}
                     </span>
                 </div>
@@ -197,7 +197,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             </div>
 
             {showNewAcc && (
-                <div className="card" style={{ marginBottom: '1rem', padding: '14px 16px', border: '1px solid var(--primary-light)' }}>
+                <div className="list-section" style={{ marginBottom: '1rem', padding: '14px 16px', border: '1px solid var(--primary-light)' }}>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <input value={newAccName} onChange={e => setNewAccName(e.target.value)}
                             placeholder="Nombre (ej: Santander TC)" className="input" style={{ flex: 2, minWidth: 130 }} />
@@ -216,7 +216,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             )}
 
             {accounts.length > 0 && (
-                <div className="card" style={{ padding: '4px 0', marginBottom: '1.75rem' }}>
+                <div className="list-section" style={{ marginBottom: '1.75rem' }}>
                     {accounts.map((a, i) => (
                         <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < accounts.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: a.color || '#888', display: 'inline-block', flexShrink: 0 }} />
@@ -235,7 +235,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                             >
                                 <Pencil size={13} />
                             </button>
-                            <span style={{ fontSize: 10, fontWeight: 600, background: a.type === 'cc' ? 'rgba(8,145,178,.15)' : 'rgba(225,29,72,.12)', color: a.type === 'cc' ? '#0891B2' : '#E11D48', padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, background: a.type === 'cc' ? 'var(--rule)' : 'var(--red-soft)', color: a.type === 'cc' ? 'var(--ink-3)' : 'var(--red)', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
                                 {ACCOUNT_TYPE_LABEL[a.type] || a.type}
                             </span>
                         </div>
@@ -248,7 +248,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                 <div className="section-label" style={{ marginTop: 0 }}>
                     Categorías de ingresos
                     {(incomeCategories || []).length > 0 && (
-                        <span style={{ background: 'var(--success-light, #ECFDF5)', color: 'var(--success, #059669)', borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
+                        <span style={{ background: 'var(--success-light, #ECFDF5)', color: 'var(--success, #059669)', borderRadius: 'var(--radius-sm)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
                             {(incomeCategories || []).length}
                         </span>
                     )}
@@ -259,19 +259,19 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             </div>
 
             {/* Built-in income cats */}
-            <div className="card" style={{ padding: '4px 0', marginBottom: (incomeCategories || []).length > 0 || showNewIncomeCat ? '0.5rem' : '1.75rem' }}>
+            <div className="list-section" style={{ marginBottom: (incomeCategories || []).length > 0 || showNewIncomeCat ? '0.5rem' : '1.75rem' }}>
                 {INCOME_CATS_BUILTIN.map((cat, i) => (
                     <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < INCOME_CATS_BUILTIN.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, display: 'inline-block', flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.nombre}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, background: cat.color + '22', color: cat.color, padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>predeterminada</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, background: cat.color + '22', color: cat.color, padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>predeterminada</span>
                     </div>
                 ))}
             </div>
 
             {/* Custom income cats */}
             {(incomeCategories || []).length > 0 && (
-                <div className="card" style={{ padding: '4px 0', marginBottom: showNewIncomeCat ? '0.5rem' : '1.75rem' }}>
+                <div className="list-section" style={{ marginBottom: showNewIncomeCat ? '0.5rem' : '1.75rem' }}>
                     {incomeCategories.map((cat, i) => (
                         <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < incomeCategories.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                             <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, display: 'inline-block', flexShrink: 0 }} />
@@ -287,7 +287,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             )}
 
             {showNewIncomeCat && (
-                <div className="card" style={{ marginBottom: '1.75rem', padding: '12px 14px', border: '1px solid var(--success-border, #059669)' }}>
+                <div className="list-section" style={{ marginBottom: '1.75rem', padding: '12px 14px', border: '1px solid var(--olive-border, var(--olive))' }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <input
                             value={newIncCatName}
@@ -322,12 +322,12 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
 
             {/* Default cats */}
             <Section mt="0">Categorías predeterminadas</Section>
-            <div className="card" style={{ padding: '4px 0', marginBottom: '1.5rem' }}>
+            <div className="list-section" style={{ marginBottom: '1.5rem' }}>
                 {Object.entries(CAT).map(([k, v], i, arr) => (
                     <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: v.color, display: 'inline-block', flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{v.label}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, background: v.bg, color: v.color, padding: '2px 8px', borderRadius: 'var(--radius-full)' }}>predeterminada</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, background: v.bg, color: v.color, padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>predeterminada</span>
                     </div>
                 ))}
             </div>
@@ -337,7 +337,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                 <div className="section-label" style={{ marginTop: 0 }}>
                     Categorías personalizadas
                     {customEntries.length > 0 && (
-                        <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
+                        <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
                             {customEntries.length}
                         </span>
                     )}
@@ -346,7 +346,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
             </div>
 
             {customEntries.length === 0 ? (
-                <div className="card" style={{ padding: '28px 20px', textAlign: 'center', marginBottom: '1.75rem' }}>
+                <div className="list-section" style={{ padding: '28px 20px', textAlign: 'center', marginBottom: '1.75rem' }}>
                     <div style={{ fontSize: 28, marginBottom: 8 }}>🏷️</div>
                     <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>Sin categorías personalizadas</div>
                     <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>
@@ -355,7 +355,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                     <button onClick={startCreate} className="btn btn-primary">+ Nueva categoría</button>
                 </div>
             ) : (
-                <div className="card" style={{ padding: '4px 0', marginBottom: '1.75rem' }}>
+                <div className="list-section" style={{ marginBottom: '1.75rem' }}>
                     {customEntries.map(([k, v], i) => (
                         <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < customEntries.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: v.color, display: 'inline-block', flexShrink: 0 }} />
@@ -373,7 +373,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                         <div className="section-label" style={{ marginTop: 0 }}>
                             Reglas aprendidas
-                            <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-full)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
+                            <span style={{ background: 'var(--primary-light)', color: 'var(--primary)', borderRadius: 'var(--radius-sm)', padding: '1px 7px', fontSize: 10, marginLeft: 6 }}>
                                 {allRuleEntries.length}
                             </span>
                         </div>
@@ -395,7 +395,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                                     style={{ width: '100%' }}
                                 />
                             </div>
-                            <div className="card" style={{ padding: '4px 0', marginBottom: '2rem' }}>
+                            <div className="list-section" style={{ marginBottom: '2rem' }}>
                                 {ruleEntries.length === 0 ? (
                                     <div style={{ padding: '16px', fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
                                         Sin resultados para "{ruleSearch}"

@@ -125,7 +125,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
             ...t,
             _sourceId: s.id,
             _accountName: account?.name || (s.source_type === 'cc' ? 'Cuenta Corriente' : 'Tarjeta'),
-            _accountColor: account?.color || (s.source_type === 'cc' ? '#0891B2' : '#E11D48'),
+            _accountColor: account?.color || (s.source_type === 'cc' ? 'var(--ink-3)' : 'var(--red)'),
             _isCC: s.source_type === 'cc',
         }));
     }), [sources, accounts]);
@@ -186,7 +186,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
     if (!uniqueSortedPeriods.length) return (
         <div className="animate-fadeIn">
             <div className="empty-state">
-                <div className="empty-state-icon">📈</div>
+                <div className="empty-state-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
                 <div className="empty-state-title">Sin historial</div>
                 <div className="empty-state-desc">Sube estados de cuenta para ver el historial de tus transacciones.</div>
             </div>
@@ -232,7 +232,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                     }).map(s => {
                         const acc = accounts.find(a => a.id === s.account_id);
                         const name = acc?.name || (s.source_type === 'cc' ? 'CC' : 'TC');
-                        const color = acc?.color || (s.source_type === 'cc' ? '#0891B2' : '#E11D48');
+                        const color = acc?.color || (s.source_type === 'cc' ? 'var(--ink-3)' : 'var(--red)');
                         const isActive = activeSourceId === s.id;
                         return (
                             <button key={s.id} onClick={() => setActiveSourceId(isActive ? null : s.id)}

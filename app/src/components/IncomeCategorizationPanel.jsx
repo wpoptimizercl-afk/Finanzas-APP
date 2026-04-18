@@ -60,10 +60,9 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
     };
 
     return (
-        <div className="card" style={{ marginTop: '1.25rem', border: '1px solid var(--success-border, #059669)', padding: 0, overflow: 'hidden' }}>
-            {/* Header */}
-            <div style={{ padding: '12px 16px', background: 'var(--success-light, rgba(5,150,105,0.08))', borderBottom: '1px solid var(--success-border, #059669)' }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--success, #059669)' }}>
+        <div className="card" style={{ marginTop: '1.25rem', border: '1px solid var(--olive-border, var(--olive))', padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--olive-soft, rgba(5,150,105,0.08))', borderBottom: '1px solid var(--olive-border, var(--olive))' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--olive, #059669)' }}>
                     Ingresos detectados — {periodo}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
@@ -92,8 +91,8 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
                                     onClick={() => toggleItem(item.id)}
                                     style={{
                                         width: 20, height: 20, minWidth: 20, borderRadius: 4,
-                                        border: isSelected ? '2px solid var(--success, #059669)' : '2px solid var(--border)',
-                                        background: isSelected ? 'var(--success, #059669)' : 'transparent',
+                                        border: isSelected ? '2px solid var(--olive, #059669)' : '2px solid var(--border)',
+                                        background: isSelected ? 'var(--olive, #059669)' : 'transparent',
                                         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                                         flexShrink: 0,
                                     }}
@@ -108,7 +107,7 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
                                 <span style={{ fontSize: 13, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {item.descripcion}
                                 </span>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--success, #059669)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--olive, #059669)', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
                                     {CLP(item.monto)}
                                 </span>
                             </div>
@@ -197,7 +196,7 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
             <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-light)', background: 'var(--surface-raised, var(--surface))', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Total seleccionado</div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--success, #059669)', fontVariantNumeric: 'tabular-nums' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--olive, #059669)', fontVariantNumeric: 'tabular-nums' }}>
                         {CLP(total)}
                     </div>
                 </div>

@@ -32,7 +32,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
             <div className="empty-state-icon"><Upload size={26} /></div>
             <div className="empty-state-title">Sin datos todavía</div>
             <div className="empty-state-desc">Sube tu primer estado de cuenta para comenzar a visualizar tus finanzas.</div>
-            <button className="btn btn-primary btn-lg" onClick={onGoUpload}>📄 Subir estado de cuenta</button>
+            <button className="btn btn-primary btn-lg" onClick={onGoUpload}>Subir estado de cuenta</button>
         </div>
     );
 
@@ -117,12 +117,12 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0, display: 'block' }} />
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{c.label}</span>
                     {dColor && (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: dColor, background: dBg, border: `1px solid ${dBg}`, padding: '2px 7px', borderRadius: 6 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: dColor, background: dBg, border: `1px solid ${dBg}`, padding: '2px 7px', borderRadius: 6 }}>
                             {c.delta > 0 ? '↑' : '↓'}{Math.abs(c.delta)}% vs {prevLabel}
                         </span>
                     )}
                     <div style={{ width: 90, textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: over ? 'var(--danger)' : 'var(--text-primary)' }}>{CLP(c.value)}</div>
+                        <div style={{ fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: over ? 'var(--danger)' : 'var(--text-primary)' }}>{CLP(c.value)}</div>
                         {over && <div style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 500 }}>+{CLP(c.value - c.tope)} sobre tope</div>}
                     </div>
                 </div>
@@ -148,19 +148,19 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <button style={navBtn(canPrev)} onClick={() => canPrev && setSelIdx(clampedIdx - 1)} disabled={!canPrev}><ChevronLeft size={16} /></button>
                     <div>
-                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{periodo}</div>
+                        <div style={{ fontSize: 18, fontWeight: 500, letterSpacing: '-.3px', fontFamily: 'var(--font-mono)' }}>{periodo}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{primarySource?.periodo_desde} — {primarySource?.periodo_hasta}</div>
                     </div>
                     <button style={navBtn(canNext)} onClick={() => canNext && setSelIdx(clampedIdx + 1)} disabled={!canNext}><ChevronRight size={16} /></button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    {incomeIsDefault && <Tag label="Ingreso estimado" color="var(--warning)" bg="var(--warning-light)" />}
+                    {incomeIsDefault && <Tag label="Ingreso estimado" color="var(--amber)" bg="var(--amber-soft)" />}
                     {!isLatest && <Tag label="Mes anterior" color="var(--text-tertiary)" bg="var(--bg-hover)" />}
-                    {tcSources.length > 0 && ccSources.length > 0 && <Tag label="TC + CC" color="#0891B2" bg="#ECFEFF" />}
+                    {tcSources.length > 0 && ccSources.length > 0 && <Tag label="TC + CC" color="var(--ink-3)" bg="var(--rule)" />}
                     {tempCount > 0 && (
                         <span style={{
                             fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-full)',
-                            background: 'var(--warning-light)', color: 'var(--warning)', fontWeight: 600,
+                            background: 'var(--amber-soft)', color: 'var(--amber)', fontWeight: 600,
                         }}>
                             {tempCount} gasto{tempCount > 1 ? 's' : ''} temporal{tempCount > 1 ? 'es' : ''}
                         </span>
@@ -168,51 +168,25 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                 </div>
             </div>
 
-            {/* Combined metrics */}
-            <div className="dashboard-grid" style={{ marginBottom: 10 }}>
-                <Metric label="Ingreso" value={CLP(income)} color="var(--primary)"
-                    note={incomeIsDefault ? 'ingreso estimado (configurable)' : 'sueldo + extras'} />
-                <Metric label="Gasto del mes" value={CLP(totalGasto)} color="var(--danger)"
-                    note={tcSources.length > 0 && ccSources.length > 0 ? 'TC + CC + fijos' : tcSources.length > 0 ? 'TC + fijos' : 'CC + fijos'} />
-                <Metric label="Saldo TC" value={CLP(tcSaldoTotal)} color="var(--text-secondary)"
-                    note="total facturado en tarjeta" />
-                <Metric label={ahorro >= 0 ? 'Excedente' : 'Déficit'} value={CLP(ahorro)} color={aColor}
-                    note={`ingreso − gasto · ${aRate}%`} />
-            </div>
-
-            {/* Savings rate bar */}
-            <div className="card" style={{ padding: '14px 16px', marginBottom: savingsGoal > 0 ? 10 : '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Tasa de excedente</span>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: aColor, letterSpacing: '-.5px' }}>{aRate}%</span>
+            {/* Unified Hero */}
+            <div className="ph-hero">
+                <div className="eyebrow">{ahorro >= 0 ? 'EXCEDENTE DEL MES' : 'DÉFICIT DEL MES'}</div>
+                <div className="amt">
+                    <span className="sg">{ahorro >= 0 ? '+' : '-'}</span>
+                    {CLP(Math.abs(ahorro))}
                 </div>
-                <div className="progress-track">
-                    <div className="progress-bar" style={{ width: Math.max(0, aRate) + '%', background: aColor }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 7 }}>
-                    <span>Gasto total {CLP(totalGasto)}</span>
-                    <span>{CLP(ahorro)} disponible</span>
+                <div className="sub">
+                    <span><i style={{background: 'var(--ink)'}}></i>Ingreso {CLP(income)}</span>
+                    <span><i style={{background: 'var(--red)'}}></i>Gasto {CLP(totalGasto)}</span>
+                    <span style={{color: 'var(--text-tertiary)'}}>Tasa {aRate}%</span>
                 </div>
             </div>
 
-            {/* Savings goal */}
-            {savingsGoal > 0 && (
-                <div className="card" style={{ padding: '14px 16px', marginBottom: '1.5rem', border: `1px solid ${goalMet ? 'var(--success-border)' : 'var(--border-medium)'}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>Meta de excedente mensual</span>
-                        <div style={{ textAlign: 'right' }}>
-                            <span style={{ fontSize: 16, fontWeight: 700, color: goalColor, letterSpacing: '-.3px' }}>{CLP(ahorro)}</span>
-                            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 4 }}>/ {CLP(savingsGoal)}</span>
-                        </div>
-                    </div>
-                    <div className="progress-track">
-                        <div className="progress-bar" style={{ width: Math.min(100, Math.max(0, goalPct)) + '%', background: goalColor }} />
-                    </div>
-                    <div style={{ fontSize: 11, color: goalColor, marginTop: 7, fontWeight: 500 }}>
-                        {goalMet ? `✓ Meta cumplida · superaste la meta por ${CLP(ahorro - savingsGoal)}` : `Te faltan ${CLP(savingsGoal - ahorro)} para alcanzar tu meta`}
-                    </div>
-                </div>
-            )}
+            <div className="dashboard-grid" style={{ marginBottom: '1.5rem', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                <Metric label="TARJETA" value={CLP(tcSaldoTotal)} note="Saldo facturado" noBorderRight />
+                <Metric label="FIJOS" value={CLP(fixedTotal)} note="Fijos del mes" noBorderRight />
+                <Metric label="CUOTAS" value={CLP(allCuotas.reduce((s, c) => s + ((c.cuota_actual>0)?c.monto_cuota:0), 0))} note="Cuotas activas" />
+            </div>
 
             {/* ── Total Financiamiento (TC + Línea de crédito) ─────────────── */}
             <FinancingSummary periodo={periodo} months={allMonths} />
@@ -226,7 +200,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                             Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
                         </div>
                     )}
-                    <div className="card" style={{ padding: 0, overflow: 'hidden', marginBottom: '1.5rem' }}>
+                    <div className="list-section no-rule" style={{ marginBottom: '1.5rem' }}>
                         {mergedCatRows.map((c, i, arr) => renderCatRow(c, i, arr))}
                     </div>
                 </>
@@ -240,7 +214,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     <div>
                         {ccSources.length > 0 && (
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--danger)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: 8 }}>
-                                💳 Tarjeta de crédito
+                                TARJETA DE CRÉDITO
                             </div>
                         )}
 
@@ -248,7 +222,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                         {currentCuotas.length > 0 && (
                             <div>
                                 <Section mt="0">Cuotas del mes</Section>
-                                <div className="card" style={{ padding: '4px 0', marginBottom: '1.5rem' }}>
+                                <div className="list-section no-rule" style={{ marginBottom: '1.5rem' }}>
                                     {currentCuotas.map((c, i) => {
                                         const restantes = c.total_cuotas - c.cuota_actual;
                                         const isLast = restantes === 0;
@@ -285,7 +259,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                         {totalDeuda > 0 && (
                             <div>
                                 <Section mt="0">Deuda futura en cuotas</Section>
-                                <div className="card" style={{ padding: '4px 0', overflow: 'hidden', marginBottom: '1.5rem' }}>
+                                <div className="list-section no-rule" style={{ marginBottom: '1.5rem' }}>
                                     {allCuotas.map(c => ({ ...c, restantes: Math.max(0, c.total_cuotas - c.cuota_actual) }))
                                         .filter(c => c.restantes > 0)
                                         .map((c, i, arr) => (
@@ -332,7 +306,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                 return (
                     <div>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#0891B2', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10, marginTop: tcSources.length > 0 ? 8 : 0 }}>
-                            🏦 Cuenta corriente
+                            CUENTA CORRIENTE
                         </div>
 
                         {/* CC balance + income */}
@@ -348,7 +322,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
             {fixedItems.length > 0 && (
                 <div>
                     <Section mt="0">Gastos fijos del mes</Section>
-                    <div className="card" style={{ padding: '4px 0', marginBottom: '1.5rem' }}>
+                    <div className="list-section no-rule" style={{ marginBottom: '1.5rem' }}>
                         {fixedItems.map((f, i) => {
                             const src = SOURCE_OPTS.find(s => s.id === (f.source || 'fijo')) || SOURCE_OPTS[0];
                             return (

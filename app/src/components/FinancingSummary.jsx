@@ -85,7 +85,7 @@ export default function FinancingSummary({ periodo, months }) {
 
                 {hasTc && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: hasCl ? 8 : 0 }}>
-                        <span style={{ fontSize: 16 }}>💳</span>
+                        <span style={{ width: 8, height: 8, borderRadius: '2px', background: 'var(--ink)' }}></span>
                         <span style={{ flex: 1, fontSize: 13, color: 'var(--text-secondary)' }}>Tarjeta de crédito</span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{CLP(tcDebt)}</span>
                     </div>
@@ -94,7 +94,7 @@ export default function FinancingSummary({ periodo, months }) {
                 {clItems.map((cl, i) => (
                     <div key={i} style={{ marginBottom: i < clItems.length - 1 ? 6 : 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                            <span style={{ fontSize: 16 }}>📊</span>
+                            <span style={{ width: 8, height: 8, borderRadius: '2px', background: 'var(--danger)' }}></span>
                             <span style={{ flex: 1, fontSize: 13, color: 'var(--text-secondary)' }}>Línea de crédito</span>
                             <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--danger)' }}>{CLP(cl.used_amount)}</span>
                         </div>

@@ -1,10 +1,9 @@
-import { DollarSign, TrendingUp, Shield, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const FEATURES = [
-    { icon: TrendingUp, text: 'Dashboard con métricas en tiempo real' },
-    { icon: Zap, text: 'Procesa estados de cuenta con IA' },
-    { icon: Shield, text: 'Datos seguros con autenticación Google' },
+    { text: 'Dashboard con métricas en tiempo real' },
+    { text: 'Procesa estados de cuenta con IA' },
+    { text: 'Datos seguros con autenticación Google' },
 ];
 
 export default function LoginPage() {
@@ -13,13 +12,18 @@ export default function LoginPage() {
     return (
         <div className="login-page">
             <div className="login-card animate-fadeIn">
-                <div className="login-logo">
-                    <DollarSign size={30} color="#163300" />
+                <div className="login-logo" style={{ marginBottom: 40 }}>
+                    <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 600, letterSpacing: '.08em', fontSize: 18, textTransform: 'uppercase' }}>
+                        <div style={{ width: 22, height: 22, background: 'var(--olive)', borderRadius: '50%', display: 'inline-block', position: 'relative', boxShadow: 'inset 2px -2px 0 rgba(0,0,0,.18)' }}>
+                            <div style={{ position: 'absolute', top: 5, left: 6, width: 4, height: 4, background: 'rgba(255,255,255,.35)', borderRadius: '50%' }} />
+                        </div>
+                        <span>App6tuna</span>
+                    </div>
                 </div>
 
-                <h1 className="login-title">Mis Finanzas</h1>
+                <h1 className="login-title">Controla tus finanzas</h1>
                 <p className="login-subtitle">
-                    Controla tus gastos, analiza tus hábitos financieros<br />
+                    Organiza tus gastos, analiza tus hábitos financieros<br />
                     y alcanza tus metas de ahorro.
                 </p>
 
@@ -34,10 +38,9 @@ export default function LoginPage() {
                 </button>
 
                 <div className="login-features">
-                    {FEATURES.map(({ icon: Icon, text }) => (
+                    {FEATURES.map(({ text }) => (
                         <div key={text} className="login-feature">
                             <span className="login-feature-dot" />
-                            <Icon size={13} style={{ color: 'rgba(241,245,249,.5)' }} />
                             {text}
                         </div>
                     ))}

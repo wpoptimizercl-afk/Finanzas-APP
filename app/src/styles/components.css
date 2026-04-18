@@ -1,15 +1,39 @@
-/* ── Cards ──────────────────────────────────────────────────────── */
+/* ── Cards — Editorial flat system ──────────────────────────────── */
+/* .card and .list-section are now flat sections on the bone canvas  */
+/* Visual separation is done ONLY via hairline border-top + eyebrows */
 .card {
-    background: var(--bg-card);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-medium);
-    padding: 20px;
-    transition: box-shadow var(--transition-fast);
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--rule);
+    padding: 16px 0;
+    transition: none;
 }
 
-.card-hover:hover {
-    box-shadow: var(--shadow-md);
+/* Remove top hairline variant — used when a card is the first item */
+.card.no-rule {
+    border-top: none;
+    padding-top: 0;
+}
+
+.list-section {
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    border-top: 1px solid var(--rule);
+    overflow: visible;
+}
+
+.list-section.no-rule {
+    border-top: none;
+}
+
+/* Elevated card — only for forms, modals, upload areas */
+.card-paper {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--rule-2);
+    padding: 20px;
 }
 
 .card-glass {
@@ -24,16 +48,17 @@
     border-color: rgba(255, 255, 255, .06);
 }
 
-/* ── Metric Card ────────────────────────────────────────────────── */
+/* ── Metric Card — flat, transparent, grid-cell borders only ────── */
 .metric-card {
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-medium);
-    box-shadow: var(--shadow-sm);
+    background: transparent;
     padding: 14px 16px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    border-right: 1px solid var(--rule);
+}
+.metric-card:last-child {
+    border-right: none;
 }
 
 .metric-label {
@@ -46,11 +71,12 @@
 }
 
 .metric-value {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -.6px;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -.02em;
     color: var(--text-primary);
-    font-feature-settings: "calt";
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 .metric-note {
@@ -64,16 +90,15 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 10px 22px;
-    border-radius: var(--radius-full);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: -.1px;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    padding: 10px 16px;
+    border-radius: 8px; /* r8-buttons */
+    font-size: 13px;
+    font-weight: 500;
+    transition: background var(--transition-fast);
     white-space: nowrap;
     border: none;
     cursor: pointer;
-    font-feature-settings: "calt";
+    font-family: var(--font-sans);
 }
 
 /* Primary — Wise Green pill */
@@ -94,18 +119,17 @@
 
 /* Ghost — Dark Green transparent */
 .btn-ghost {
-    background: rgba(22, 51, 0, .08);
+    background: transparent;
     color: var(--text-primary);
-    border: none;
+    border: 1px solid var(--border-medium);
 }
 
 .btn-ghost:hover {
-    transform: scale(1.05);
-    background: rgba(22, 51, 0, .12);
+    background: var(--bg-hover);
 }
 
 .btn-ghost:active {
-    transform: scale(0.95);
+    background: var(--bg-active);
 }
 
 [data-theme="dark"] .btn-ghost {
@@ -233,12 +257,15 @@ select.input {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 3px 10px;
-    border-radius: var(--radius-full);
+    padding: 4px 10px;
+    border-radius: 4px; /* r4-chips */
+    border: 1px solid var(--border-medium);
+    background: var(--bg-app);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
     font-size: 11px;
-    font-weight: 700;
+    letter-spacing: .02em;
     white-space: nowrap;
-    font-feature-settings: "calt";
 }
 
 .tag-clickable {
@@ -287,13 +314,17 @@ select.input {
 /* ── Section Label ──────────────────────────────────────────────── */
 .section-label {
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--text-tertiary);
     text-transform: uppercase;
-    letter-spacing: .09em;
-    margin-bottom: 7px;
-    margin-top: 1.25rem;
+    letter-spacing: .1em;
+    margin-bottom: 10px;
+    margin-top: 1.5rem;
+    font-family: var(--font-mono);
     font-feature-settings: "calt";
+    /* Hairline above each section label */
+    border-top: 1px solid var(--rule);
+    padding-top: 14px;
 }
 
 /* ── Divider ────────────────────────────────────────────────────── */
@@ -393,7 +424,7 @@ select.input {
 
 .empty-state-title {
     font-size: 17px;
-    font-weight: 800;
+    font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -.3px;
 }
@@ -432,7 +463,7 @@ select.input {
 
 .modal-title {
     font-size: 18px;
-    font-weight: 800;
+    font-weight: 600;
     margin-bottom: 8px;
     letter-spacing: -.4px;
     font-feature-settings: "calt";
@@ -496,8 +527,8 @@ select.input {
 
 /* ── Health Semaphore ────────────────────────────────────────────── */
 .semaphore {
-    border-radius: var(--radius-lg);
-    padding: 12px 14px;
+    border-top: 1px solid var(--rule);
+    padding: 14px 0 14px 12px;
     margin-bottom: 1rem;
     display: flex;
     flex-direction: column;
@@ -516,7 +547,7 @@ select.input {
 
 .semaphore-title {
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.3;
     font-feature-settings: "calt";
 }
@@ -955,6 +986,22 @@ select.input {
 
 .financing-summary .progress-track {
     height: 6px;
+}
+
+/* ── Metric highlight — olive KPI card ──────────────────────────── */
+.metric-card.metric-highlight {
+    background: var(--olive);
+}
+.metric-card.metric-highlight .metric-label {
+    color: var(--olive-ink);
+    opacity: .75;
+}
+.metric-card.metric-highlight .metric-note {
+    color: var(--olive-ink);
+    opacity: .65;
+}
+[data-theme="dark"] .metric-card.metric-highlight {
+    background: var(--olive);
 }
 
 @media (max-width: 375px) {
