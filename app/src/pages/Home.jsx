@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import Metric from '../components/ui/Metric';
 import Section from '../components/ui/Section';
+import CategoryRow from '../components/CategoryRow';
 import Tag from '../components/ui/Tag';
 import FinancingSummary from '../components/FinancingSummary';
 import { CLP, pct, shortLabel, isCurrentMonth } from '../utils/formatters';
@@ -106,40 +107,6 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
     });
 
-    const renderCatRow = (c, i, arr) => {
-        const over = c.tope > 0 && c.value > c.tope;
-        const barPct = c.tope > 0 ? Math.min(pct(c.value, c.tope), 100) : 0;
-        const dColor = c.delta === null ? null : c.delta <= 0 ? 'var(--success-text)' : '#fff';
-        const dBg = c.delta === null ? null : c.delta <= 0 ? 'var(--success-light)' : c.delta > 20 ? '#B91C1C' : '#B45309';
-        return (
-            <div key={c.key} style={{ padding: '12px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none', background: 'transparent' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: c.tope > 0 ? 8 : 0 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.color, flexShrink: 0, display: 'block' }} />
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{c.label}</span>
-                    {dColor && (
-                        <span style={{ fontSize: 10, fontWeight: 600, color: dColor, background: dBg, border: `1px solid ${dBg}`, padding: '2px 7px', borderRadius: 6 }}>
-                            {c.delta > 0 ? '↑' : '↓'}{Math.abs(c.delta)}% vs {prevLabel}
-                        </span>
-                    )}
-                    <div style={{ width: 90, textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', color: over ? 'var(--danger)' : 'var(--text-primary)' }}>{CLP(c.value)}</div>
-                        {over && <div style={{ fontSize: 10, color: 'var(--danger)', fontWeight: 500 }}>+{CLP(c.value - c.tope)} sobre tope</div>}
-                    </div>
-                </div>
-                {c.tope > 0 && (
-                    <div style={{ paddingLeft: 18 }}>
-                        <div style={{ height: 4, borderRadius: 4, background: over ? 'var(--danger-border)' : 'var(--bg-hover)', overflow: 'hidden' }}>
-                            <div style={{ width: barPct + '%', height: 4, borderRadius: 4, background: over ? 'var(--danger)' : barPct > 80 ? 'var(--warning)' : 'var(--success)', transition: 'width .5s ease' }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                            <span style={{ fontSize: 10, color: over ? 'var(--danger)' : 'var(--text-tertiary)', fontWeight: 500 }}>{barPct}% del tope</span>
-                            <span style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>tope {CLP(c.tope)}</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    };
 
     return (
         <div className="animate-fadeIn">
@@ -182,28 +149,27 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                 </div>
             </div>
 
-            <div className="dashboard-grid" style={{ marginBottom: '1.5rem', gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                <Metric label="TARJETA" value={CLP(tcSaldoTotal)} note="Saldo facturado" noBorderRight />
-                <Metric label="FIJOS" value={CLP(fixedTotal)} note="Fijos del mes" noBorderRight />
-                <Metric label="CUOTAS" value={CLP(allCuotas.reduce((s, c) => s + ((c.cuota_actual>0)?c.monto_cuota:0), 0))} note="Cuotas activas" />
-            </div>
+            <section className="ph-section">
+                <h4>GASTOS DEL MES</h4>
+                <div className="ph-kpi">
+                    <div className="c"><div className="l">TARJETA</div><div className="v">{CLP(tcSaldoTotal)}</div></div>
+                    <div className="c"><div className="l">FIJOS</div><div className="v">{CLP(fixedTotal)}</div></div>
+                    <div className="c"><div className="l">CUOTAS</div><div className="v">{CLP(allCuotas.reduce((s, c) => s + ((c.cuota_actual > 0) ? c.monto_cuota : 0), 0))}</div></div>
+                </div>
+            </section>
 
             {/* ── Total Financiamiento (TC + Línea de crédito) ─────────────── */}
             <FinancingSummary periodo={periodo} months={allMonths} />
 
             {/* ── Unified category breakdown ───────────────────────────────── */}
             {mergedCatRows.length > 0 && (
-                <>
-                    <Section mt="0">Gastos por categoría</Section>
-                    {prevLabel && (
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 10, marginTop: -6 }}>
-                            Las variaciones <strong style={{ color: 'var(--text-secondary)' }}>↑↓%</strong> comparan con <strong style={{ color: 'var(--text-secondary)' }}>{prevLabel}</strong>
-                        </div>
-                    )}
-                    <div className="list-section no-rule" style={{ marginBottom: '1.5rem' }}>
-                        {mergedCatRows.map((c, i, arr) => renderCatRow(c, i, arr))}
-                    </div>
-                </>
+                <section className="ph-section">
+                    <h4>CATEGORÍAS <em>{mergedCatRows.length} de {Object.keys(allCats).length}</em></h4>
+                    {mergedCatRows.map((c) => (
+                        <CategoryRow key={c.key} color={c.color} label={c.label}
+                            amount={c.value} delta={c.delta} formatCLP={CLP} />
+                    ))}
+                </section>
             )}
 
             {/* ── TC section ───────────────────────────────────────────────── */}
