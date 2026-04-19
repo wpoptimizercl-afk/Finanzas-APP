@@ -163,6 +163,7 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
             {mergedCatRows.length > 0 && (
                 <section className="ph-section">
                     <h4>CATEGORÍAS <em>{mergedCatRows.length} de {Object.keys(allCats).length}</em></h4>
+                    {prevLabel && <p className="ph-section-note">↑↓ variaciones vs {prevLabel}</p>}
                     {mergedCatRows.map((c) => (
                         <CategoryRow key={c.key} color={c.color} label={c.label}
                             amount={c.value} delta={c.delta} formatCLP={CLP} />

@@ -613,6 +613,15 @@
     font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
 
+/* Home — nota contextual de sección */
+.ph-section-note {
+    font-size: 10px;
+    color: var(--ink-4);
+    font-family: var(--font-mono);
+    letter-spacing: .04em;
+    margin: -6px 0 10px;
+}
+
 /* Home — Fila de categoría */
 .ph-cat {
     display: grid; grid-template-columns: 10px 1fr 60px; gap: 10px;
