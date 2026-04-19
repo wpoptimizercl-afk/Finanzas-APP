@@ -313,11 +313,11 @@ select.input {
 
 /* ── Section Label ──────────────────────────────────────────────── */
 .section-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ink);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-3);
     text-transform: uppercase;
-    letter-spacing: .14em;
+    letter-spacing: .2em;
     margin-bottom: 12px;
     margin-top: 1.5rem;
     font-family: var(--font-sans);
