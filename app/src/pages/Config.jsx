@@ -222,7 +222,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                 <div className="list-section" style={{ marginBottom: '1.75rem' }}>
                     {accounts.map((a, i) => (
                         <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < accounts.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: a.color || '#888', display: 'inline-block', flexShrink: 0 }} />
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.color || '#888', display: 'inline-block', flexShrink: 0 }} />
                             <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{a.name}</span>
                             <button
                                 onClick={() => {
@@ -359,7 +359,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                 <div className="list-section" style={{ marginBottom: '1.75rem' }}>
                     {customEntries.map(([k, v], i) => (
                         <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < customEntries.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                            <span style={{ width: 10, height: 10, borderRadius: '50%', background: v.color, display: 'inline-block', flexShrink: 0 }} />
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: v.color, display: 'inline-block', flexShrink: 0 }} />
                             <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{v.label}</span>
                             <button onClick={() => startEdit(k)} className="btn-icon btn-sm" title="Editar"><Edit2 size={12} /></button>
                             <button onClick={() => setDelId(k)} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)' }} title="Eliminar"><Trash2 size={12} /></button>

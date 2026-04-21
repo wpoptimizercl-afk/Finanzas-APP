@@ -277,7 +277,7 @@ select.input {
     gap: 4px;
     padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid var(--rule);
+    border: 1px solid var(--rule-2);
     background: var(--bone);
     color: var(--ink-2);
     font-family: var(--font-mono);
