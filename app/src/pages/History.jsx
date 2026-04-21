@@ -204,7 +204,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                         <ChevronLeft size={16} />
                     </button>
                     <div style={{ minWidth: 140 }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{periodo}</div>
+                        <div style={{ fontSize: 18, fontWeight: 500, letterSpacing: '-.3px', fontFamily: 'var(--font-mono)' }}>{periodo}</div>
                         <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{primarySource?.periodo_desde} — {primarySource?.periodo_hasta}</div>
                     </div>
                     <button onClick={() => setSelIdx(i => Math.min(uniqueSortedPeriods.length - 1, i + 1))} disabled={idx === uniqueSortedPeriods.length - 1}
@@ -218,11 +218,14 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                 </button>
             </div>
 
-            {/* Account filter pills (multi-account) */}
+            {/* Account filter chips */}
             {sources.length > 1 && (
                 <div style={{ display: 'flex', gap: 6, marginBottom: '1rem', flexWrap: 'wrap' }}>
-                    <button onClick={() => setActiveSourceId(null)}
-                        style={{ fontSize: 12, padding: '4px 12px', borderRadius: 'var(--radius-full)', border: `1px solid ${activeSourceId === null ? 'var(--primary)' : 'var(--border-medium)'}`, background: activeSourceId === null ? 'var(--primary-light)' : 'var(--bg-card)', color: activeSourceId === null ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 500, cursor: 'pointer' }}>
+                    <button
+                        onClick={() => setActiveSourceId(null)}
+                        className={`tag${activeSourceId === null ? ' tag-ink' : ''}`}
+                        style={{ cursor: 'pointer', fontWeight: activeSourceId === null ? 600 : 400 }}
+                    >
                         Todas
                     </button>
                     {[...sources].sort((a, b) => {
@@ -234,10 +237,15 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                         const name = acc?.name || (s.source_type === 'cc' ? 'CC' : 'TC');
                         const color = acc?.color || (s.source_type === 'cc' ? 'var(--ink-3)' : 'var(--red)');
                         const isActive = activeSourceId === s.id;
+                        const variantClass = isActive ? ` tag-${s.source_type === 'cc' ? 'olive' : 'red'}` : '';
                         return (
-                            <button key={s.id} onClick={() => setActiveSourceId(isActive ? null : s.id)}
-                                style={{ fontSize: 12, padding: '4px 12px', borderRadius: 'var(--radius-full)', border: `1px solid ${isActive ? color : 'var(--border-medium)'}`, background: isActive ? `${color}18` : 'var(--bg-card)', color: isActive ? color : 'var(--text-secondary)', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                            <button
+                                key={s.id}
+                                onClick={() => setActiveSourceId(isActive ? null : s.id)}
+                                className={`tag${variantClass}`}
+                                style={{ cursor: 'pointer', fontWeight: isActive ? 600 : 400 }}
+                            >
+                                <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
                                 {name}
                             </button>
                         );
@@ -337,7 +345,8 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                 key={key}
                                 onClick={() => setCatSort(prev => prev.by === key ? { by: key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { by: key, dir: 'asc' })}
                                 aria-label={`Ordenar por ${label}${isActive ? (catSort.dir === 'asc' ? ', ascendente' : ', descendente') : ''}`}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, padding: '3px 8px', borderRadius: 'var(--radius-full)', border: `1px solid ${isActive ? 'var(--primary)' : 'var(--border-medium)'}`, background: isActive ? 'var(--primary-light)' : 'var(--bg-card)', color: isActive ? 'var(--primary)' : 'var(--text-secondary)', fontWeight: 500, cursor: 'pointer' }}
+                                className={`tag${isActive ? ' tag-ink' : ''}`}
+                                style={{ cursor: 'pointer', fontWeight: isActive ? 600 : 400 }}
                             >
                                 {label}
                                 {isActive
