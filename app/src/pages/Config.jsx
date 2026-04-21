@@ -8,7 +8,7 @@ import { hexBg } from '../utils/formatters';
 
 const ACCOUNT_TYPE_COLOR = { tc: '#C43A2F', cc: '#8A8B3A' };
 
-const ACCOUNT_TYPE_LABEL = { tc: 'Tarjeta crédito', cc: 'Cuenta corriente', savings: 'Ahorro', cash: 'Efectivo' };
+const ACCOUNT_TYPE_LABEL = { tc: 'Tarjeta crédito', cc: 'Cuenta corriente', lc: 'Línea de crédito', credit_line: 'Línea de crédito', savings: 'Ahorro', cash: 'Efectivo' };
 const ACCOUNT_BANKS = ['santander', 'bci', 'chile', 'scotiabank', 'otro'];
 
 function ColorPicker({ value, onChange }) {
@@ -238,7 +238,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                             >
                                 <Pencil size={13} />
                             </button>
-                            <Tag variant={a.type === 'cc' ? 'olive' : 'red'} label={ACCOUNT_TYPE_LABEL[a.type] || a.type} />
+                            <Tag variant={a.type === 'cc' ? 'olive' : (a.type === 'lc' || a.type === 'credit_line') ? 'amber' : 'red'} label={ACCOUNT_TYPE_LABEL[a.type] || a.type} />
                         </div>
                     ))}
                 </div>
@@ -265,7 +265,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                     <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < INCOME_CATS_BUILTIN.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: cat.color, display: 'inline-block', flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{cat.nombre}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, background: cat.color + '22', color: cat.color, padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>predeterminada</span>
+                        <span className="tag">predeterminada</span>
                     </div>
                 ))}
             </div>
@@ -328,7 +328,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                     <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: v.color, display: 'inline-block', flexShrink: 0 }} />
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{v.label}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, background: v.bg, color: v.color, padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>predeterminada</span>
+                        <span className="tag">predeterminada</span>
                     </div>
                 ))}
             </div>
