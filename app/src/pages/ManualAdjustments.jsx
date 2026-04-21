@@ -101,8 +101,8 @@ export default function ManualAdjustmentsPage({
             <div className="card card-hover" onClick={() => setShowPicker(true)}
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', marginBottom: '1.5rem' }}>
                 <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 3 }}>Período seleccionado</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-.3px' }}>{selPeriodo || 'Elegir mes…'}</div>
+                    <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--ink-3)', marginBottom: 3, fontFamily: 'var(--font-mono)', letterSpacing: '.12em', textTransform: 'uppercase' }}>Período seleccionado</div>
+                    <div style={{ fontSize: 18, fontWeight: 500, letterSpacing: '-.01em', fontFamily: 'var(--font-mono)' }}>{selPeriodo || 'Elegir mes…'}</div>
                 </div>
                 <Calendar size={20} color="var(--text-tertiary)" />
             </div>
