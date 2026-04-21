@@ -298,8 +298,8 @@ select.input {
 }
 
 .tag-olive { background: var(--olive-soft); border-color: var(--olive);      color: var(--olive-deep); }
-.tag-red   { background: var(--red-soft);   border-color: var(--red-soft);   color: var(--red); }
-.tag-amber { background: var(--amber-soft); border-color: var(--amber-soft); color: var(--amber); }
+.tag-red   { background: var(--red-soft);   border-color: var(--red);         color: var(--red); }
+.tag-amber { background: var(--amber-soft); border-color: var(--amber);       color: var(--amber); }
 .tag-ink   { background: var(--ink);        border-color: var(--ink);        color: var(--bone); }
 
 /* ── Progress Bar ───────────────────────────────────────────────── */
