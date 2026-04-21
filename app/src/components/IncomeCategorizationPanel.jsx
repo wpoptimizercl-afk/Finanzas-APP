@@ -90,7 +90,7 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
                                 <button
                                     onClick={() => toggleItem(item.id)}
                                     style={{
-                                        width: 20, height: 20, minWidth: 20, borderRadius: 4,
+                                        width: 20, height: 20, minWidth: 20, borderRadius: 'var(--radius-sm)',
                                         border: isSelected ? '2px solid var(--olive, #059669)' : '2px solid var(--border)',
                                         background: isSelected ? 'var(--olive, #059669)' : 'transparent',
                                         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -123,7 +123,7 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
                                             disabled={!isSelected}
                                             style={{
                                                 fontSize: 11, fontWeight: isActive ? 600 : 400,
-                                                padding: '3px 10px', borderRadius: 20,
+                                                padding: '3px 10px', borderRadius: 'var(--radius-full)',
                                                 border: `1.5px solid ${isActive ? cat.color : 'var(--border)'}`,
                                                 background: isActive ? cat.color + '22' : 'transparent',
                                                 color: isActive ? cat.color : 'var(--text-secondary)',
@@ -159,7 +159,7 @@ export default function IncomeCategorizationPanel({ items, periodo, incomeCatego
                             onKeyDown={e => e.key === 'Enter' && handleCreateCat()}
                             placeholder="Nombre de categoría..."
                             style={{
-                                flex: 1, fontSize: 12, padding: '6px 10px', borderRadius: 6,
+                                flex: 1, fontSize: 12, padding: '6px 10px', borderRadius: 'var(--radius-md)',
                                 border: '1px solid var(--border)', background: 'var(--surface-raised)',
                                 color: 'var(--text-primary)',
                             }}

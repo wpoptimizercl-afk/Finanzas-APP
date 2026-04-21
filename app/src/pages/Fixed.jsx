@@ -18,7 +18,7 @@ function MonthGrid({ value, onChange }) {
                 {YEARS.map(y => (
                     <button key={y} onClick={() => setYear(y)}
                         style={{
-                            padding: '5px 12px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 600,
+                            padding: '5px 12px', borderRadius: 'var(--radius-md)', fontSize: 13, fontWeight: 600,
                             background: y === year ? 'var(--primary)' : 'var(--bg-hover)',
                             color: y === year ? '#fff' : 'var(--text-secondary)',
                             border: 'none', cursor: 'pointer'
@@ -31,7 +31,7 @@ function MonthGrid({ value, onChange }) {
                 {MONTHS_ABBR.map((m, i) => (
                     <button key={i} onClick={() => onChange({ year, month: i })}
                         className={`month-cell${mon === i && (value?.year ?? year) === year ? ' selected' : ''}`}
-                        style={{ background: mon === i && (value?.year ?? year) === year ? undefined : 'var(--bg-hover)', color: mon === i && (value?.year ?? year) === year ? undefined : 'var(--text-secondary)', border: '1.5px solid transparent', borderRadius: 'var(--radius-sm)', padding: '10px 4px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                        style={{ background: mon === i && (value?.year ?? year) === year ? undefined : 'var(--bg-hover)', color: mon === i && (value?.year ?? year) === year ? undefined : 'var(--text-secondary)', border: '1.5px solid transparent', padding: '10px 4px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                         {m}
                     </button>
                 ))}

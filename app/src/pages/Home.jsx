@@ -119,9 +119,9 @@ export default function HomePage({ allMonths, uniqueSortedPeriods, accounts, fix
                     <button style={navBtn(canNext)} onClick={() => canNext && setSelIdx(clampedIdx + 1)} disabled={!canNext}><ChevronRight size={16} /></button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                    {incomeIsDefault && <Tag label="Ingreso estimado" color="var(--amber)" bg="var(--amber-soft)" />}
-                    {!isLatest && <Tag label="Mes anterior" color="var(--text-tertiary)" bg="var(--bg-hover)" />}
-                    {tcSources.length > 0 && ccSources.length > 0 && <Tag label="TC + CC" color="var(--ink-3)" bg="var(--rule)" />}
+                    {incomeIsDefault && <Tag variant="amber" label="Ingreso estimado" />}
+                    {!isLatest && <Tag label="Mes anterior" />}
+                    {tcSources.length > 0 && ccSources.length > 0 && <Tag label="TC + CC" />}
                     {tempCount > 0 && (
                         <span style={{
                             fontSize: 11, padding: '2px 8px', borderRadius: 'var(--radius-full)',

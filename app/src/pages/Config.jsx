@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit2, X, Pencil } from 'lucide-react';
 import Section from '../components/ui/Section';
 import Modal from '../components/ui/Modal';
+import Tag from '../components/ui/Tag';
 import { CAT, CAT_PALETTE, INCOME_CATS_BUILTIN, INCOME_CAT_COLORS } from '../lib/constants';
 import { hexBg } from '../utils/formatters';
+
+const ACCOUNT_TYPE_COLOR = { tc: '#C43A2F', cc: '#8A8B3A' };
 
 const ACCOUNT_TYPE_LABEL = { tc: 'Tarjeta crédito', cc: 'Cuenta corriente', savings: 'Ahorro', cash: 'Efectivo' };
 const ACCOUNT_BANKS = ['santander', 'bci', 'chile', 'scotiabank', 'otro'];
@@ -102,7 +105,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                 name: newAccName.trim(),
                 bank: newAccBank,
                 type: newAccType,
-                color: newAccType === 'cc' ? '#0891B2' : '#E11D48',
+                color: ACCOUNT_TYPE_COLOR[newAccType] || '#54514A',
                 icon: newAccType === 'cc' ? 'bank' : 'card',
             });
             setShowNewAcc(false);
@@ -229,15 +232,13 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                                     setEditAccType(a.type || 'tc');
                                     setEditAccBank(a.bank || 'otro');
                                 }}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, margin: -4, borderRadius: 6, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', transition: 'color 0.15s, background 0.15s', flexShrink: 0 }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, margin: -4, borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', transition: 'color 0.15s, background 0.15s', flexShrink: 0 }}
                                 title="Editar cuenta"
                                 aria-label={`Editar cuenta ${a.name}`}
                             >
                                 <Pencil size={13} />
                             </button>
-                            <span style={{ fontSize: 10, fontWeight: 600, background: a.type === 'cc' ? 'var(--rule)' : 'var(--red-soft)', color: a.type === 'cc' ? 'var(--ink-3)' : 'var(--red)', padding: '2px 8px', borderRadius: 'var(--radius-sm)' }}>
-                                {ACCOUNT_TYPE_LABEL[a.type] || a.type}
-                            </span>
+                            <Tag variant={a.type === 'cc' ? 'olive' : 'red'} label={ACCOUNT_TYPE_LABEL[a.type] || a.type} />
                         </div>
                     ))}
                 </div>
@@ -455,10 +456,10 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                                 placeholder="ej: Mi Visa, Cuenta principal…"
                                 maxLength={40}
                                 autoFocus
-                                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
+                                style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
                             />
                             {accounts.some(a => a.id !== editingAccount.id && a.name.toLowerCase() === editAccName.trim().toLowerCase()) && (
-                                <span style={{ fontSize: 11, color: '#E11D48', marginTop: 4, display: 'block' }}>
+                                <span style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4, display: 'block' }}>
                                     Ya tienes una cuenta con ese nombre
                                 </span>
                             )}
@@ -470,7 +471,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                             <select
                                 value={editAccType}
                                 onChange={e => setEditAccType(e.target.value)}
-                                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14 }}
+                                style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14 }}
                             >
                                 {Object.entries(ACCOUNT_TYPE_LABEL).map(([k, v]) => (
                                     <option key={k} value={k}>{v}</option>
@@ -484,7 +485,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                             <select
                                 value={editAccBank}
                                 onChange={e => setEditAccBank(e.target.value)}
-                                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14 }}
+                                style={{ width: '100%', padding: '8px 12px', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-medium)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 14 }}
                             >
                                 {ACCOUNT_BANKS.map(b => (
                                     <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>

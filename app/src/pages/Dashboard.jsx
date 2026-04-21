@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { Upload } from 'lucide-react';
 import Metric from '../components/ui/Metric';
+import Tag from '../components/ui/Tag';
 import Section from '../components/ui/Section';
 import ChartTooltip from '../components/charts/ChartTooltip';
 import HealthSemaphore from '../components/HealthSemaphore';
@@ -149,29 +150,17 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                     {/* Pills de contexto */}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
                         {momDelta !== null && (
-                            <span style={{
-                                fontSize: 11, padding: '3px 9px', borderRadius: 6,
-                                background: momDelta <= 0 ? 'var(--success-light)' : 'var(--danger-light)',
-                                border: `1px solid ${momDelta <= 0 ? 'var(--olive-soft)' : 'var(--red-soft)'}`,
-                                color: momDelta <= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 500
-                            }}>
-                                {momDelta <= 0 ? '↓' : '↑'} Gasto {momDelta <= 0 ? 'bajó' : 'subió'} {CLP(Math.abs(momDelta))}
-                            </span>
+                            <Tag variant={momDelta <= 0 ? 'olive' : 'red'}
+                                label={`${momDelta <= 0 ? '↓' : '↑'} Gasto ${momDelta <= 0 ? 'bajó' : 'subió'} ${CLP(Math.abs(momDelta))}`} />
                         )}
                         {bestMonth && !isLastOnly && (
-                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, background: 'var(--success-light)', border: '1px solid var(--olive-soft)', color: 'var(--success)', fontWeight: 500 }}>
-                                Mayor excedente: {bestMonth.label} · {CLP(bestMonth.ahorro)}
-                            </span>
+                            <Tag variant="olive" label={`Mayor excedente: ${bestMonth.label} · ${CLP(bestMonth.ahorro)}`} />
                         )}
                         {worstMonth && (
-                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, background: 'var(--danger-light)', border: '1px solid var(--red-soft)', color: 'var(--danger)', fontWeight: 500 }}>
-                                Menor: {worstMonth.label} · {CLP(worstMonth.ahorro)}
-                            </span>
+                            <Tag variant="red" label={`Menor: ${worstMonth.label} · ${CLP(worstMonth.ahorro)}`} />
                         )}
                         {totalSavings > 0 && !isLastOnly && (
-                            <span style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, background: 'var(--success-light)', border: '1px solid var(--olive-soft)', color: 'var(--success)', fontWeight: 500 }}>
-                                Excedente efectivo: {CLP(totalSavings)}
-                            </span>
+                            <Tag variant="olive" label={`Excedente efectivo: ${CLP(totalSavings)}`} />
                         )}
                     </div>
 
@@ -194,7 +183,7 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
                             {[['var(--ink)', 'Ingreso'], ['var(--olive)', 'Egreso']].map(([c, l]) => (
                                 <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-secondary)' }}>
-                                    <span style={{ width: 8, height: 8, borderRadius: 3, background: c, display: 'inline-block' }} />{l}
+                                    <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-sm)', background: c, display: 'inline-block' }} />{l}
                                 </div>
                             ))}
                         </div>
@@ -300,8 +289,8 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                                         <span style={{ color: 'var(--text-tertiary)', marginLeft: 7 }}>prom {CLP(c.avg)}/mes</span>
                                     </div>
                                 </div>
-                                <div style={{ background: 'var(--bg-hover)', borderRadius: 4, height: 3 }}>
-                                    <div style={{ width: pct(c.total, topCats[0].total) + '%', height: 3, borderRadius: 4, background: c.color, transition: 'width .6s ease' }} />
+                                <div style={{ background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', height: 3 }}>
+                                    <div style={{ width: pct(c.total, topCats[0].total) + '%', height: 3, borderRadius: 'var(--radius-sm)', background: c.color, transition: 'width .6s ease' }} />
                                 </div>
                             </div>
                         ))}

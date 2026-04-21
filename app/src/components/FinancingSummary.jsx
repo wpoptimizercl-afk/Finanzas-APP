@@ -1,5 +1,6 @@
 import { getTotalFinancing, getFinancingUtilization, getCreditLineData } from '../utils/calculations';
 import { CLP } from '../utils/formatters';
+import Tag from './ui/Tag';
 
 const RISK_COLORS = {
     low:    { bar: 'var(--success)',  text: 'var(--success)',  label: 'Uso bajo' },
@@ -28,17 +29,11 @@ export default function FinancingSummary({ periodo, months }) {
         <div className="card financing-summary" style={{ padding: '16px', marginBottom: '1.5rem' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '.2em', fontFamily: 'var(--font-sans)' }}>
                     Total Financiamiento
                 </span>
                 {hasCl && riskLevel !== 'none' && (
-                    <span style={{
-                        fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 'var(--radius-full)',
-                        color: risk.text,
-                        background: riskLevel === 'high' ? 'var(--danger-border)' : riskLevel === 'medium' ? 'var(--warning-light)' : 'var(--success-light)',
-                    }}>
-                        {risk.label}
-                    </span>
+                    <Tag variant={riskLevel === 'high' ? 'red' : riskLevel === 'medium' ? 'amber' : 'olive'} label={risk.label} />
                 )}
             </div>
 

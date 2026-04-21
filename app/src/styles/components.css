@@ -171,6 +171,22 @@
     transform: scale(0.95);
 }
 
+/* Accent — Olive CTA (confirmación final de acción que cambia estado) */
+.btn-accent {
+    background: var(--olive);
+    color: var(--olive-ink);
+    font-weight: 600;
+}
+
+.btn-accent:hover {
+    transform: scale(1.05);
+    filter: brightness(.95);
+}
+
+.btn-accent:active {
+    transform: scale(.95);
+}
+
 .btn-icon {
     padding: 8px;
     border-radius: var(--radius-full);
@@ -208,8 +224,10 @@
     .btn-primary:hover, .btn-primary:active,
     .btn-ghost:hover, .btn-ghost:active,
     .btn-danger:hover, .btn-danger:active,
+    .btn-accent:hover, .btn-accent:active,
     .btn-icon:hover, .btn-icon:active {
         transform: none;
+        filter: none;
     }
 }
 
@@ -217,7 +235,7 @@
 .input {
     width: 100%;
     padding: 10px 14px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
     border: 1.5px solid var(--border-medium);
     background: var(--bg-input);
     color: var(--text-primary);
@@ -259,9 +277,9 @@ select.input {
     gap: 4px;
     padding: 4px 10px;
     border-radius: 6px;
-    border: 1px solid var(--rule-2);
-    background: var(--bg-app);
-    color: var(--text-secondary);
+    border: 1px solid var(--rule);
+    background: var(--bone);
+    color: var(--ink-2);
     font-family: var(--font-mono);
     font-size: 11px;
     letter-spacing: .02em;
@@ -278,6 +296,11 @@ select.input {
     transform: scale(1.04);
     filter: brightness(.96);
 }
+
+.tag-olive { background: var(--olive-soft); border-color: var(--olive);      color: var(--olive-deep); }
+.tag-red   { background: var(--red-soft);   border-color: var(--red-soft);   color: var(--red); }
+.tag-amber { background: var(--amber-soft); border-color: var(--amber-soft); color: var(--amber); }
+.tag-ink   { background: var(--ink);        border-color: var(--ink);        color: var(--bone); }
 
 /* ── Progress Bar ───────────────────────────────────────────────── */
 .progress-track {
@@ -977,9 +1000,9 @@ select.input {
     .month-sel-btn:hover { transform: none; }
 }
 
-/* ── FinancingSummary ─────────────────────────────────────────────── */
+/* ── FinancingSummary — editorial flat, usa .card border-top ─────── */
 .financing-summary {
-    border-left: 3px solid var(--danger);
+    padding-left: 0;
 }
 
 .financing-summary .progress-track {
