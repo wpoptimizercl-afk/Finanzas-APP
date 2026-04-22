@@ -2,12 +2,12 @@ export const CAT = {
     supermercado: { label: 'Supermercado', color: 'var(--ink)', bg: 'var(--rule)' },
     minimarket: { label: 'Minimarket', color: 'var(--ink-2)', bg: 'var(--rule)' },
     delivery: { label: 'Delivery', color: 'var(--ink-3)', bg: 'var(--rule)' },
-    transporte: { label: 'Transporte', color: 'var(--lime)', bg: 'var(--rule-2)' },
-    mascotas: { label: 'Mascotas', color: 'var(--ink-4)', bg: 'var(--rule)' },
-    lavanderia: { label: 'Lavandería', color: 'var(--sky)', bg: 'var(--rule)' },
-    ropa_moda: { label: 'Ropa y moda', color: 'var(--violet)', bg: 'var(--rule)' },
-    restaurantes: { label: 'Restaurantes', color: '#3D3B34', bg: 'var(--rule)' },
-    entretenimiento: { label: 'Entretenimiento', color: 'var(--mint)', bg: 'var(--rule)' },
+    transporte: { label: 'Transporte', color: 'var(--olive-deep)', bg: 'var(--olive-soft)' },
+    mascotas: { label: 'Mascotas', color: 'var(--ink-2)', bg: 'var(--rule)' },
+    lavanderia: { label: 'Lavandería', color: 'var(--ink)', bg: 'var(--sky)' },
+    ropa_moda: { label: 'Ropa y moda', color: 'var(--ink)', bg: 'var(--violet)' },
+    restaurantes: { label: 'Restaurantes', color: 'var(--ink)', bg: 'var(--rule)' },
+    entretenimiento: { label: 'Entretenimiento', color: 'var(--ink)', bg: 'var(--mint)' },
     telefonia_internet: { label: 'Telefonía e internet', color: 'var(--ink-2)', bg: 'var(--rule)' },
     cuotas: { label: 'Cuotas', color: 'var(--red)', bg: 'var(--red-soft)' },
     cargos_banco: { label: 'Cargos bancarios', color: 'var(--ink-3)', bg: 'var(--rule)' },
@@ -16,11 +16,11 @@ export const CAT = {
     transferencia_recibida: { label: 'Ingresos', color: 'var(--olive)', bg: 'var(--olive-soft)' },
     transferencia_enviada: { label: 'Transferencia enviada', color: 'var(--ink-2)', bg: 'var(--rule)' },
     pago_servicios: { label: 'Pago de servicios', color: 'var(--ink-3)', bg: 'var(--rule)' },
-    traspaso_tc: { label: 'Pago tarjeta de crédito', color: 'var(--ink-4)', bg: 'var(--rule)' },
+    traspaso_tc: { label: 'Pago tarjeta de crédito', color: 'var(--ink-2)', bg: 'var(--rule)' },
     uso_lc:       { label: 'Uso línea de crédito',  color: 'var(--red)', bg: 'var(--red-soft)' },
     pago_credito: { label: 'Pago línea de crédito', color: 'var(--ink)', bg: 'var(--rule)' },
     ahorro: { label: 'Ahorro / inversión', color: 'var(--olive)', bg: 'var(--olive-soft)' },
-    otros: { label: 'Otros', color: 'var(--ink-4)', bg: 'var(--rule)' },
+    otros: { label: 'Otros', color: 'var(--ink-2)', bg: 'var(--rule)' },
 };
 
 export const FIXED_CATS = [
@@ -35,7 +35,7 @@ export const FIXED_CATS = [
 export const SOURCE_OPTS = [
     { id: 'fijo', label: 'Recurrente', color: 'var(--ink-2)', bg: 'var(--rule)' },
     { id: 'efectivo', label: 'Efectivo', color: 'var(--olive)', bg: 'var(--olive-soft)' },
-    { id: 'debito', label: 'Débito', color: 'var(--ink-4)', bg: 'var(--rule)' },
+    { id: 'debito', label: 'Débito', color: 'var(--ink-2)', bg: 'var(--rule)' },
 ];
 
 export const INCOME_CATS_BUILTIN = [

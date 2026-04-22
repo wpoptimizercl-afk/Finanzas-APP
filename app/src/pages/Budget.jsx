@@ -81,7 +81,7 @@ export default function BudgetPage({ budget, allCats, months, fixedByMonth, inco
             )}
             <div className="card" style={{ padding: '4px 0', marginBottom: '1.5rem' }}>
                 {allCatKeys.map((k, i) => {
-                    const catInfo = allCats[k] || { label: k, color: '#888' };
+                    const catInfo = allCats[k] || { label: k, color: 'var(--ink-2)' };
                     const tope = form.categories[k] || 0;
                     const actual = catActual[k] || 0;
                     const over = tope > 0 && actual > tope;

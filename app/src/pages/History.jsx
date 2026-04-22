@@ -362,7 +362,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
             {/* Transaction groups */}
             {(() => {
                 const renderGroup = (entries) => entries.map(([cat, txList]) => {
-                    const catObj = allCats[cat] || { label: cat, color: '#888', bg: '#F3F4F6' };
+                    const catObj = allCats[cat] || { label: cat, color: 'var(--ink-2)', bg: 'var(--rule)' };
                     const catTotal = txList.reduce((s, t) => s + t.monto, 0);
                     const isCollapsed = collapsedCats[cat] !== false;
                     const label = catObj.label.charAt(0).toUpperCase() + catObj.label.slice(1).toLowerCase();

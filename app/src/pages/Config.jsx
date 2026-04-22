@@ -402,7 +402,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                                         Sin resultados para "{ruleSearch}"
                                     </div>
                                 ) : ruleEntries.map(([desc, cat], i) => {
-                                    const catObj = { label: cat, color: '#888', bg: '#F3F4F6', ...(CAT[cat] || {}) };
+                                    const catObj = { label: cat, color: 'var(--ink-2)', bg: 'var(--rule)', ...(CAT[cat] || {}) };
                                     return (
                                         <div key={desc} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: i < ruleEntries.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                                             <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</span>
