@@ -406,7 +406,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                                     return (
                                         <div key={desc} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderBottom: i < ruleEntries.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
                                             <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{desc}</span>
-                                            <span className="tag" style={{ background: catObj.bg, color: catObj.color, flexShrink: 0 }}>→ {catObj.label}</span>
+                                            <span className="tag" style={{ background: catObj.bg, color: catObj.color, flexShrink: 0, minWidth: 110, justifyContent: 'center' }}>{catObj.label}</span>
                                             <button onClick={() => setDelRuleKey(desc)} className="btn-icon btn-sm" style={{ color: 'var(--danger)', borderColor: 'var(--danger-border)', flexShrink: 0 }} title="Eliminar regla"><Trash2 size={12} /></button>
                                         </div>
                                     );
