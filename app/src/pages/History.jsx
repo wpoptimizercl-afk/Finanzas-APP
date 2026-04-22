@@ -24,7 +24,7 @@ function RecategorizeButton({ categoria, txId, txDesc, periodo, onRecategorize, 
                     background: open ? 'var(--primary-light)' : 'transparent',
                     borderRadius: 'var(--radius-sm)',
                     cursor: 'pointer',
-                    color: open ? 'var(--primary)' : 'var(--text-tertiary)',
+                    color: open ? 'var(--primary)' : 'var(--ink-3)',
                     transition: 'background 150ms, color 150ms',
                     touchAction: 'manipulation',
                 }}
@@ -397,9 +397,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                                         }}>temporal</span>
                                                     )}
                                                     {sources.length > 1 && (
-                                                        <span className={`tag tag-xs ${t._isCC ? 'tag-olive' : 'tag-red'}`}>
-                                                            {t._accountName}
-                                                        </span>
+                                                        <span style={{ color: 'var(--ink-4)', fontSize: 10, letterSpacing: '.02em' }}>· {t._accountName}</span>
                                                     )}
                                                     <RecategorizeButton
                                                         categoria={t.categoria}
