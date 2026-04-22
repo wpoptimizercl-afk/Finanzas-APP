@@ -391,7 +391,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                                     {t.is_temporary && (
                                                         <span style={{
                                                             fontSize: 9, fontWeight: 700, padding: '1px 6px',
-                                                            borderRadius: 'var(--radius-full)',
+                                                            borderRadius: 3,
                                                             background: 'var(--warning-light)', color: 'var(--warning)',
                                                             border: '1px solid var(--warning-border)', whiteSpace: 'nowrap',
                                                         }}>temporal</span>
