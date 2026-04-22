@@ -502,6 +502,69 @@ select.input {
     gap: 8px;
 }
 
+/* ── Bottom Sheet ────────────────────────────────────────────────── */
+.bottom-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 15, 12, .45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    animation: fadeIn .15s both;
+}
+
+.bottom-sheet {
+    background: var(--bg-card);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    width: 100%;
+    max-height: 72vh;
+    overflow-y: auto;
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+    box-shadow: 0 -4px 24px rgba(14, 15, 12, .12);
+    animation: slideUp .24s cubic-bezier(.32,.72,0,1) both;
+}
+
+.bottom-sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--rule);
+    border-radius: 2px;
+    margin: 12px auto 16px;
+    flex-shrink: 0;
+}
+
+.bottom-sheet-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: background var(--transition-fast);
+}
+
+.bottom-sheet-item:active {
+    background: var(--bg-hover);
+}
+
+.bottom-sheet-item.active {
+    font-weight: 600;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+
 /* ── Dropdown ────────────────────────────────────────────────────── */
 .dropdown {
     position: absolute;

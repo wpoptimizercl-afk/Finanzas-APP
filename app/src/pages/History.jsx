@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronRight as ChevronRightSm, Search, Trash2, SlidersHorizontal, X, Tag, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import Modal from '../components/ui/Modal';
 import { CategoryPicker } from '../components/CategoryPicker';
@@ -6,10 +6,9 @@ import { CLP } from '../utils/formatters';
 
 function RecategorizeButton({ categoria, txId, txDesc, periodo, onRecategorize, allCats }) {
     const [open, setOpen] = useState(false);
-    const ref = useRef(null);
 
     return (
-        <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
+        <div style={{ display: 'inline-flex' }}>
             <button
                 aria-label="Recategorizar transacción"
                 onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
@@ -38,7 +37,6 @@ function RecategorizeButton({ categoria, txId, txDesc, periodo, onRecategorize, 
                     allCats={allCats}
                     onSelect={cat => { onRecategorize(periodo, txId, cat, txDesc); setOpen(false); }}
                     onClose={() => setOpen(false)}
-                    anchorRef={ref}
                 />
             )}
         </div>
