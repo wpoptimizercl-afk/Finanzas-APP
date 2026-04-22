@@ -179,12 +179,12 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
                                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                                 <YAxis tickFormatter={CLPk} tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} width={40} />
                                 <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--border-light)', opacity: .6 }} />
-                                <Bar dataKey="income" name="Ingreso" fill="var(--ink)" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="gasto" name="Egreso" fill="var(--olive)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="income" name="Ingreso" fill="var(--olive)" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="gasto" name="Egreso" fill="var(--ink)" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap' }}>
-                            {[['var(--ink)', 'Ingreso'], ['var(--olive)', 'Egreso']].map(([c, l]) => (
+                            {[['var(--olive)', 'Ingreso'], ['var(--ink)', 'Egreso']].map(([c, l]) => (
                                 <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--text-secondary)' }}>
                                     <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-sm)', background: c, display: 'inline-block' }} />{l}
                                 </div>
