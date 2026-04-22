@@ -1,8 +1,39 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
-export function CategoryPicker({ current, allCats, onSelect, onClose }) {
-    return (
-        <div onClick={e => e.stopPropagation()} className="dropdown" style={{ minWidth: 210 }}>
+export function CategoryPicker({ current, allCats, onSelect, onClose, anchorRef }) {
+    const dropRef = useRef(null);
+    const [pos, setPos] = useState(null);
+
+    useLayoutEffect(() => {
+        if (!anchorRef?.current) return;
+        const r = anchorRef.current.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const right = window.innerWidth - r.right;
+        setPos(
+            vh - r.bottom > 220
+                ? { top: r.bottom + 6, right }
+                : { bottom: vh - r.top + 6, right }
+        );
+    }, []);
+
+    useEffect(() => {
+        const h = e => {
+            if (!anchorRef?.current?.contains(e.target) && !dropRef.current?.contains(e.target)) {
+                onClose();
+            }
+        };
+        document.addEventListener('mousedown', h);
+        return () => document.removeEventListener('mousedown', h);
+    }, [onClose, anchorRef]);
+
+    return createPortal(
+        <div
+            ref={dropRef}
+            onClick={e => e.stopPropagation()}
+            className="dropdown"
+            style={{ minWidth: 210, position: 'fixed', ...(pos ?? { top: -9999, right: 0 }) }}
+        >
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '.08em', padding: '4px 8px 8px' }}>
                 Categoría
             </div>
@@ -23,20 +54,14 @@ export function CategoryPicker({ current, allCats, onSelect, onClose }) {
                     Cancelar
                 </button>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 
 export function ClickableTag({ label, color, bg, categoria, txId, periodo, onRecategorize, allCats }) {
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
-
-    useEffect(() => {
-        if (!open) return;
-        const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-        document.addEventListener('mousedown', h);
-        return () => document.removeEventListener('mousedown', h);
-    }, [open]);
 
     return (
         <div ref={ref} style={{ position: 'relative' }}>
@@ -57,6 +82,7 @@ export function ClickableTag({ label, color, bg, categoria, txId, periodo, onRec
                     allCats={allCats}
                     onSelect={cat => onRecategorize(periodo, txId, cat)}
                     onClose={() => setOpen(false)}
+                    anchorRef={ref}
                 />
             )}
         </div>

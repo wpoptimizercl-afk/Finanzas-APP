@@ -8,13 +8,6 @@ function RecategorizeButton({ categoria, txId, txDesc, periodo, onRecategorize, 
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
 
-    useEffect(() => {
-        if (!open) return;
-        const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-        document.addEventListener('mousedown', h);
-        return () => document.removeEventListener('mousedown', h);
-    }, [open]);
-
     return (
         <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
             <button
@@ -45,6 +38,7 @@ function RecategorizeButton({ categoria, txId, txDesc, periodo, onRecategorize, 
                     allCats={allCats}
                     onSelect={cat => { onRecategorize(periodo, txId, cat, txDesc); setOpen(false); }}
                     onClose={() => setOpen(false)}
+                    anchorRef={ref}
                 />
             )}
         </div>
