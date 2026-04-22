@@ -1,9 +1,10 @@
-export default function Tag({ label, color, bg, onClick, open, variant }) {
+export default function Tag({ label, color, bg, onClick, open, variant, style: extraStyle }) {
     const variantClass = variant && variant !== 'default' ? ` tag-${variant}` : '';
     const hasLegacy = color !== undefined || bg !== undefined;
-    const style = hasLegacy
+    const baseStyle = hasLegacy
         ? { background: bg, color, border: open ? `1.5px solid ${color}` : '1px solid var(--rule-2)' }
         : undefined;
+    const style = (baseStyle || extraStyle) ? { ...baseStyle, ...extraStyle } : undefined;
     return (
         <span
             onClick={onClick}

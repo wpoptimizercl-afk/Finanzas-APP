@@ -238,7 +238,7 @@ export default function ConfigPage({ customCats, catRules, accounts, incomeCateg
                             >
                                 <Pencil size={13} />
                             </button>
-                            <Tag variant={a.type === 'cc' ? 'olive' : (a.type === 'lc' || a.type === 'credit_line') ? 'amber' : 'red'} label={ACCOUNT_TYPE_LABEL[a.type] || a.type} />
+                            <Tag variant={a.type === 'cc' ? 'olive' : (a.type === 'lc' || a.type === 'credit_line') ? 'amber' : 'red'} label={ACCOUNT_TYPE_LABEL[a.type] || a.type} style={{ minWidth: 132, justifyContent: 'center' }} />
                         </div>
                     ))}
                 </div>
