@@ -397,7 +397,7 @@ export default function HistoryPage({ allMonths, uniqueSortedPeriods, accounts, 
                                                         }}>temporal</span>
                                                     )}
                                                     {sources.length > 1 && (
-                                                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 'var(--radius-full)', background: `${t._accountColor}18`, color: t._accountColor, fontWeight: 600, border: `1px solid ${t._accountColor}30` }}>
+                                                        <span className={`tag tag-xs ${t._isCC ? 'tag-olive' : 'tag-red'}`}>
                                                             {t._accountName}
                                                         </span>
                                                     )}
