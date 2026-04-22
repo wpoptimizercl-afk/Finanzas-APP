@@ -117,9 +117,12 @@ export function DashboardInner({ months, accounts = [], fixedByMonth, incomeByMo
     return (
         <div className="animate-fadeIn">
             {/* Header — full width, fuera del grid */}
-            <div className="page-header-meta">
-                <div className="page-subtitle">
-                    {isLastOnly ? latest?.label : `${series[0]?.label} → ${series[n - 1]?.label}`}
+            <div className="page-header">
+                <div>
+                    <div className="page-title">
+                        {isLastOnly ? latest?.label : `${series[0]?.label} → ${series[n - 1]?.label}`}
+                    </div>
+                    <div className="page-subtitle">Resumen financiero del período</div>
                 </div>
                 <MonthSelector
                     value={selectorValue}
